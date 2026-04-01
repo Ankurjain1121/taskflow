@@ -7,8 +7,8 @@ pub struct TaskSearchResult {
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub board_id: Uuid,
-    pub board_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
     pub workspace_id: Uuid,
     pub workspace_name: String,
 }
@@ -28,8 +28,8 @@ pub struct CommentSearchResult {
     pub content: String,
     pub task_id: Uuid,
     pub task_title: String,
-    pub board_id: Uuid,
-    pub board_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
     pub workspace_id: Uuid,
 }
 
@@ -53,7 +53,7 @@ pub struct SearchFilters {
     pub assignee: Option<String>,
     pub label: Option<String>,
     pub status: Option<String>,
-    pub board_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
 }
 
 /// Escape LIKE metacharacters (`%`, `_`, `\`) so that user input is treated
@@ -80,8 +80,8 @@ pub async fn search_all(
     // Optional filters use the ($N::text IS NULL OR ...) pattern for conditional filtering
     let tasks = sqlx::query_as::<_, TaskSearchResult>(
         r"
-        SELECT t.id, t.title, t.description, t.project_id as board_id,
-               b.name as board_name, b.workspace_id,
+        SELECT t.id, t.title, t.description, t.project_id,
+               b.name as project_name, b.workspace_id,
                w.name as workspace_name
         FROM tasks t
         JOIN projects b ON b.id = t.project_id
@@ -114,7 +114,7 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
-    .bind(filters.board_id)
+    .bind(filters.project_id)
     .bind(&filters.assignee)
     .bind(&filters.label)
     .bind(&filters.status)
@@ -140,7 +140,7 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
-    .bind(filters.board_id)
+    .bind(filters.project_id)
     .bind(query)
     .fetch_all(pool)
     .await?;
@@ -150,8 +150,8 @@ pub async fn search_all(
     let comments = sqlx::query_as::<_, CommentSearchResult>(
         r"
         SELECT c.id, c.content, c.task_id,
-               t.title as task_title, t.project_id as board_id,
-               b.name as board_name, b.workspace_id
+               t.title as task_title, t.project_id,
+               b.name as project_name, b.workspace_id
         FROM comments c
         JOIN tasks t ON t.id = c.task_id
         JOIN projects b ON b.id = t.project_id
@@ -166,7 +166,7 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
-    .bind(filters.board_id)
+    .bind(filters.project_id)
     .bind(query)
     .fetch_all(pool)
     .await?;

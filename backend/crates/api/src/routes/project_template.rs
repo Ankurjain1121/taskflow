@@ -113,7 +113,7 @@ async fn create_board_from_template_handler(
     .await
     .map_err(map_error)?;
 
-    Ok(Json(json!({ "board_id": board_id })))
+    Ok(Json(json!({ "project_id": board_id })))
 }
 
 /// POST /boards/{board_id}/save-as-template

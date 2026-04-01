@@ -363,7 +363,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             // Broadcast updated viewer list
                             if let Ok(viewers) = presence.get_board_viewers(board_id).await {
                                 let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                                    project_id: board_id,
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
@@ -383,7 +383,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             // Broadcast updated viewer list
                             if let Ok(viewers) = presence.get_board_viewers(board_id).await {
                                 let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                                    project_id: board_id,
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
@@ -399,7 +399,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         match presence.heartbeat(board_id, user_id).await {
                             Ok(active_users) => {
                                 let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                                    project_id: board_id,
                                     user_ids: active_users,
                                 };
                                 if let Err(e) =
@@ -516,7 +516,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
             // Broadcast updated viewer list after removal
             if let Ok(viewers) = presence.get_board_viewers(*board_id).await {
                 let event = WsBoardEvent::PresenceUpdate {
-                    board_id: *board_id,
+                    project_id: *board_id,
                     user_ids: viewers,
                 };
                 if let Err(e) = broadcast.broadcast_project_event(*board_id, &event).await {

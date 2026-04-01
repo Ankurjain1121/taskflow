@@ -158,7 +158,7 @@ fn infer_route_id(path: &str, method: &Method) -> Option<&'static str> {
     // Match common patterns
     match (method, parts.as_slice()) {
         // Tasks
-        (&Method::POST, ["api", "boards", _, "tasks"]) => Some("tasks.create"),
+        (&Method::POST, ["api", "projects", _, "tasks"]) => Some("tasks.create"),
         (&Method::PUT, ["api", "tasks", _]) => Some("tasks.update"),
         (&Method::DELETE, ["api", "tasks", _]) => Some("tasks.delete"),
         (&Method::POST, ["api", "tasks", _, "move"]) => Some("tasks.move"),
@@ -206,6 +206,7 @@ fn extract_entity_from_path(path: &str) -> Option<(String, Uuid)> {
             let entity_type = match parts[i] {
                 "tasks" => "task",
                 "boards" => "board",
+                "projects" => "project",
                 "workspaces" => "workspace",
                 "comments" => "comment",
                 "attachments" => "attachment",

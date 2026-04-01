@@ -29,7 +29,7 @@ impl PresenceService {
     }
 
     fn board_key(board_id: Uuid) -> String {
-        format!("presence:board:{}", board_id)
+        format!("presence:project:{}", board_id)
     }
 
     fn lock_key(task_id: Uuid) -> String {
