@@ -40,7 +40,7 @@ pub async fn list_tasks_flat(
     }
 
     let tasks = sqlx::query_as::<_, TaskListItem>(
-        r#"
+        r"
         SELECT t.id, t.title, t.description,
                t.priority,
                t.due_date, t.status_id,
@@ -57,7 +57,7 @@ pub async fn list_tasks_flat(
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         ORDER BY t.created_at DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -95,7 +95,7 @@ pub async fn list_tasks_for_calendar(
     }
 
     let tasks = sqlx::query_as::<_, CalendarTask>(
-        r#"
+        r"
         SELECT
             t.id, t.title, t.priority,
             t.due_date,
@@ -113,7 +113,7 @@ pub async fn list_tasks_for_calendar(
             AND t.due_date >= $2
             AND t.due_date <= $3
         ORDER BY t.due_date ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(start)
@@ -149,7 +149,7 @@ pub async fn list_tasks_for_gantt(
     }
 
     let tasks = sqlx::query_as::<_, GanttTask>(
-        r#"
+        r"
         SELECT
             t.id, t.title, t.priority,
             t.start_date,
@@ -165,7 +165,7 @@ pub async fn list_tasks_for_gantt(
             AND t.parent_task_id IS NULL
             AND (t.start_date IS NOT NULL OR t.due_date IS NOT NULL)
         ORDER BY COALESCE(t.start_date, t.due_date) ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)

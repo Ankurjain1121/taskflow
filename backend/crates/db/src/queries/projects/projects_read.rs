@@ -85,7 +85,7 @@ pub async fn list_projects_by_workspace(
     workspace_id: Uuid,
 ) -> Result<Vec<Project>, sqlx::Error> {
     sqlx::query_as::<_, Project>(
-        r#"
+        r"
         SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
                p.workspace_id, p.tenant_id, p.created_by_id,
                p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
@@ -94,7 +94,7 @@ pub async fn list_projects_by_workspace(
           AND p.deleted_at IS NULL
         ORDER BY p.created_at DESC
         LIMIT 200
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -108,7 +108,7 @@ pub async fn get_project_by_id(
     user_id: Uuid,
 ) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
     let project = sqlx::query_as::<_, Project>(
-        r#"
+        r"
         SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
                p.workspace_id, p.tenant_id, p.created_by_id,
                p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
@@ -117,7 +117,7 @@ pub async fn get_project_by_id(
         WHERE p.id = $1
           AND pm.user_id = $2
           AND p.deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .bind(user_id)
@@ -127,26 +127,26 @@ pub async fn get_project_by_id(
     match project {
         Some(p) => {
             let task_lists = sqlx::query_as::<_, TaskList>(
-                r#"
+                r"
                 SELECT id, project_id, name, color, position, is_default, collapsed,
                        tenant_id, created_by_id, created_at, updated_at, deleted_at
                 FROM task_lists
                 WHERE project_id = $1 AND deleted_at IS NULL
                 ORDER BY position ASC
-                "#,
+                ",
             )
             .bind(id)
             .fetch_all(pool)
             .await?;
 
             let statuses = sqlx::query_as::<_, ProjectStatus>(
-                r#"
+                r"
                 SELECT id, project_id, name, color, type, position, is_default, tenant_id, created_at,
                        allowed_transitions
                 FROM project_statuses
                 WHERE project_id = $1
                 ORDER BY position ASC
-                "#,
+                ",
             )
             .bind(id)
             .fetch_all(pool)
@@ -168,7 +168,7 @@ pub async fn list_project_members(
     project_id: Uuid,
 ) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
     sqlx::query_as::<_, ProjectMemberWithUser>(
-        r#"
+        r"
         SELECT pm.id, pm.project_id, pm.user_id, pm.role,
                pm.joined_at, u.name, u.email, u.avatar_url
         FROM project_members pm
@@ -176,7 +176,7 @@ pub async fn list_project_members(
         WHERE pm.project_id = $1
           AND u.deleted_at IS NULL
         ORDER BY pm.joined_at ASC
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -190,12 +190,12 @@ pub async fn is_project_member(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM project_members
             WHERE project_id = $1 AND user_id = $2
         )
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)
@@ -227,14 +227,14 @@ pub async fn get_project_member_role(
 /// Get project without membership check (for internal use)
 pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Project>, sqlx::Error> {
     sqlx::query_as::<_, Project>(
-        r#"
+        r"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
                background_color, is_sample, deleted_at, created_at, updated_at
         FROM projects
         WHERE id = $1
           AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -255,7 +255,7 @@ pub async fn list_project_tasks_with_badges(
 
     // Get total count first (respects visibility filtering)
     let total_count: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*)
+        r"SELECT COUNT(*)
         FROM tasks t
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
@@ -275,7 +275,7 @@ pub async fn list_project_tasks_with_badges(
             -- User is assigned to this task
             EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)
           )
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)
@@ -357,7 +357,7 @@ pub async fn list_project_task_assignees(
     project_id: Uuid,
 ) -> Result<Vec<BoardTaskAssignee>, sqlx::Error> {
     sqlx::query_as::<_, BoardTaskAssignee>(
-        r#"
+        r"
         SELECT
             ta.task_id,
             ta.user_id,
@@ -370,7 +370,7 @@ pub async fn list_project_task_assignees(
           AND t.deleted_at IS NULL
           AND u.deleted_at IS NULL
         LIMIT 5000
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -383,7 +383,7 @@ pub async fn list_project_task_labels(
     project_id: Uuid,
 ) -> Result<Vec<BoardTaskLabel>, sqlx::Error> {
     sqlx::query_as::<_, BoardTaskLabel>(
-        r#"
+        r"
         SELECT
             tl.task_id,
             l.id AS label_id,
@@ -395,7 +395,7 @@ pub async fn list_project_task_labels(
         WHERE t.project_id = $1
           AND t.deleted_at IS NULL
         LIMIT 5000
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)

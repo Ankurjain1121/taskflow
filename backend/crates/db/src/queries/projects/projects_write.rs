@@ -20,12 +20,12 @@ pub async fn create_project(
 
     // Create project
     let project = sqlx::query_as::<_, Project>(
-        r#"
+        r"
         INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                   created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
-        "#,
+        ",
     )
     .bind(name)
     .bind(description)
@@ -37,10 +37,10 @@ pub async fn create_project(
 
     // Add creator as project member with owner role
     sqlx::query(
-        r#"
+        r"
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'owner')
-        "#,
+        ",
     )
     .bind(project.id)
     .bind(created_by_id)
@@ -49,12 +49,12 @@ pub async fn create_project(
 
     // Create default task list
     let task_list = sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         INSERT INTO task_lists (project_id, name, color, position, is_default, tenant_id, created_by_id)
         VALUES ($1, 'General', '#6366f1', 'a0', true, $2, $3)
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(project.id)
     .bind(tenant_id)
@@ -87,7 +87,7 @@ pub async fn update_project(
     match background_color {
         Some(color) => {
             sqlx::query_as::<_, Project>(
-                r#"
+                r"
                 UPDATE projects
                 SET name = COALESCE($2, name),
                     description = COALESCE($3, description),
@@ -96,7 +96,7 @@ pub async fn update_project(
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                           created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
-                "#,
+                ",
             )
             .bind(id)
             .bind(name)
@@ -107,7 +107,7 @@ pub async fn update_project(
         }
         None => {
             sqlx::query_as::<_, Project>(
-                r#"
+                r"
                 UPDATE projects
                 SET name = COALESCE($2, name),
                     description = COALESCE($3, description)
@@ -115,7 +115,7 @@ pub async fn update_project(
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                           created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
-                "#,
+                ",
             )
             .bind(id)
             .bind(name)
@@ -129,12 +129,12 @@ pub async fn update_project(
 /// Soft-delete a project
 pub async fn soft_delete_project(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE projects
         SET deleted_at = NOW()
         WHERE id = $1
           AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .execute(pool)
@@ -173,11 +173,11 @@ pub async fn update_project_member_role(
     role: BoardMemberRole,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE project_members
         SET role = $3
         WHERE project_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)
@@ -195,10 +195,10 @@ pub async fn remove_project_member(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM project_members
         WHERE project_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)
@@ -221,14 +221,14 @@ pub async fn duplicate_project(
 
     // 1. Copy the project
     let new_project = sqlx::query_as::<_, Project>(
-        r#"
+        r"
         INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id, background_color)
         SELECT $2, description, workspace_id, tenant_id, $3, background_color
         FROM projects WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, name, description, slack_webhook_url, prefix,
                   workspace_id, tenant_id, created_by_id,
                   background_color, is_sample, deleted_at, created_at, updated_at
-        "#,
+        ",
     )
     .bind(source_id)
     .bind(new_name)
@@ -238,11 +238,11 @@ pub async fn duplicate_project(
 
     // 2. Copy statuses
     sqlx::query(
-        r#"
+        r"
         INSERT INTO project_statuses (id, project_id, name, color, type, position, is_default, tenant_id)
         SELECT gen_random_uuid(), $2, name, color, type, position, is_default, tenant_id
         FROM project_statuses WHERE project_id = $1
-        "#,
+        ",
     )
     .bind(source_id)
     .bind(new_project.id)
@@ -251,14 +251,14 @@ pub async fn duplicate_project(
 
     // 3. Copy task lists
     let new_task_lists = sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         INSERT INTO task_lists (project_id, name, color, position, is_default, tenant_id, created_by_id)
         SELECT $2, name, color, position, is_default, tenant_id, $3
         FROM task_lists WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(source_id)
     .bind(new_project.id)
@@ -269,7 +269,7 @@ pub async fn duplicate_project(
     // 4. Copy tasks (optional) -- map old status to new status by name
     if include_tasks {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO tasks (title, description, priority, due_date, position, project_id,
                                status_id, created_by_id, tenant_id)
             SELECT t.title, t.description, t.priority, t.due_date, t.position, $2,
@@ -278,7 +278,7 @@ pub async fn duplicate_project(
             LEFT JOIN project_statuses os ON os.id = t.status_id
             LEFT JOIN project_statuses ns ON ns.project_id = $2 AND ns.name = os.name
             WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
-            "#,
+            ",
         )
         .bind(source_id)
         .bind(new_project.id)
@@ -289,10 +289,10 @@ pub async fn duplicate_project(
 
     // 5. Add user as Owner
     sqlx::query(
-        r#"
+        r"
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'owner')
-        "#,
+        ",
     )
     .bind(new_project.id)
     .bind(user_id)

@@ -22,7 +22,7 @@ pub async fn list_recent_items(
     limit: i64,
 ) -> Result<Vec<RecentItem>, sqlx::Error> {
     let items = sqlx::query_as::<_, RecentItem>(
-        r#"
+        r"
         SELECT
             ri.id,
             ri.entity_type,
@@ -48,7 +48,7 @@ pub async fn list_recent_items(
           AND ri.tenant_id = $2
         ORDER BY ri.viewed_at DESC
         LIMIT $3
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(tenant_id)
@@ -68,12 +68,12 @@ pub async fn upsert_recent_item(
     entity_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO recent_items (user_id, tenant_id, entity_type, entity_id, viewed_at)
         VALUES ($1, $2, $3, $4, now())
         ON CONFLICT (user_id, entity_type, entity_id)
         DO UPDATE SET viewed_at = now()
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(tenant_id)

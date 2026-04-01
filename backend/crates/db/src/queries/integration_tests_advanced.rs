@@ -541,10 +541,10 @@ async fn insert_test_notification(
 ) -> Uuid {
     let id = Uuid::new_v4();
     sqlx::query(
-        r#"
+        r"
         INSERT INTO notifications (id, recipient_id, event_type, title, body, link_url)
         VALUES ($1, $2, 'task_assigned', $3, $4, NULL)
-        "#,
+        ",
     )
     .bind(id)
     .bind(recipient_id)

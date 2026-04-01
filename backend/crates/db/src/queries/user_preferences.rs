@@ -209,7 +209,7 @@ pub async fn get_quiet_hours(
     user_id: Uuid,
 ) -> Result<Option<(chrono::NaiveTime, chrono::NaiveTime)>, sqlx::Error> {
     let row: Option<(Option<chrono::NaiveTime>, Option<chrono::NaiveTime>)> = sqlx::query_as(
-        r#"SELECT quiet_hours_start, quiet_hours_end FROM user_preferences WHERE user_id = $1"#,
+        r"SELECT quiet_hours_start, quiet_hours_end FROM user_preferences WHERE user_id = $1",
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -250,9 +250,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "UP Test User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "UP Test User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]

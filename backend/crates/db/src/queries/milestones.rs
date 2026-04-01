@@ -64,7 +64,7 @@ pub async fn list_milestones(
     }
 
     let milestones = sqlx::query_as::<_, MilestoneWithProgress>(
-        r#"
+        r"
         SELECT
             m.id,
             m.name,
@@ -87,7 +87,7 @@ pub async fn list_milestones(
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
                  m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
         ORDER BY m.due_date ASC NULLS LAST, m.created_at ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -103,7 +103,7 @@ pub async fn get_milestone(
     user_id: Uuid,
 ) -> Result<MilestoneWithProgress, MilestoneQueryError> {
     let milestone = sqlx::query_as::<_, MilestoneWithProgress>(
-        r#"
+        r"
         SELECT
             m.id,
             m.name,
@@ -125,7 +125,7 @@ pub async fn get_milestone(
         WHERE m.id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
                  m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
-        "#,
+        ",
     )
     .bind(milestone_id)
     .fetch_optional(pool)
@@ -156,14 +156,14 @@ pub async fn create_milestone(
     let color = input.color.unwrap_or_else(|| "#6366f1".to_string());
 
     let milestone = sqlx::query_as::<_, Milestone>(
-        r#"
+        r"
         INSERT INTO milestones (id, name, description, due_date, color, project_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
             id, name, description, due_date, color,
             project_id, tenant_id, created_by_id,
             created_at, updated_at
-        "#,
+        ",
     )
     .bind(milestone_id)
     .bind(&input.name)
@@ -186,7 +186,7 @@ pub async fn update_milestone(
     input: UpdateMilestoneInput,
 ) -> Result<Milestone, MilestoneQueryError> {
     let milestone = sqlx::query_as::<_, Milestone>(
-        r#"
+        r"
         UPDATE milestones
         SET
             name = COALESCE($2, name),
@@ -199,7 +199,7 @@ pub async fn update_milestone(
             id, name, description, due_date, color,
             project_id, tenant_id, created_by_id,
             created_at, updated_at
-        "#,
+        ",
     )
     .bind(milestone_id)
     .bind(&input.name)
@@ -219,10 +219,10 @@ pub async fn delete_milestone(
     milestone_id: Uuid,
 ) -> Result<(), MilestoneQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM milestones
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(milestone_id)
     .execute(pool)
@@ -243,11 +243,11 @@ pub async fn assign_task_to_milestone(
     milestone_id: Uuid,
 ) -> Result<(), MilestoneQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         UPDATE tasks
         SET milestone_id = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(milestone_id)
@@ -268,11 +268,11 @@ pub async fn unassign_task_from_milestone(
     task_id: Uuid,
 ) -> Result<(), MilestoneQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         UPDATE tasks
         SET milestone_id = NULL, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .execute(pool)
@@ -292,9 +292,9 @@ pub async fn get_milestone_board_id(
     milestone_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM milestones WHERE id = $1
-        "#,
+        ",
     )
     .bind(milestone_id)
     .fetch_optional(pool)

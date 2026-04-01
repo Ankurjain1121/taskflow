@@ -126,7 +126,7 @@ pub async fn list_task_time_entries(
 ) -> Result<Vec<TimeEntry>, TimeEntryQueryError> {
     // Verify board membership via task's project_id
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
+        r"SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -138,7 +138,7 @@ pub async fn list_task_time_entries(
     }
 
     let entries = sqlx::query_as::<_, TimeEntry>(
-        r#"
+        r"
         SELECT
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
@@ -146,7 +146,7 @@ pub async fn list_task_time_entries(
         FROM time_entries
         WHERE task_id = $1
         ORDER BY started_at DESC
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)
@@ -166,7 +166,7 @@ pub async fn start_timer(
 
     // Stop any currently running timer for this user
     sqlx::query(
-        r#"
+        r"
         UPDATE time_entries
         SET
             ended_at = NOW(),
@@ -174,7 +174,7 @@ pub async fn start_timer(
             is_running = false,
             updated_at = NOW()
         WHERE user_id = $1 AND is_running = true
-        "#,
+        ",
     )
     .bind(input.user_id)
     .execute(pool)
@@ -184,14 +184,14 @@ pub async fn start_timer(
     let id = Uuid::new_v4();
     let is_billable = input.is_billable.unwrap_or(false);
     let entry = sqlx::query_as::<_, TimeEntry>(
-        r#"
+        r"
         INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, project_id, tenant_id, is_billable)
         VALUES ($1, $2, $3, $4, NOW(), true, $5, $6, $7)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at, is_billable
-        "#,
+        ",
     )
     .bind(id)
     .bind(input.task_id)
@@ -213,19 +213,18 @@ pub async fn stop_timer(
     user_id: Uuid,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify ownership
-    let owner_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
-            .bind(entry_id)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id = sqlx::query_scalar::<_, Uuid>(r"SELECT user_id FROM time_entries WHERE id = $1")
+        .bind(entry_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);
     }
 
     let entry = sqlx::query_as::<_, TimeEntry>(
-        r#"
+        r"
         UPDATE time_entries
         SET
             ended_at = NOW(),
@@ -237,7 +236,7 @@ pub async fn stop_timer(
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at, is_billable
-        "#,
+        ",
     )
     .bind(entry_id)
     .fetch_optional(pool)
@@ -259,14 +258,14 @@ pub async fn create_manual_entry(
     let id = Uuid::new_v4();
     let is_billable = input.is_billable.unwrap_or(false);
     let entry = sqlx::query_as::<_, TimeEntry>(
-        r#"
+        r"
         INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, project_id, tenant_id, is_billable)
         VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at, is_billable
-        "#,
+        ",
     )
     .bind(id)
     .bind(input.task_id)
@@ -292,19 +291,18 @@ pub async fn update_entry(
     user_id: Uuid,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify ownership
-    let owner_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
-            .bind(id)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id = sqlx::query_scalar::<_, Uuid>(r"SELECT user_id FROM time_entries WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);
     }
 
     let entry = sqlx::query_as::<_, TimeEntry>(
-        r#"
+        r"
         UPDATE time_entries
         SET
             description = COALESCE($2, description),
@@ -318,7 +316,7 @@ pub async fn update_entry(
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at, is_billable
-        "#,
+        ",
     )
     .bind(id)
     .bind(&input.description)
@@ -340,18 +338,17 @@ pub async fn delete_entry(
     user_id: Uuid,
 ) -> Result<(), TimeEntryQueryError> {
     // Verify ownership
-    let owner_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
-            .bind(id)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id = sqlx::query_scalar::<_, Uuid>(r"SELECT user_id FROM time_entries WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);
     }
 
-    let rows_affected = sqlx::query(r#"DELETE FROM time_entries WHERE id = $1"#)
+    let rows_affected = sqlx::query(r"DELETE FROM time_entries WHERE id = $1")
         .bind(id)
         .execute(pool)
         .await?
@@ -375,7 +372,7 @@ pub async fn get_board_time_report(
     }
 
     let report = sqlx::query_as::<_, TaskTimeReport>(
-        r#"
+        r"
         SELECT
             t.id as task_id,
             t.title as task_title,
@@ -387,7 +384,7 @@ pub async fn get_board_time_report(
             AND (te.id IS NOT NULL)
         GROUP BY t.id, t.title
         ORDER BY total_minutes DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -411,7 +408,7 @@ pub async fn get_timesheet_report(
     }
 
     let entries = sqlx::query_as::<_, TimesheetEntry>(
-        r#"
+        r"
         SELECT
             te.id,
             te.task_id,
@@ -438,7 +435,7 @@ pub async fn get_timesheet_report(
             AND ($4::uuid IS NULL OR te.user_id = $4)
             AND ($5::bool IS NULL OR $5 = false OR te.is_billable = true)
         ORDER BY te.started_at DESC
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(start_date)
@@ -481,7 +478,7 @@ pub async fn get_running_timer(
     user_id: Uuid,
 ) -> Result<Option<TimeEntryWithTask>, TimeEntryQueryError> {
     let entry = sqlx::query_as::<_, TimeEntryWithTask>(
-        r#"
+        r"
         SELECT
             te.id, te.task_id, te.user_id, te.description, te.started_at, te.ended_at,
             te.duration_minutes, te.is_running, te.project_id, te.tenant_id,
@@ -491,7 +488,7 @@ pub async fn get_running_timer(
         JOIN tasks t ON t.id = te.task_id
         WHERE te.user_id = $1 AND te.is_running = true
         LIMIT 1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -515,10 +512,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user =
-            auth::create_user_with_tenant(pool, &unique_email(), "TimeEntry User", FAKE_HASH, None, false)
-                .await
-                .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "TimeEntry User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

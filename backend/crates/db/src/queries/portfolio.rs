@@ -55,7 +55,7 @@ pub async fn get_portfolio_projects(
     tenant_id: Uuid,
 ) -> Result<Vec<PortfolioProject>, sqlx::Error> {
     let projects = sqlx::query_as::<_, PortfolioProject>(
-        r#"
+        r"
         SELECT
             p.id,
             p.name,
@@ -105,7 +105,7 @@ pub async fn get_portfolio_projects(
         ) next_ms ON true
         WHERE p.workspace_id = $1 AND p.tenant_id = $2 AND p.deleted_at IS NULL
         ORDER BY p.name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(tenant_id)
@@ -122,7 +122,7 @@ pub async fn get_portfolio_milestones(
     tenant_id: Uuid,
 ) -> Result<Vec<PortfolioMilestone>, sqlx::Error> {
     let milestones = sqlx::query_as::<_, PortfolioMilestone>(
-        r#"
+        r"
         SELECT
             m.id,
             m.name,
@@ -144,7 +144,7 @@ pub async fn get_portfolio_milestones(
           AND (m.due_date IS NULL OR m.due_date >= NOW() - INTERVAL '30 days')
         GROUP BY m.id, m.name, m.due_date, m.project_id, p.name, p.background_color
         ORDER BY m.due_date ASC NULLS LAST, m.name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(tenant_id)

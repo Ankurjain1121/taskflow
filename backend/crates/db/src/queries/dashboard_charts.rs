@@ -26,7 +26,7 @@ pub async fn get_tasks_by_status(
     workspace_id: Option<Uuid>,
 ) -> Result<Vec<TasksByStatus>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TasksByStatus>(
-        r#"
+        r"
         SELECT
             bc.name as status,
             COUNT(DISTINCT t.id)::bigint as count,
@@ -41,7 +41,7 @@ pub async fn get_tasks_by_status(
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
         GROUP BY bc.name, bc.color
         ORDER BY count DESC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -65,7 +65,7 @@ pub async fn get_tasks_by_priority(
     workspace_id: Option<Uuid>,
 ) -> Result<Vec<TasksByPriority>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TasksByPriority>(
-        r#"
+        r"
         SELECT
             t.priority,
             COUNT(DISTINCT t.id)::bigint as count
@@ -84,7 +84,7 @@ pub async fn get_tasks_by_priority(
                 WHEN 'medium' THEN 3
                 WHEN 'low' THEN 4
             END
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -112,7 +112,7 @@ pub async fn get_completion_trend(
     let start_date = Utc::now() - chrono::Duration::days(days);
 
     let rows = sqlx::query_as::<_, CompletionTrendPoint>(
-        r#"
+        r"
         SELECT
             DATE(al.created_at)::text as date,
             COUNT(DISTINCT al.entity_id)::bigint as completed
@@ -128,7 +128,7 @@ pub async fn get_completion_trend(
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         GROUP BY DATE(al.created_at)
         ORDER BY date ASC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(start_date)
@@ -192,7 +192,7 @@ pub async fn get_focus_tasks(
     let now = Utc::now();
 
     let rows = sqlx::query_as::<_, FocusTaskRow>(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -246,7 +246,7 @@ pub async fn get_focus_tasks(
             -- Then highest priority without due date
             t.due_date ASC NULLS LAST
         LIMIT 5
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(now)
@@ -261,13 +261,13 @@ pub async fn get_focus_tasks(
     }
 
     let assignee_rows = sqlx::query_as::<_, FocusTaskAssigneeRow>(
-        r#"
+        r"
         SELECT ta.task_id, u.id, u.name, u.avatar_url
         FROM task_assignees ta
         INNER JOIN users u ON u.id = ta.user_id
         WHERE ta.task_id = ANY($1)
         ORDER BY ta.assigned_at ASC
-        "#,
+        ",
     )
     .bind(&task_ids)
     .fetch_all(pool)
@@ -386,7 +386,7 @@ pub async fn get_project_pulse(
     let seven_days_ago = now - chrono::Duration::days(7);
 
     let rows = sqlx::query_as::<_, ProjectPulseRow>(
-        r#"
+        r"
         SELECT
             p.id AS project_id,
             p.name AS project_name,
@@ -410,7 +410,7 @@ pub async fn get_project_pulse(
           AND ($4::uuid IS NULL OR p.workspace_id = $4)
         GROUP BY p.id, p.name, p.background_color
         ORDER BY p.name ASC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(now)
@@ -428,7 +428,7 @@ pub async fn get_project_pulse(
 
     // Fetch sparkline data: completions per day for last 14 days, per project
     let sparkline_rows = sqlx::query_as::<_, SparklineRow>(
-        r#"
+        r"
         SELECT
             t.project_id,
             (CURRENT_DATE - DATE(al.created_at))::integer AS day_offset,
@@ -442,7 +442,7 @@ pub async fn get_project_pulse(
           AND ps.type = 'done'
           AND t.project_id = ANY($2)
         GROUP BY t.project_id, DATE(al.created_at)
-        "#,
+        ",
     )
     .bind(fourteen_days_ago)
     .bind(&project_ids)
@@ -508,7 +508,7 @@ pub async fn get_user_streak(pool: &PgPool, user_id: Uuid) -> Result<UserStreak,
 
     // Fetch distinct dates where the user completed at least 1 task, ordered desc
     let date_rows = sqlx::query_as::<_, CompletionDateRow>(
-        r#"
+        r"
         SELECT DISTINCT DATE(al.created_at) AS completion_date
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
@@ -518,7 +518,7 @@ pub async fn get_user_streak(pool: &PgPool, user_id: Uuid) -> Result<UserStreak,
           AND al.user_id = $1
           AND ps.type = 'done'
         ORDER BY completion_date DESC
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -526,7 +526,7 @@ pub async fn get_user_streak(pool: &PgPool, user_id: Uuid) -> Result<UserStreak,
 
     // Count completed_today
     let completed_today_row = sqlx::query_scalar::<_, i64>(
-        r#"
+        r"
         SELECT COUNT(DISTINCT al.entity_id)::bigint
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
@@ -536,7 +536,7 @@ pub async fn get_user_streak(pool: &PgPool, user_id: Uuid) -> Result<UserStreak,
           AND al.user_id = $1
           AND ps.type = 'done'
           AND DATE(al.created_at) = CURRENT_DATE
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_one(pool)

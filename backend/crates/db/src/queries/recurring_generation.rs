@@ -27,7 +27,7 @@ pub async fn get_due_configs(
     pool: &PgPool,
 ) -> Result<Vec<RecurringTaskConfig>, RecurringQueryError> {
     let configs = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         SELECT
             id,
             task_id,
@@ -56,7 +56,7 @@ pub async fn get_due_configs(
           AND is_active = true
           AND creation_mode = 'on_schedule'
         ORDER BY next_run_at ASC
-        "#,
+        ",
     )
     .fetch_all(pool)
     .await?;
@@ -95,14 +95,14 @@ pub async fn create_recurring_instance(
         let recurring_title = format!("{} (recurring)", template.title);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO tasks (
                 id, title, description, priority, due_date,
                 status_id, task_list_id, project_id, position, tenant_id, created_by_id,
                 estimated_hours, reporting_person_id, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
-            "#,
+            ",
         )
         .bind(new_task_id)
         .bind(&recurring_title)
@@ -161,14 +161,14 @@ pub async fn create_recurring_instance(
             let child_id = Uuid::new_v4();
             let child_position = format!("a{}", now.timestamp_millis() + i as i64 + 1);
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO tasks (
                     id, title, parent_task_id, depth, priority,
                     project_id, position, tenant_id, created_by_id,
                     created_at, updated_at
                 )
                 VALUES ($1, $2, $3, 1, 'medium', $4, $5, $6, $7, $8, $8)
-                "#,
+                ",
             )
             .bind(child_id)
             .bind(&subtask.title)
@@ -197,12 +197,12 @@ pub async fn create_recurring_instance(
         let source_task_id = config.task_id.ok_or(RecurringQueryError::TaskNotFound)?;
 
         let source_task = sqlx::query_as::<_, SourceTask>(
-            r#"
+            r"
             SELECT id, title, description, priority, status_id, project_id,
                    tenant_id, created_by_id, estimated_hours, start_date
             FROM tasks
             WHERE id = $1 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(source_task_id)
         .fetch_optional(&mut *tx)
@@ -212,14 +212,14 @@ pub async fn create_recurring_instance(
         let recurring_title = format!("{} (recurring)", source_task.title);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO tasks (
                 id, title, description, priority, due_date,
                 status_id, project_id, position, tenant_id, created_by_id,
                 estimated_hours, start_date, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
-            "#,
+            ",
         )
         .bind(new_task_id)
         .bind(&recurring_title)
@@ -257,10 +257,10 @@ pub async fn create_recurring_instance(
             }
         } else {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_assignees (task_id, user_id)
                 SELECT $1, user_id FROM task_assignees WHERE task_id = $2
-                "#,
+                ",
             )
             .bind(new_task_id)
             .bind(source_task.id)
@@ -270,10 +270,10 @@ pub async fn create_recurring_instance(
 
         // Copy labels from source task
         sqlx::query(
-            r#"
+            r"
             INSERT INTO task_labels (id, task_id, label_id)
             SELECT gen_random_uuid(), $1, label_id FROM task_labels WHERE task_id = $2
-            "#,
+            ",
         )
         .bind(new_task_id)
         .bind(source_task.id)
@@ -282,12 +282,12 @@ pub async fn create_recurring_instance(
 
         // Copy subtasks (reset is_completed to false)
         sqlx::query(
-            r#"
+            r"
             INSERT INTO subtasks (id, task_id, title, is_completed, position, created_at, updated_at)
             SELECT gen_random_uuid(), $1, title, false, position, NOW(), NOW()
             FROM subtasks WHERE task_id = $2
             ORDER BY position
-            "#,
+            ",
         )
         .bind(new_task_id)
         .bind(source_task.id)
@@ -296,11 +296,11 @@ pub async fn create_recurring_instance(
 
         // Copy custom field values
         sqlx::query(
-            r#"
+            r"
             INSERT INTO task_custom_field_values (id, task_id, field_id, value_text, value_number, value_date, value_bool, created_at, updated_at)
             SELECT gen_random_uuid(), $1, field_id, value_text, value_number, value_date, value_bool, NOW(), NOW()
             FROM task_custom_field_values WHERE task_id = $2
-            "#,
+            ",
         )
         .bind(new_task_id)
         .bind(source_task.id)
@@ -319,7 +319,7 @@ pub async fn create_recurring_instance(
         || config.end_date.map(|end| next_run > end).unwrap_or(false);
 
     sqlx::query(
-        r#"
+        r"
         UPDATE recurring_task_configs
         SET last_run_at = $2,
             occurrences_created = $3,
@@ -327,7 +327,7 @@ pub async fn create_recurring_instance(
             is_active = $5,
             updated_at = $2
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(config.id)
     .bind(now)

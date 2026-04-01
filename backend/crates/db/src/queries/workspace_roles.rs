@@ -37,12 +37,12 @@ pub async fn list_workspace_roles(
     workspace_id: Uuid,
 ) -> Result<Vec<WorkspaceRole>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         SELECT id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
         FROM workspace_roles
         WHERE workspace_id = $1
         ORDER BY position ASC, name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -55,11 +55,11 @@ pub async fn get_workspace_role(
     role_id: Uuid,
 ) -> Result<Option<WorkspaceRole>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         SELECT id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
         FROM workspace_roles
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(role_id)
     .fetch_optional(pool)
@@ -73,11 +73,11 @@ pub async fn get_workspace_role_by_name(
     name: &str,
 ) -> Result<Option<WorkspaceRole>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         SELECT id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
         FROM workspace_roles
         WHERE workspace_id = $1 AND name = $2
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(name)
@@ -96,11 +96,11 @@ pub async fn create_workspace_role(
     let position = input.position.unwrap_or(99);
 
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         INSERT INTO workspace_roles (id, workspace_id, name, description, is_system, capabilities, position)
         VALUES ($1, $2, $3, $4, false, $5, $6)
         RETURNING id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(workspace_id)
@@ -124,7 +124,7 @@ pub async fn update_workspace_role(
         .and_then(|c| serde_json::to_value(c).ok());
 
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         UPDATE workspace_roles
         SET
             name = COALESCE($2, name),
@@ -134,7 +134,7 @@ pub async fn update_workspace_role(
             updated_at = NOW()
         WHERE id = $1
         RETURNING id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
-        "#,
+        ",
     )
     .bind(role_id)
     .bind(&input.name)
@@ -148,10 +148,10 @@ pub async fn update_workspace_role(
 /// Delete a custom role. System roles cannot be deleted.
 pub async fn delete_workspace_role(pool: &PgPool, role_id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM workspace_roles
         WHERE id = $1 AND is_system = false
-        "#,
+        ",
     )
     .bind(role_id)
     .execute(pool)
@@ -167,7 +167,7 @@ pub async fn seed_system_roles(
     workspace_id: Uuid,
 ) -> Result<Vec<WorkspaceRole>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceRole>(
-        r#"
+        r"
         INSERT INTO workspace_roles (id, workspace_id, name, description, is_system, capabilities, position)
         VALUES
             ($1, $7, 'Owner',   'Full control over the workspace',          true, $2, 0),
@@ -178,7 +178,7 @@ pub async fn seed_system_roles(
             ($12, $7, 'Guest',  'Limited access to specific projects',       true, '{}', 5)
         ON CONFLICT (workspace_id, name) DO NOTHING
         RETURNING id, workspace_id, name, description, is_system, capabilities, position, created_at, updated_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4()) // $1 - Owner id
     .bind(serde_json::json!({                // $2 - Owner capabilities

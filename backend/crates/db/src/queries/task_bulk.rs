@@ -48,10 +48,10 @@ pub async fn bulk_update_tasks(
     // Update status if specified
     if let Some(status_id) = input.status_id {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET status_id = $1, updated_at = now()
             WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(status_id)
         .bind(&input.task_ids)
@@ -64,10 +64,10 @@ pub async fn bulk_update_tasks(
     // Update priority if specified
     if let Some(ref priority) = input.priority {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET priority = $1, updated_at = now()
             WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(priority)
         .bind(&input.task_ids)
@@ -80,10 +80,10 @@ pub async fn bulk_update_tasks(
     // Update milestone if specified
     if input.clear_milestone == Some(true) {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET milestone_id = NULL, updated_at = now()
             WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(&input.task_ids)
         .bind(project_id)
@@ -92,10 +92,10 @@ pub async fn bulk_update_tasks(
         updated = updated.max(result.rows_affected());
     } else if let Some(milestone_id) = input.milestone_id {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET milestone_id = $1, updated_at = now()
             WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(milestone_id)
         .bind(&input.task_ids)
@@ -108,10 +108,10 @@ pub async fn bulk_update_tasks(
     // Update task_list if specified
     if input.clear_task_list == Some(true) {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET task_list_id = NULL, updated_at = now()
             WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(&input.task_ids)
         .bind(project_id)
@@ -120,10 +120,10 @@ pub async fn bulk_update_tasks(
         updated = updated.max(result.rows_affected());
     } else if let Some(task_list_id) = input.task_list_id {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks SET task_list_id = $1, updated_at = now()
             WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(task_list_id)
         .bind(&input.task_ids)
@@ -158,10 +158,10 @@ pub async fn bulk_delete_tasks(
     }
 
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE tasks SET deleted_at = now(), updated_at = now()
         WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_ids)
     .bind(project_id)

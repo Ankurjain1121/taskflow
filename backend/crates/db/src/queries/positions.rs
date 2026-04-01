@@ -14,13 +14,13 @@ pub async fn list_positions(
 ) -> Result<Vec<PositionWithHolders>, sqlx::Error> {
     // Fetch all positions for the board
     let positions = sqlx::query_as::<_, Position>(
-        r#"
+        r"
         SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
         WHERE project_id = $1
         ORDER BY name ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -34,14 +34,14 @@ pub async fn list_positions(
 
     // Batch-fetch all holders for these positions
     let holders = sqlx::query_as::<_, HolderWithPositionId>(
-        r#"
+        r"
         SELECT ph.position_id, ph.user_id, u.name, u.email, u.avatar_url, ph.assigned_at
         FROM position_holders ph
         INNER JOIN users u ON ph.user_id = u.id
         WHERE ph.position_id = ANY($1)
           AND u.deleted_at IS NULL
         ORDER BY ph.assigned_at ASC
-        "#,
+        ",
     )
     .bind(&position_ids)
     .fetch_all(pool)
@@ -49,12 +49,12 @@ pub async fn list_positions(
 
     // Batch-fetch recurring task counts per position
     let counts = sqlx::query_as::<_, PositionRecurringCount>(
-        r#"
+        r"
         SELECT position_id, COUNT(*)::bigint AS count
         FROM recurring_task_configs
         WHERE position_id = ANY($1)
         GROUP BY position_id
-        "#,
+        ",
     )
     .bind(&position_ids)
     .fetch_all(pool)
@@ -70,9 +70,9 @@ pub async fn list_positions(
         vec![]
     } else {
         sqlx::query_as::<_, IdName>(
-            r#"
+            r"
             SELECT id, name FROM positions WHERE id = ANY($1)
-            "#,
+            ",
         )
         .bind(&fallback_ids)
         .fetch_all(pool)
@@ -131,12 +131,12 @@ pub async fn list_positions(
 /// Get a single position by ID
 pub async fn get_position(pool: &PgPool, id: Uuid) -> Result<Option<Position>, sqlx::Error> {
     sqlx::query_as::<_, Position>(
-        r#"
+        r"
         SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -154,12 +154,12 @@ pub async fn create_position(
     created_by_id: Uuid,
 ) -> Result<Position, sqlx::Error> {
     sqlx::query_as::<_, Position>(
-        r#"
+        r"
         INSERT INTO positions (name, description, fallback_position_id, project_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(name)
     .bind(description)
@@ -180,7 +180,7 @@ pub async fn update_position(
     fallback_position_id: Option<Option<Uuid>>,
 ) -> Result<Option<Position>, sqlx::Error> {
     sqlx::query_as::<_, Position>(
-        r#"
+        r"
         UPDATE positions
         SET name = COALESCE($2, name),
             description = COALESCE($3, description),
@@ -189,7 +189,7 @@ pub async fn update_position(
         WHERE id = $1
         RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(name)
@@ -203,9 +203,9 @@ pub async fn update_position(
 /// Delete a position
 pub async fn delete_position(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM positions WHERE id = $1
-        "#,
+        ",
     )
     .bind(id)
     .execute(pool)
@@ -220,14 +220,14 @@ pub async fn list_holders(
     position_id: Uuid,
 ) -> Result<Vec<HolderSummary>, sqlx::Error> {
     sqlx::query_as::<_, HolderSummary>(
-        r#"
+        r"
         SELECT ph.user_id, u.name, u.email, u.avatar_url, ph.assigned_at
         FROM position_holders ph
         INNER JOIN users u ON ph.user_id = u.id
         WHERE ph.position_id = $1
           AND u.deleted_at IS NULL
         ORDER BY ph.assigned_at ASC
-        "#,
+        ",
     )
     .bind(position_id)
     .fetch_all(pool)
@@ -241,12 +241,12 @@ pub async fn add_holder(
     user_id: Uuid,
 ) -> Result<PositionHolder, sqlx::Error> {
     sqlx::query_as::<_, PositionHolder>(
-        r#"
+        r"
         INSERT INTO position_holders (position_id, user_id)
         VALUES ($1, $2)
         ON CONFLICT (position_id, user_id) DO UPDATE SET assigned_at = position_holders.assigned_at
         RETURNING id, position_id, user_id, assigned_at
-        "#,
+        ",
     )
     .bind(position_id)
     .bind(user_id)
@@ -261,9 +261,9 @@ pub async fn remove_holder(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM position_holders WHERE position_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(position_id)
     .bind(user_id)
@@ -279,7 +279,7 @@ pub async fn list_recurring_tasks_for_position(
     position_id: Uuid,
 ) -> Result<Vec<RecurringTaskConfig>, sqlx::Error> {
     sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         SELECT id, task_id, pattern, cron_expression, interval_days,
                next_run_at, last_run_at, is_active, max_occurrences,
                occurrences_created, project_id, tenant_id, created_by_id,
@@ -289,7 +289,7 @@ pub async fn list_recurring_tasks_for_position(
         FROM recurring_task_configs
         WHERE position_id = $1
         ORDER BY created_at ASC
-        "#,
+        ",
     )
     .bind(position_id)
     .fetch_all(pool)
@@ -311,13 +311,13 @@ pub async fn resolve_assignees(
 ) -> Result<Vec<Uuid>, sqlx::Error> {
     // Step 1: Direct position holders
     let holder_ids = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT ph.user_id
         FROM position_holders ph
         INNER JOIN users u ON ph.user_id = u.id
         WHERE ph.position_id = $1
           AND u.deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(position_id)
     .fetch_all(pool)
@@ -329,9 +329,9 @@ pub async fn resolve_assignees(
 
     // Step 2: Fallback position holders
     let fallback_id = sqlx::query_scalar::<_, Option<Uuid>>(
-        r#"
+        r"
         SELECT fallback_position_id FROM positions WHERE id = $1
-        "#,
+        ",
     )
     .bind(position_id)
     .fetch_optional(pool)
@@ -340,13 +340,13 @@ pub async fn resolve_assignees(
 
     if let Some(fid) = fallback_id {
         let fallback_holder_ids = sqlx::query_scalar::<_, Uuid>(
-            r#"
+            r"
             SELECT ph.user_id
             FROM position_holders ph
             INNER JOIN users u ON ph.user_id = u.id
             WHERE ph.position_id = $1
               AND u.deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(fid)
         .fetch_all(pool)
@@ -359,7 +359,7 @@ pub async fn resolve_assignees(
 
     // Step 3: Workspace admin/owner (via board -> workspace)
     let ws_admin_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT wm.user_id
         FROM workspace_members wm
         INNER JOIN projects b ON b.workspace_id = wm.workspace_id
@@ -369,7 +369,7 @@ pub async fn resolve_assignees(
             CASE wm.role::text WHEN 'owner' THEN 0 ELSE 1 END,
             wm.joined_at ASC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_optional(pool)
@@ -381,14 +381,14 @@ pub async fn resolve_assignees(
 
     // Step 4: Company admin (tenant-level) - guaranteed to exist
     let company_admin_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT id FROM users
         WHERE role::text = 'admin'
           AND tenant_id = $1
           AND deleted_at IS NULL
         ORDER BY created_at ASC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(tenant_id)
     .fetch_one(pool)
@@ -396,11 +396,11 @@ pub async fn resolve_assignees(
 
     // Auto-add company admin as board member if not already
     sqlx::query(
-        r#"
+        r"
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
         ON CONFLICT (project_id, user_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(company_admin_id)

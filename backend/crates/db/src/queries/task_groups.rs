@@ -11,13 +11,13 @@ pub async fn list_task_groups_by_board(
     project_id: Uuid,
 ) -> Result<Vec<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         SELECT id, project_id, name, color, position, is_default, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_lists
         WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -38,13 +38,13 @@ pub async fn get_default_task_list(
     project_id: Uuid,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         SELECT id, project_id, name, color, position, is_default, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_lists
         WHERE project_id = $1 AND is_default = true
         LIMIT 1
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_optional(pool)
@@ -76,7 +76,7 @@ pub async fn list_task_groups_with_stats(
     }
 
     let rows: Vec<Row> = sqlx::query_as::<_, Row>(
-        r#"
+        r"
         SELECT
             tl.id, tl.project_id, tl.name, tl.color, tl.position, tl.is_default, tl.collapsed,
             tl.tenant_id, tl.created_by_id, tl.created_at, tl.updated_at, tl.deleted_at,
@@ -89,7 +89,7 @@ pub async fn list_task_groups_with_stats(
         WHERE tl.project_id = $1 AND tl.deleted_at IS NULL
         GROUP BY tl.id
         ORDER BY tl.position ASC
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -125,12 +125,12 @@ pub async fn get_task_group_by_id(
     id: Uuid,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         SELECT id, project_id, name, color, position, is_default, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_lists
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -148,12 +148,12 @@ pub async fn create_task_group(
     created_by_id: Uuid,
 ) -> Result<TaskList, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         INSERT INTO task_lists (project_id, name, color, position, is_default, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, false, $5, $6)
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(name)
@@ -172,13 +172,13 @@ pub async fn update_task_group_name(
     name: &str,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         UPDATE task_lists
         SET name = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(name)
@@ -193,13 +193,13 @@ pub async fn update_task_group_color(
     color: &str,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         UPDATE task_lists
         SET color = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(color)
@@ -214,13 +214,13 @@ pub async fn update_task_group_position(
     position: &str,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         UPDATE task_lists
         SET position = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(position)
@@ -235,13 +235,13 @@ pub async fn toggle_task_group_collapse(
     collapsed: bool,
 ) -> Result<Option<TaskList>, sqlx::Error> {
     sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         UPDATE task_lists
         SET collapsed = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(collapsed)
@@ -284,13 +284,13 @@ pub async fn soft_delete_task_group(
 
     // Soft delete the list
     let list = sqlx::query_as::<_, TaskList>(
-        r#"
+        r"
         UPDATE task_lists
         SET deleted_at = NOW()
         WHERE id = $1
         RETURNING id, project_id, name, color, position, is_default, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
-        "#,
+        ",
     )
     .bind(id)
     .fetch_optional(&mut *tx)

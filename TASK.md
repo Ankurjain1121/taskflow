@@ -11,16 +11,8 @@ Fix all issues found by the deep scan (2026-04-01). Priority order by user impac
 
 ## Remaining Tasks
 
-### HIGH — Task 2: Fix Clippy Raw String Hashes (426 instances)
-**What:** All SQL queries use `r#"..."#` when `r"..."` suffices. Clippy errors block `cargo clippy -D warnings`.
-**Where:** `backend/crates/db/src/queries/*.rs` (primary), `backend/crates/api/src/routes/*.rs`
-**How:**
-1. Run: `cargo clippy --workspace --all-targets -- -D warnings 2>&1 | grep "unnecessary hashes"` to get full list
-2. For each file, replace `r#"` with `r"` and `"#` (at end of string) with `"` — ONLY where the string contains no `"` characters inside
-3. Verify with `cargo check --workspace --all-targets`
-4. Then run full clippy to check remaining ~38 non-hash errors (type casts, match arms, redundant closures)
-**Estimated:** ~30 min with agent, mechanical find-replace
-**Risk:** Low — string content unchanged, just delimiter syntax
+### ~~HIGH — Task 2: Fix Clippy Raw String Hashes (426 instances)~~ DONE
+Fixed all 426 `r#"..."#` → `r"..."` across 57 query files. Build passes, zero hash warnings remain. ~36 non-hash clippy errors remain (Task 7+).
 
 ### MEDIUM — Task 5: Add aria-label to Icon-Only Buttons (20+ instances)
 **What:** Buttons with only an `<i class="pi pi-*">` icon and no text label are missing `aria-label` for screen readers.

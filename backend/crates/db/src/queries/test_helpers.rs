@@ -24,10 +24,16 @@ pub fn unique_email() -> String {
 
 /// Create user + tenant, return (tenant_id, user_id)
 pub async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-    let user =
-        super::auth::create_user_with_tenant(pool, &unique_email(), "IntTest User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+    let user = super::auth::create_user_with_tenant(
+        pool,
+        &unique_email(),
+        "IntTest User",
+        FAKE_HASH,
+        None,
+        false,
+    )
+    .await
+    .expect("create_user_with_tenant");
     (user.tenant_id, user.id)
 }
 
@@ -124,10 +130,10 @@ pub async fn insert_test_notification(
 ) -> Uuid {
     let id = Uuid::new_v4();
     sqlx::query(
-        r#"
+        r"
         INSERT INTO notifications (id, recipient_id, event_type, title, body, link_url)
         VALUES ($1, $2, 'task_assigned', $3, $4, NULL)
-        "#,
+        ",
     )
     .bind(id)
     .bind(recipient_id)

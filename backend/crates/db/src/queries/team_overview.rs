@@ -71,7 +71,7 @@ pub async fn get_workload(
     tenant_id: Uuid,
 ) -> Result<Vec<MemberWorkload>, sqlx::Error> {
     let rows = sqlx::query_as::<_, WorkloadAgg>(
-        r#"
+        r"
         WITH user_task_stats AS (
             SELECT ta.user_id,
                 COUNT(DISTINCT t.id) AS total_tasks,
@@ -105,7 +105,7 @@ pub async fn get_workload(
         LEFT JOIN user_task_stats uts ON uts.user_id = u.id
         WHERE wm.workspace_id = $1
         ORDER BY u.name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(tenant_id)
@@ -148,7 +148,7 @@ pub async fn get_overloaded_members(
     threshold: i64,
 ) -> Result<Vec<OverloadedMember>, sqlx::Error> {
     let rows = sqlx::query_as::<_, OverloadedRow>(
-        r#"
+        r"
         SELECT
             u.id as user_id,
             u.name as user_name,
@@ -170,7 +170,7 @@ pub async fn get_overloaded_members(
             WHERE bc.type != 'done'
         ) >= $3
         ORDER BY active_tasks DESC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(tenant_id)
@@ -239,7 +239,7 @@ pub async fn get_member_active_tasks(
     user_id: Uuid,
 ) -> Result<Vec<MemberTask>, sqlx::Error> {
     let rows = sqlx::query_as::<_, MemberTaskRow>(
-        r#"
+        r"
         SELECT
             t.id as task_id,
             t.title,
@@ -264,7 +264,7 @@ pub async fn get_member_active_tasks(
                 WHEN 'low' THEN 4
             END,
             t.due_date ASC NULLS LAST
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -304,7 +304,7 @@ pub async fn reassign_tasks(
     for task_id in task_ids {
         // Remove old assignee -- only if task belongs to this workspace
         let removed = sqlx::query(
-            r#"
+            r"
             DELETE FROM task_assignees ta
             USING tasks t
             INNER JOIN projects b ON b.id = t.project_id
@@ -313,7 +313,7 @@ pub async fn reassign_tasks(
               AND t.id = ta.task_id
               AND b.workspace_id = $3
               AND t.deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(task_id)
         .bind(from_user_id)
@@ -324,11 +324,11 @@ pub async fn reassign_tasks(
         if removed.rows_affected() > 0 {
             // Add new assignee (ignore conflict if already assigned)
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_assignees (task_id, user_id)
                 VALUES ($1, $2)
                 ON CONFLICT (task_id, user_id) DO NOTHING
-                "#,
+                ",
             )
             .bind(task_id)
             .bind(to_user_id)

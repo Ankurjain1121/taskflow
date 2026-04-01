@@ -128,7 +128,7 @@ pub async fn get_workspace_dashboard(
     period_label: Option<String>,
 ) -> Result<WorkspaceDashboard, sqlx::Error> {
     let cycle_time = sqlx::query_as::<_, CycleTimePoint>(
-        r#"
+        r"
         SELECT
             week_start,
             ROUND(AVG(avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
@@ -138,14 +138,14 @@ pub async fn get_workspace_dashboard(
         GROUP BY week_start
         ORDER BY week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
     let velocity = sqlx::query_as::<_, VelocityPoint>(
-        r#"
+        r"
         SELECT
             week_start,
             SUM(tasks_completed)::INTEGER AS tasks_completed
@@ -154,7 +154,7 @@ pub async fn get_workspace_dashboard(
         GROUP BY week_start
         ORDER BY week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -162,7 +162,7 @@ pub async fn get_workspace_dashboard(
 
     // Combined on-time + previous period + overdue aging in a single query
     let on_time_row = sqlx::query_as::<_, OnTimeAgingRow>(
-        r#"
+        r"
         SELECT
             COALESCE(COUNT(*) FILTER (
                 WHERE bc.type = 'done' AND t.due_date IS NOT NULL
@@ -198,7 +198,7 @@ pub async fn get_workspace_dashboard(
         WHERE b.workspace_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(current_start)
@@ -238,7 +238,7 @@ pub async fn get_workspace_dashboard(
     };
 
     let workload = sqlx::query_as::<_, WorkloadRow>(
-        r#"
+        r"
         SELECT
             user_id,
             user_name,
@@ -248,7 +248,7 @@ pub async fn get_workspace_dashboard(
         FROM metrics_workload_by_person
         WHERE workspace_id = $1
         ORDER BY active_tasks DESC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -273,7 +273,7 @@ pub async fn get_team_dashboard(
 ) -> Result<TeamDashboard, sqlx::Error> {
     // Get cycle time for boards that team members work on
     let cycle_time = sqlx::query_as::<_, CycleTimePoint>(
-        r#"
+        r"
         SELECT
             ct.week_start,
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
@@ -284,14 +284,14 @@ pub async fn get_team_dashboard(
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(team_id)
     .fetch_all(pool)
     .await?;
 
     let velocity = sqlx::query_as::<_, VelocityPoint>(
-        r#"
+        r"
         SELECT
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
@@ -301,7 +301,7 @@ pub async fn get_team_dashboard(
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(team_id)
     .fetch_all(pool)
@@ -309,7 +309,7 @@ pub async fn get_team_dashboard(
 
     // On-time count for tasks assigned to team members (exclude no-due-date)
     let on_time_row = sqlx::query_as::<_, OnTimeRow>(
-        r#"
+        r"
         SELECT
             COALESCE(COUNT(*) FILTER (
                 WHERE t.due_date IS NOT NULL AND t.updated_at <= t.due_date
@@ -324,7 +324,7 @@ pub async fn get_team_dashboard(
         WHERE t.deleted_at IS NULL
           AND bc.type = 'done'
           AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(team_id)
     .fetch_one(pool)
@@ -332,7 +332,7 @@ pub async fn get_team_dashboard(
 
     // Workload for team members
     let workload = sqlx::query_as::<_, WorkloadRow>(
-        r#"
+        r"
         SELECT
             w.user_id,
             w.user_name,
@@ -342,7 +342,7 @@ pub async fn get_team_dashboard(
         FROM metrics_workload_by_person w
         JOIN team_members tm ON tm.user_id = w.user_id AND tm.team_id = $1
         ORDER BY w.active_tasks DESC
-        "#,
+        ",
     )
     .bind(team_id)
     .fetch_all(pool)
@@ -373,7 +373,7 @@ pub async fn get_personal_dashboard(
 ) -> Result<PersonalDashboard, sqlx::Error> {
     // Cycle time for boards the user is a member of
     let cycle_time = sqlx::query_as::<_, CycleTimePoint>(
-        r#"
+        r"
         SELECT
             ct.week_start,
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
@@ -383,14 +383,14 @@ pub async fn get_personal_dashboard(
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
     .await?;
 
     let velocity = sqlx::query_as::<_, VelocityPoint>(
-        r#"
+        r"
         SELECT
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
@@ -399,7 +399,7 @@ pub async fn get_personal_dashboard(
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
         LIMIT 12
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -407,7 +407,7 @@ pub async fn get_personal_dashboard(
 
     // On-time count for user's completed tasks (exclude no-due-date)
     let on_time_row = sqlx::query_as::<_, OnTimeRow>(
-        r#"
+        r"
         SELECT
             COALESCE(COUNT(*) FILTER (
                 WHERE t.due_date IS NOT NULL AND t.updated_at <= t.due_date
@@ -421,7 +421,7 @@ pub async fn get_personal_dashboard(
         WHERE t.deleted_at IS NULL
           AND bc.type = 'done'
           AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_one(pool)
@@ -429,14 +429,14 @@ pub async fn get_personal_dashboard(
 
     // Personal stats from workload view (aggregate across workspaces)
     let stats = sqlx::query_as::<_, PersonalStatsRow>(
-        r#"
+        r"
         SELECT
             COALESCE(SUM(active_tasks), 0)::INTEGER AS active_tasks,
             COALESCE(SUM(overdue_tasks), 0)::INTEGER AS overdue_tasks,
             COALESCE(SUM(completed_this_week), 0)::INTEGER AS completed_this_week
         FROM metrics_workload_by_person
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_one(pool)
@@ -481,7 +481,7 @@ pub async fn get_resource_utilization(
     workspace_id: Uuid,
 ) -> Result<Vec<ResourceUtilizationRow>, sqlx::Error> {
     sqlx::query_as::<_, ResourceUtilizationRow>(
-        r#"
+        r"
         SELECT
             u.id AS user_id,
             u.name AS user_name,
@@ -495,7 +495,7 @@ pub async fn get_resource_utilization(
         LEFT JOIN time_entries te ON te.user_id = u.id AND te.ended_at IS NOT NULL
         GROUP BY u.id, u.name
         ORDER BY total_estimated_hours DESC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)

@@ -63,7 +63,7 @@ pub async fn list_dependencies(
     }
 
     let deps = sqlx::query_as::<_, DependencyWithTask>(
-        r#"
+        r"
         SELECT
             td.id,
             td.source_task_id,
@@ -90,7 +90,7 @@ pub async fn list_dependencies(
         WHERE (td.source_task_id = $1 OR td.target_task_id = $1)
           AND t.deleted_at IS NULL
         ORDER BY td.created_at DESC
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)
@@ -131,13 +131,13 @@ pub async fn create_dependency(
     // Check for circular dependency (A blocks B, B blocks A)
     if actual_type == DependencyType::Blocks {
         let existing = sqlx::query_scalar::<_, bool>(
-            r#"
+            r"
             SELECT EXISTS(
                 SELECT 1 FROM task_dependencies
                 WHERE source_task_id = $1 AND target_task_id = $2
                   AND dependency_type = 'blocks'
             )
-            "#,
+            ",
         )
         .bind(actual_target)
         .bind(actual_source)
@@ -152,10 +152,10 @@ pub async fn create_dependency(
     // Insert the dependency
     let dep_id = Uuid::new_v4();
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_dependencies (id, source_task_id, target_task_id, dependency_type, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
-        "#,
+        ",
     )
     .bind(dep_id)
     .bind(actual_source)
@@ -176,7 +176,7 @@ pub async fn create_dependency(
 
     // Fetch the created dependency with task info
     let dep = sqlx::query_as::<_, DependencyWithTask>(
-        r#"
+        r"
         SELECT
             td.id,
             td.source_task_id,
@@ -201,7 +201,7 @@ pub async fn create_dependency(
         END
         JOIN project_statuses bc ON bc.id = t.status_id
         WHERE td.id = $1
-        "#,
+        ",
     )
     .bind(dep_id)
     .bind(source_task_id)
@@ -214,10 +214,10 @@ pub async fn create_dependency(
 /// Delete a dependency by ID
 pub async fn delete_dependency(pool: &PgPool, dep_id: Uuid) -> Result<(), DependencyQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM task_dependencies
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(dep_id)
     .execute(pool)
@@ -238,7 +238,7 @@ pub async fn check_blockers(
     task_id: Uuid,
 ) -> Result<Vec<BlockerInfo>, DependencyQueryError> {
     let blockers = sqlx::query_as::<_, BlockerInfo>(
-        r#"
+        r"
         SELECT
             t.id as task_id,
             t.title,
@@ -250,7 +250,7 @@ pub async fn check_blockers(
           AND td.dependency_type = 'blocks'
           AND t.deleted_at IS NULL
         ORDER BY td.created_at ASC
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)
@@ -271,7 +271,7 @@ pub async fn get_board_dependencies(
     }
 
     let deps = sqlx::query_as::<_, DependencyWithTask>(
-        r#"
+        r"
         SELECT
             td.id,
             td.source_task_id,
@@ -291,7 +291,7 @@ pub async fn get_board_dependencies(
           AND source_t.deleted_at IS NULL
           AND target_t.deleted_at IS NULL
         ORDER BY td.created_at DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -306,9 +306,9 @@ async fn get_task_board_id_internal(
     task_id: Uuid,
 ) -> Result<Uuid, DependencyQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)

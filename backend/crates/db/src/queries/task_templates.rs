@@ -67,7 +67,7 @@ pub async fn list_task_templates(
     user_id: Uuid,
 ) -> Result<Vec<TaskTemplate>, TaskTemplateQueryError> {
     let templates = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         SELECT id, name, description, scope, project_id, tenant_id, created_by_id,
                task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
@@ -83,7 +83,7 @@ pub async fn list_task_templates(
               scope != 'personal' OR created_by_id = $4
           )
         ORDER BY name ASC
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(scope)
@@ -102,13 +102,13 @@ pub async fn get_task_template(
     tenant_id: Uuid,
 ) -> Result<TaskTemplateWithDetails, TaskTemplateQueryError> {
     let template = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         SELECT id, name, description, scope, project_id, tenant_id, created_by_id,
                task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
         FROM task_templates
         WHERE id = $1 AND tenant_id = $2
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(tenant_id)
@@ -117,30 +117,30 @@ pub async fn get_task_template(
     .ok_or(TaskTemplateQueryError::NotFound)?;
 
     let subtasks = sqlx::query_as::<_, TaskTemplateSubtask>(
-        r#"
+        r"
         SELECT id, template_id, title, position
         FROM task_template_subtasks
         WHERE template_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
     .await?;
 
     let label_ids = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT label_id FROM task_template_labels WHERE template_id = $1"#,
+        r"SELECT label_id FROM task_template_labels WHERE template_id = $1",
     )
     .bind(template_id)
     .fetch_all(pool)
     .await?;
 
     let custom_fields = sqlx::query_as::<_, TaskTemplateCustomField>(
-        r#"
+        r"
         SELECT id, template_id, field_id, value
         FROM task_template_custom_fields
         WHERE template_id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
@@ -168,7 +168,7 @@ pub async fn create_task_template(
     let scope = input.scope.unwrap_or_else(|| "workspace".to_string());
 
     let template = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         INSERT INTO task_templates (
             id, name, description, scope, project_id, tenant_id, created_by_id,
             task_title, task_description, task_priority, task_estimated_hours,
@@ -178,7 +178,7 @@ pub async fn create_task_template(
         RETURNING id, name, description, scope, project_id, tenant_id, created_by_id,
                   task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(&input.name)
@@ -199,10 +199,10 @@ pub async fn create_task_template(
     if let Some(subtask_titles) = &input.subtasks {
         for (i, title) in subtask_titles.iter().enumerate() {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_template_subtasks (id, template_id, title, position)
                 VALUES ($1, $2, $3, $4)
-                "#,
+                ",
             )
             .bind(Uuid::new_v4())
             .bind(id)
@@ -217,11 +217,11 @@ pub async fn create_task_template(
     if let Some(label_ids) = &input.label_ids {
         for label_id in label_ids {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_template_labels (id, template_id, label_id)
                 VALUES ($1, $2, $3)
                 ON CONFLICT DO NOTHING
-                "#,
+                ",
             )
             .bind(Uuid::new_v4())
             .bind(id)
@@ -235,11 +235,11 @@ pub async fn create_task_template(
     if let Some(custom_fields) = &input.custom_fields {
         for cf in custom_fields {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_template_custom_fields (id, template_id, field_id, value)
                 VALUES ($1, $2, $3, $4)
                 ON CONFLICT DO NOTHING
-                "#,
+                ",
             )
             .bind(Uuid::new_v4())
             .bind(id)
@@ -266,11 +266,11 @@ pub async fn save_task_as_template(
 ) -> Result<TaskTemplate, TaskTemplateQueryError> {
     // Fetch the source task
     let task = sqlx::query_as::<_, SourceTaskForTemplate>(
-        r#"
+        r"
         SELECT id, title, description, priority, estimated_hours, project_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -290,7 +290,7 @@ pub async fn save_task_as_template(
     let priority_str = format!("{:?}", task.priority).to_lowercase();
 
     let template = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         INSERT INTO task_templates (
             id, name, description, scope, project_id, tenant_id, created_by_id,
             task_title, task_description, task_priority, task_estimated_hours,
@@ -300,7 +300,7 @@ pub async fn save_task_as_template(
         RETURNING id, name, description, scope, project_id, tenant_id, created_by_id,
                   task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(&template_name)
@@ -318,12 +318,12 @@ pub async fn save_task_as_template(
 
     // Copy subtasks
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_template_subtasks (id, template_id, title, position)
         SELECT gen_random_uuid(), $2, title, position
         FROM subtasks WHERE task_id = $1
         ORDER BY position
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(id)
@@ -332,11 +332,11 @@ pub async fn save_task_as_template(
 
     // Copy labels
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_template_labels (id, template_id, label_id)
         SELECT gen_random_uuid(), $2, label_id
         FROM task_labels WHERE task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(id)
@@ -345,11 +345,11 @@ pub async fn save_task_as_template(
 
     // Copy custom field values
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_template_custom_fields (id, template_id, field_id, value)
         SELECT gen_random_uuid(), $2, field_id, value
         FROM task_custom_field_values WHERE task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(id)
@@ -379,14 +379,14 @@ pub async fn create_task_from_template(
     let position = format!("a{}", now.timestamp_millis());
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO tasks (
             id, title, description, priority, project_id, status_id,
             position, estimated_hours, tenant_id, created_by_id,
             created_at, updated_at
         )
         VALUES ($1, $2, $3, $4::task_priority, $5, $6, $7, $8, $9, $10, $11, $11)
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(&template.template.task_title)
@@ -411,10 +411,10 @@ pub async fn create_task_from_template(
     // Create subtasks
     for subtask in &template.subtasks {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO subtasks (id, task_id, title, is_completed, position, created_by_id, created_at, updated_at)
             VALUES ($1, $2, $3, false, $4, $5, NOW(), NOW())
-            "#,
+            ",
         )
         .bind(Uuid::new_v4())
         .bind(task_id)
@@ -428,11 +428,11 @@ pub async fn create_task_from_template(
     // Add labels
     for label_id in &template.label_ids {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO task_labels (id, task_id, label_id)
             VALUES ($1, $2, $3)
             ON CONFLICT DO NOTHING
-            "#,
+            ",
         )
         .bind(Uuid::new_v4())
         .bind(task_id)
@@ -444,11 +444,11 @@ pub async fn create_task_from_template(
     // Set custom field values
     for cf in &template.custom_fields {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO task_custom_field_values (id, task_id, field_id, value_text, created_at, updated_at)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
             ON CONFLICT DO NOTHING
-            "#,
+            ",
         )
         .bind(Uuid::new_v4())
         .bind(task_id)
@@ -473,13 +473,13 @@ pub async fn update_task_template(
 ) -> Result<TaskTemplate, TaskTemplateQueryError> {
     // Verify ownership
     let existing = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         SELECT id, name, description, scope, project_id, tenant_id, created_by_id,
                task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
         FROM task_templates
         WHERE id = $1 AND tenant_id = $2
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(tenant_id)
@@ -492,7 +492,7 @@ pub async fn update_task_template(
     }
 
     let template = sqlx::query_as::<_, TaskTemplate>(
-        r#"
+        r"
         UPDATE task_templates
         SET name = COALESCE($2, name),
             task_title = COALESCE($3, task_title),
@@ -505,7 +505,7 @@ pub async fn update_task_template(
         RETURNING id, name, description, scope, project_id, tenant_id, created_by_id,
                   task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(&input.name)
@@ -580,9 +580,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "TaskTmpl User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "TaskTmpl User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 
@@ -766,14 +773,14 @@ mod tests {
 
         // Verify the task was created
         let task = sqlx::query_as::<_, crate::models::Task>(
-            r#"
+            r"
             SELECT id, title, description, priority,
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
                    created_at, updated_at, version, parent_task_id, depth, reporting_person_id
             FROM tasks WHERE id = $1
-            "#,
+            ",
         )
         .bind(new_task_id)
         .fetch_one(&pool)

@@ -44,11 +44,11 @@ pub async fn create_invitation_with_details(
     let token = Uuid::new_v4();
 
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, message, board_ids, job_title, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title, job_title
-        "#,
+        ",
     )
     .bind(id)
     .bind(email)
@@ -70,11 +70,11 @@ pub async fn get_invitation_by_token(
     token: Uuid,
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE token = $1
-        "#,
+        ",
     )
     .bind(token)
     .fetch_optional(pool)
@@ -87,11 +87,11 @@ pub async fn get_invitation_by_id(
     id: Uuid,
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -101,11 +101,11 @@ pub async fn get_invitation_by_id(
 /// Accept an invitation (sets accepted_at timestamp)
 pub async fn accept_invitation(pool: &PgPool, token: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         UPDATE invitations
         SET accepted_at = NOW()
         WHERE token = $1 AND accepted_at IS NULL
-        "#,
+        ",
     )
     .bind(token)
     .execute(pool)
@@ -120,14 +120,14 @@ pub async fn list_pending_invitations(
     workspace_id: Uuid,
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE workspace_id = $1
           AND accepted_at IS NULL
           AND expires_at > NOW()
         ORDER BY created_at DESC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -140,9 +140,9 @@ pub async fn get_workspace_tenant_id(
     workspace_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     let result = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT tenant_id FROM workspaces WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_optional(pool)
@@ -158,11 +158,11 @@ pub async fn add_workspace_member(
     user_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO workspace_members (id, workspace_id, user_id, joined_at)
         VALUES ($1, $2, $3, NOW())
         ON CONFLICT (workspace_id, user_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(workspace_id)
@@ -179,13 +179,13 @@ pub async fn list_all_invitations(
     workspace_id: Uuid,
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE workspace_id = $1
         ORDER BY created_at DESC
         LIMIT 500
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -195,10 +195,10 @@ pub async fn list_all_invitations(
 /// Delete a pending invitation by ID
 pub async fn delete_invitation(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM invitations
         WHERE id = $1 AND accepted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .execute(pool)
@@ -216,12 +216,12 @@ pub async fn resend_invitation(
     let new_token = Uuid::new_v4();
 
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         UPDATE invitations
         SET token = $1, expires_at = $2, accepted_at = NULL
         WHERE id = $3
         RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
-        "#,
+        ",
     )
     .bind(new_token)
     .bind(new_expires_at)
@@ -237,14 +237,14 @@ pub async fn get_pending_invitation_by_email(
     workspace_id: Uuid,
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
-        r#"
+        r"
         SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE email = $1
           AND workspace_id = $2
           AND accepted_at IS NULL
           AND expires_at > NOW()
-        "#,
+        ",
     )
     .bind(email)
     .bind(workspace_id)

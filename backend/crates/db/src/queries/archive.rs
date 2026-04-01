@@ -36,7 +36,7 @@ pub async fn list_archive(
     // Fetch archived tasks
     if entity_type_filter.is_none() || entity_type_filter == Some("task") {
         let tasks = sqlx::query_as::<_, ArchiveItem>(
-            r#"
+            r"
             SELECT
                 'task'::text as entity_type,
                 t.id as entity_id,
@@ -49,7 +49,7 @@ pub async fn list_archive(
               AND ($3::timestamptz IS NULL OR t.deleted_at < $3)
             ORDER BY t.deleted_at DESC
             LIMIT $4
-            "#,
+            ",
         )
         .bind(retention_days)
         .bind(tenant_id)
@@ -63,7 +63,7 @@ pub async fn list_archive(
     // Fetch archived boards
     if entity_type_filter.is_none() || entity_type_filter == Some("board") {
         let boards = sqlx::query_as::<_, ArchiveItem>(
-            r#"
+            r"
             SELECT
                 'board'::text as entity_type,
                 b.id as entity_id,
@@ -76,7 +76,7 @@ pub async fn list_archive(
               AND ($3::timestamptz IS NULL OR b.deleted_at < $3)
             ORDER BY b.deleted_at DESC
             LIMIT $4
-            "#,
+            ",
         )
         .bind(retention_days)
         .bind(tenant_id)

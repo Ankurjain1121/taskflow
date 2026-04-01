@@ -45,7 +45,7 @@ pub async fn list_favorites(
 ) -> Result<Vec<FavoriteItem>, sqlx::Error> {
     // Fetch favorite tasks
     let task_rows = sqlx::query_as::<_, FavoriteTaskRow>(
-        r#"
+        r"
         SELECT
             f.id,
             f.entity_type,
@@ -59,7 +59,7 @@ pub async fn list_favorites(
         LEFT JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'task'
         ORDER BY f.created_at DESC
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -67,7 +67,7 @@ pub async fn list_favorites(
 
     // Fetch favorite boards
     let board_rows = sqlx::query_as::<_, FavoriteBoardRow>(
-        r#"
+        r"
         SELECT
             f.id,
             f.entity_type,
@@ -79,7 +79,7 @@ pub async fn list_favorites(
         INNER JOIN projects b ON b.id = f.entity_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'board'
         ORDER BY f.created_at DESC
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -125,12 +125,12 @@ pub async fn add_favorite(
     entity_id: Uuid,
 ) -> Result<Uuid, sqlx::Error> {
     let row: (Uuid,) = sqlx::query_as(
-        r#"
+        r"
         INSERT INTO favorites (user_id, entity_type, entity_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (user_id, entity_type, entity_id) DO UPDATE SET created_at = favorites.created_at
         RETURNING id
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(entity_type)
@@ -149,10 +149,10 @@ pub async fn remove_favorite(
     entity_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM favorites
         WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(entity_type)
@@ -171,12 +171,12 @@ pub async fn is_favorited(
     entity_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let row: (bool,) = sqlx::query_as(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM favorites
             WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3
         )
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(entity_type)
