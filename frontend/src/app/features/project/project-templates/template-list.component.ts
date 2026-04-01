@@ -337,7 +337,7 @@ export class TemplateListComponent implements OnInit {
             '/workspace',
             this.dialogSelectedWorkspaceId,
             'project',
-            res.board_id,
+            res.project_id,
           ]);
         },
         error: () => {

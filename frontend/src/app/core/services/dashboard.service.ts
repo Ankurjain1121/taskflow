@@ -41,7 +41,7 @@ export interface OverdueTask {
   title: string;
   due_date: string;
   priority: string;
-  board_id: string;
+  project_id: string;
   board_name: string;
   days_overdue: number;
 }
@@ -56,7 +56,7 @@ export interface UpcomingDeadline {
   title: string;
   due_date: string;
   priority: string;
-  board_id: string;
+  project_id: string;
   board_name: string;
   days_until_due: number;
 }

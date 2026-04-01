@@ -24,13 +24,13 @@ export class PresenceService implements OnDestroy {
       this.leaveBoard();
     }
     this.currentBoardId = boardId;
-    this.wsService.send('join_board', { board_id: boardId });
+    this.wsService.send('presence_join', { board_id: boardId });
     this.startHeartbeat();
   }
 
   leaveBoard(): void {
     if (this.currentBoardId) {
-      this.wsService.send('leave_board', { board_id: this.currentBoardId });
+      this.wsService.send('presence_leave', { board_id: this.currentBoardId });
       this.currentBoardId = null;
     }
     this.stopHeartbeat();
