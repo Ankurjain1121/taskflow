@@ -1,6 +1,65 @@
-# Deep Scan Fix List
+# Board → Project Naming Cleanup
 
 ## Objective
+Fix all board→project naming mismatches from logic audit. Runtime bugs where frontend reads `project_id` but backend sends `board_id` → `undefined` values, broken nav, dead filters.
+
+## Success Criteria
+- [ ] `cargo check --workspace` passes
+- [ ] `npx tsc --noEmit` passes
+- [ ] All 13 fixes applied
+- [ ] `./scripts/export-types.sh` regenerates clean types
+
+## Fixes
+
+### CRITICAL
+- [ ] C1: `presence.service.ts` — `"join_board"`→`"presence_join"`, `"leave_board"`→`"presence_leave"`
+- [ ] C2: `all-tasks.component.ts` — `board_id`→`project_id`, `board_name`→`project_name` + filter param
+- [ ] C3: `middleware/audit.rs` — pattern match `"boards"`→`"projects"` + entity extraction
+- [ ] C4: `services/presence.rs` — Redis key `presence:board:`→`presence:project:`
+
+### HIGH
+- [ ] H1: `project_template.rs:116` — JSON `"board_id"`→`"project_id"`
+- [ ] H2: `task_crud.rs:496`, `task_collaboration.rs:120`, `automation/actions.rs:447` — WS `"board_id"`→`"project_id"`
+- [ ] H3: `db/queries/my_tasks.rs` — struct fields + SQL alias
+- [ ] H4: `db/queries/search.rs` — struct fields + SQL alias
+- [ ] H5: `notifications/events.rs` — 6 payload structs
+- [ ] H6: `ws_events.rs:43` — `PresenceUpdate.board_id`→`project_id`
+- [ ] H7: `dashboard.service.ts` — `OverdueTask`/`UpcomingDeadline` interfaces
+
+## Progress Log
+- [x] All 13 fixes applied (2026-04-01)
+- [x] `cargo check --workspace --all-targets` — 0 errors
+- [x] `npx tsc --noEmit` — 0 errors
+- [x] `./scripts/export-types.sh` — 12 types regenerated (PresenceUpdate now has project_id)
+
+### Files changed (backend — 12 files):
+- `middleware/audit.rs` — pattern match + entity extraction
+- `services/presence.rs` — Redis key prefix
+- `routes/project_template.rs` — JSON response key
+- `routes/task_crud.rs` — WS broadcast key
+- `routes/task_collaboration.rs` — WS broadcast key
+- `services/jobs/automation/actions.rs` — webhook payload key
+- `db/queries/my_tasks.rs` — struct fields + SQL alias
+- `db/queries/search.rs` — struct fields + SQL alias + filter binding
+- `services/notifications/events.rs` — 6 payload structs
+- `db/models/ws_events.rs` — PresenceUpdate field
+- `ws/handler.rs` — 4 PresenceUpdate constructors (cascade)
+- `routes/search.rs` — SearchFilters constructor (cascade)
+
+### Files changed (frontend — 7 files):
+- `presence.service.ts` — WS message types (join_board→presence_join, leave_board→presence_leave)
+- `all-tasks.component.ts` — interface + template + nav + filter param
+- `dashboard.service.ts` — OverdueTask + UpcomingDeadline interfaces
+- `project-template.service.ts` — response type
+- `template-list.component.ts` — response field access
+- `step-sample-board.component.ts` — response field access
+- `onboarding.service.ts` — GenerateSampleBoardResponse interface
+
+---
+
+# Previous: Deep Scan Fix List (Completed 2026-04-01)
+
+## Previous Objective
 Fix all issues found by the deep scan (2026-04-01). Priority order by user impact.
 
 ## Completed (2026-04-01, commits 8a118b3, 7d2883e)
