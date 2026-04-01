@@ -122,6 +122,7 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
                 (click)="confirmDelete(attachment)"
                 [disabled]="deletingId() === attachment.id"
                 title="Delete"
+                aria-label="Delete"
                 class="text-gray-400 hover:text-red-500"
               >
                 @if (deletingId() === attachment.id) {
