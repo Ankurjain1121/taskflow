@@ -130,7 +130,8 @@ import { AuthService } from '../../../core/services/auth.service';
             <button (click)="toggleCollapse.emit(); $event.stopPropagation()"
                     class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
                     style="color: var(--sidebar-text-secondary)"
-                    title="Collapse sidebar">
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar">
               <i class="pi pi-angle-double-left text-xs"></i>
             </button>
 

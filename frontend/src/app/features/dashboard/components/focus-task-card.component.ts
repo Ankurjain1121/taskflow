@@ -85,6 +85,7 @@ import { PRIORITY_COLORS_HEX } from '../../../shared/utils/task-colors';
           class="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors btn-press"
           style="color: var(--primary)"
           title="Open task detail"
+          aria-label="Open task detail"
           (click)="openTask()"
         >
           <i class="pi pi-arrow-right text-[11px]"></i>

@@ -305,6 +305,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                     <button
                       (click)="reminderRemoved.emit(reminder.id)"
                       class="opacity-50 hover:opacity-100"
+                      aria-label="Remove reminder"
                     >
                       <i class="pi pi-times text-[10px]"></i>
                     </button>
@@ -357,6 +358,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 <button
                   (click)="assigneeRemoved.emit(assignee)"
                   class="ml-0.5 opacity-50 hover:opacity-100"
+                  aria-label="Remove assignee"
                 >
                   <i class="pi pi-times text-[10px]"></i>
                 </button>
@@ -465,6 +467,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 <button
                   (click)="watcherRemoved.emit(watcher)"
                   class="ml-0.5 opacity-50 hover:opacity-100"
+                  aria-label="Remove watcher"
                 >
                   <i class="pi pi-times text-[10px]"></i>
                 </button>
@@ -538,6 +541,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 <button
                   (click)="labelRemoved.emit(label.id)"
                   class="ml-1 hover:opacity-70"
+                  aria-label="Remove label"
                 >
                   <i class="pi pi-times text-[10px]"></i>
                 </button>

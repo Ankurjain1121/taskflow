@@ -47,14 +47,8 @@ Fixed all 36 remaining clippy errors: type casts, redundant closures, match arm 
 ### ~~LOW — Task 8: Remove TODO in sample_board.rs~~ DONE
 Converted TODO to descriptive comment. Function already returns NotImplemented with explanation.
 
-### LOW — Task 9: Fix Empty CSS Sub-Selector Warnings (112 rules)
-**What:** Production build shows 112 `& -> Empty sub-selector` warnings from CSS.
-**Where:** `frontend/src/styles.css` and component CSS files
-**How:**
-1. Search for bare `&` selectors in CSS/SCSS that don't have a suffix
-2. These are typically from Tailwind's `@apply` or nesting syntax issues
-3. Remove or fix the empty selectors
-**Estimated:** ~15 min
+### ~~LOW — Task 9: Fix Empty CSS Sub-Selector Warnings (112 rules)~~ WON'T FIX
+Investigated: no bare `&` selectors exist in source CSS. Warnings come from Tailwind CSS v4's generated output during lightningcss processing — not actionable at source level.
 
 ## Session Summary (2026-04-01)
 

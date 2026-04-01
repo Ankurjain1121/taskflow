@@ -133,12 +133,14 @@ import { Board } from '../../../core/services/project.service';
                 <span class="hidden group-hover:flex items-center gap-1">
                   <button (click)="toggleFavorite(project); $event.preventDefault(); $event.stopPropagation()"
                           class="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)] transition-colors"
-                          style="color: var(--sidebar-text-muted)">
+                          style="color: var(--sidebar-text-muted)"
+                          aria-label="Toggle favorite">
                     <i class="pi pi-star text-[10px]"></i>
                   </button>
                   <button (click)="openMenu(project, $event)"
                           class="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)] transition-colors"
-                          style="color: var(--sidebar-text-muted)">
+                          style="color: var(--sidebar-text-muted)"
+                          aria-label="Project options">
                     <i class="pi pi-ellipsis-h text-[10px]"></i>
                   </button>
                 </span>

@@ -168,6 +168,7 @@ import {
             (click)="toggleWorkspaceMenu($event)"
             class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100 flex-shrink-0"
             title="Workspace options"
+            aria-label="Workspace options"
           >
             <i class="pi pi-ellipsis-h text-xs sidebar-icon-color"></i>
           </button>
@@ -277,6 +278,7 @@ import {
                     (click)="openBoardMenu(board.id, $event)"
                     class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
                     title="More options"
+                    aria-label="More options"
                   >
                     <i class="pi pi-ellipsis-h text-xs sidebar-icon-color"></i>
                   </button>

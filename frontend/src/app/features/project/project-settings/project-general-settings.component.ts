@@ -242,6 +242,7 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
                 class="w-8 h-8 rounded-full border-2 border-dashed border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--foreground)] transition-colors"
                 (click)="clearBoardColor()"
                 title="Clear color"
+                aria-label="Clear color"
               >
                 <i class="pi pi-times text-xs"></i>
               </button>

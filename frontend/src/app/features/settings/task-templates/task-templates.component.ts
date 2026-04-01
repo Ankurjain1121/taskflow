@@ -168,6 +168,7 @@ import {
                     [text]="true"
                     (click)="onEditTemplate(template)"
                     pTooltip="Edit"
+                    aria-label="Edit"
                   >
                     <i class="pi pi-pencil text-sm"></i>
                   </button>
@@ -177,6 +178,7 @@ import {
                     [text]="true"
                     (click)="onDeleteTemplate(template)"
                     pTooltip="Delete"
+                    aria-label="Delete"
                   >
                     <i class="pi pi-trash text-sm text-red-500"></i>
                   </button>

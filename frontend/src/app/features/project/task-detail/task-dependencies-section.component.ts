@@ -118,6 +118,7 @@ import {
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
                   class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-0.5"
+                  aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>
                 </button>
@@ -159,6 +160,7 @@ import {
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
                   class="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 p-0.5"
+                  aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>
                 </button>
@@ -200,6 +202,7 @@ import {
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
                   class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-[var(--foreground)] p-0.5"
+                  aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>
                 </button>

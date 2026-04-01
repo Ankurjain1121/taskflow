@@ -145,6 +145,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
                       [rounded]="true"
                       [text]="true"
                       pTooltip="Copy Link"
+                      aria-label="Copy Link"
                       (click)="copyLink(share)"
                     >
                       <i class="pi pi-copy"></i>
@@ -160,6 +161,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
                       [text]="true"
                       severity="danger"
                       pTooltip="Delete"
+                      aria-label="Delete"
                       (click)="deleteShare(share)"
                     >
                       <i class="pi pi-trash"></i>

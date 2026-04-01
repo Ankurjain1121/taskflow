@@ -264,6 +264,7 @@ import { ProjectMember } from '../../../core/services/project.service';
                     (click)="openEditDialog(pos)"
                     class="p-1.5 text-[var(--muted-foreground)] hover:text-primary rounded transition-colors"
                     pTooltip="Edit"
+                    aria-label="Edit"
                   >
                     <i class="pi pi-pencil text-xs"></i>
                   </button>
@@ -271,6 +272,7 @@ import { ProjectMember } from '../../../core/services/project.service';
                     (click)="onDeletePosition(pos)"
                     class="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 rounded transition-colors"
                     pTooltip="Delete"
+                    aria-label="Delete"
                   >
                     <i class="pi pi-trash text-xs"></i>
                   </button>

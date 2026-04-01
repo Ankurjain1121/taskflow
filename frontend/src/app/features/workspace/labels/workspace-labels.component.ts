@@ -157,6 +157,7 @@ import { LABEL_PRESET_COLORS } from '../../../shared/utils/task-colors';
                     (click)="startEdit(label)"
                     class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                     title="Edit"
+                    aria-label="Edit"
                   >
                     <i class="pi pi-pencil text-xs"></i>
                   </button>
@@ -164,6 +165,7 @@ import { LABEL_PRESET_COLORS } from '../../../shared/utils/task-colors';
                     (click)="deleteLabel(label.id)"
                     class="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 rounded"
                     title="Delete"
+                    aria-label="Delete"
                   >
                     <i class="pi pi-trash text-xs"></i>
                   </button>

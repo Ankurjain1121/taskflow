@@ -107,6 +107,7 @@ import { FocusTask } from '../dashboard.types';
                         class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors btn-press"
                         style="background: var(--muted); color: var(--muted-foreground)"
                         (click)="onOpen(task.id); $event.stopPropagation()"
+                        aria-label="Open task"
                       >
                         <i class="pi pi-arrow-right"></i>
                       </button>

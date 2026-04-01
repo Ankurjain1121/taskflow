@@ -40,6 +40,7 @@ const UNDO_WINDOW_SECONDS = 60;
         <button
           class="text-gray-400 hover:text-white transition-colors"
           (click)="dismiss()"
+          aria-label="Dismiss"
         >
           <i class="pi pi-times text-sm"></i>
         </button>

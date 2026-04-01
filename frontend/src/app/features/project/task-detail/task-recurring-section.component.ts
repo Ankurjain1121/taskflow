@@ -68,6 +68,7 @@ import { formatDate, getPatternLabel } from './task-fields-utils';
                 (click)="toggleRecurringForm()"
                 class="p-1 text-primary hover:text-primary rounded"
                 pTooltip="Edit"
+                aria-label="Edit"
               >
                 <i class="pi pi-pencil text-xs"></i>
               </button>
@@ -75,6 +76,7 @@ import { formatDate, getPatternLabel } from './task-fields-utils';
                 (click)="recurringRemoved.emit()"
                 class="p-1 text-red-400 hover:text-red-600 rounded"
                 pTooltip="Remove"
+                aria-label="Remove"
               >
                 <i class="pi pi-times text-xs"></i>
               </button>
