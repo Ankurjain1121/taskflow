@@ -155,6 +155,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                     (click)="cancelUpload(upload.id)"
                     class="flex-shrink-0"
                     title="Cancel upload"
+                    aria-label="Cancel upload"
                   >
                     <i class="pi pi-times"></i>
                   </button>
@@ -168,6 +169,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                     (click)="removeFromList(upload.id)"
                     class="flex-shrink-0"
                     title="Remove from list"
+                    aria-label="Remove from list"
                   >
                     <i class="pi pi-times"></i>
                   </button>

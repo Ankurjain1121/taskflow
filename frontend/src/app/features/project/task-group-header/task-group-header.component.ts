@@ -117,6 +117,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [rounded]="true"
           [text]="true"
           pTooltip="Change color"
+          aria-label="Change color"
           (click)="colorPopover.toggle($event)"
           class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >
@@ -129,6 +130,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [rounded]="true"
           [text]="true"
           pTooltip="More options"
+          aria-label="More options"
           (click)="moreMenu.toggle($event)"
           class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >

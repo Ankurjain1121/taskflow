@@ -89,6 +89,7 @@ export type { CommandAction } from './command-palette.types';
               <button
                 (click)="clearQuery()"
                 class="p-1 hover:bg-[var(--secondary)] rounded"
+                aria-label="Clear search"
               >
                 <i class="pi pi-times text-gray-400 text-sm"></i>
               </button>

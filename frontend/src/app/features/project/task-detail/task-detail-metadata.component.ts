@@ -124,6 +124,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
                   <button
                     (click)="unassignRequested.emit(assignee)"
                     class="ml-1 text-gray-400 hover:text-[var(--foreground)]"
+                    aria-label="Remove assignee"
                   >
                     <i class="pi pi-times text-xs"></i>
                   </button>
@@ -196,6 +197,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
                   <button
                     (click)="labelRemoved.emit(label.id)"
                     class="hover:opacity-70"
+                    aria-label="Remove label"
                   >
                     <i class="pi pi-times text-xs"></i>
                   </button>
@@ -251,6 +253,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
                 (click)="milestoneChanged.emit('')"
                 class="ml-auto p-1 text-gray-400 hover:text-[var(--foreground)] rounded"
                 pTooltip="Remove milestone"
+                aria-label="Remove milestone"
               >
                 <i class="pi pi-times text-xs"></i>
               </button>

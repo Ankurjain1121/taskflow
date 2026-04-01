@@ -174,6 +174,7 @@ export interface UseTemplateDialogResult {
                       [rounded]="true"
                       [text]="true"
                       pTooltip="Delete template"
+                      aria-label="Delete template"
                       (click)="
                         onDeleteTemplate(template); $event.stopPropagation()
                       "

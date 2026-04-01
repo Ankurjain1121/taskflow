@@ -109,6 +109,7 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
                   [text]="true"
                   (click)="downloadFile(attachment)"
                   title="Download"
+                  aria-label="Download"
                 >
                   <i class="pi pi-download"></i>
                 </button>

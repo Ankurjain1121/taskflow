@@ -167,6 +167,7 @@ import { formatDuration, formatDate } from './task-fields-utils';
                 <button
                   (click)="timeEntryDeleted.emit(entry.id)"
                   class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 p-0.5"
+                  aria-label="Delete time entry"
                 >
                   <i class="pi pi-times text-xs"></i>
                 </button>
