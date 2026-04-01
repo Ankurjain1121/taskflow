@@ -40,7 +40,7 @@ pub async fn get_personal_board(
     user_id: Uuid,
 ) -> Result<PersonalBoardResponse, sqlx::Error> {
     let items = sqlx::query_as::<_, PersonalBoardItem>(
-        r#"
+        r"
         SELECT
             ptb.id,
             ptb.task_id,
@@ -59,7 +59,7 @@ pub async fn get_personal_board(
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE ptb.user_id = $1
         ORDER BY ptb.column_name, ptb.position
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -107,13 +107,13 @@ pub async fn move_personal_task(
 
     // Verify task exists and user has access (is assigned or is project member)
     let has_access = sqlx::query_scalar::<_, bool>(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM tasks t
             INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
             WHERE t.id = $2 AND t.deleted_at IS NULL
         )
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(task_id)
@@ -126,12 +126,12 @@ pub async fn move_personal_task(
     }
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO personal_task_board (user_id, task_id, column_name, position)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (user_id, task_id)
         DO UPDATE SET column_name = $3, position = $4, updated_at = NOW()
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(task_id)

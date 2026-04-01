@@ -12,12 +12,12 @@ pub async fn verify_project_membership(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM project_members
             WHERE project_id = $1 AND user_id = $2
         )
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)

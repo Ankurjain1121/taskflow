@@ -98,7 +98,7 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
     }
 
     let counts = sqlx::query_as::<_, Counts>(
-        r#"
+        r"
         SELECT
             COUNT(*) as total,
             COUNT(*) FILTER (
@@ -107,7 +107,7 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
         FROM tasks t
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_one(pool)
@@ -130,7 +130,7 @@ async fn get_burndown(
     // then use cumulative window functions. This scans the tasks table once
     // instead of once per day in the date series.
     let points = sqlx::query_as::<_, BurndownPoint>(
-        r#"
+        r"
         WITH daily_created AS (
             SELECT created_at::date AS day, COUNT(*) AS cnt
             FROM tasks
@@ -164,7 +164,7 @@ async fn get_burndown(
         SELECT day AS date, remaining
         FROM joined
         ORDER BY day
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(days_back)
@@ -180,7 +180,7 @@ async fn get_priority_distribution(
     board_id: Uuid,
 ) -> Result<Vec<PriorityCount>, sqlx::Error> {
     let counts = sqlx::query_as::<_, PriorityCount>(
-        r#"
+        r"
         SELECT
             priority::text as priority,
             COUNT(*) as count
@@ -194,7 +194,7 @@ async fn get_priority_distribution(
                 WHEN 'medium' THEN 2
                 WHEN 'low' THEN 3
             END
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -209,7 +209,7 @@ async fn get_assignee_workload(
     board_id: Uuid,
 ) -> Result<Vec<AssigneeWorkload>, sqlx::Error> {
     let workload = sqlx::query_as::<_, AssigneeWorkload>(
-        r#"
+        r"
         SELECT
             u.id as user_id,
             u.name,
@@ -225,7 +225,7 @@ async fn get_assignee_workload(
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         GROUP BY u.id, u.name, u.avatar_url
         ORDER BY total_tasks DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -245,7 +245,7 @@ async fn get_overdue_analysis(
     }
 
     let rows = sqlx::query_as::<_, OverdueRow>(
-        r#"
+        r"
         SELECT
             EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
         FROM tasks t
@@ -255,7 +255,7 @@ async fn get_overdue_analysis(
             AND t.due_date < NOW()
             AND (ps.type IS DISTINCT FROM 'done')
             AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -302,9 +302,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &sqlx::PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "RP Test User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "RP Test User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

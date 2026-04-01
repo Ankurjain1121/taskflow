@@ -14,11 +14,11 @@ pub async fn log_delivery(
     error_message: Option<&str>,
 ) -> Result<Uuid, sqlx::Error> {
     let id = sqlx::query_scalar(
-        r#"
+        r"
         INSERT INTO notification_deliveries (notification_id, recipient_id, channel, status, external_id, error_message)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
-        "#,
+        ",
     )
     .bind(notification_id)
     .bind(recipient_id)

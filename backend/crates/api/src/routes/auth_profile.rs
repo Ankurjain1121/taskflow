@@ -12,7 +12,6 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
-
 use super::validation::{validate_optional_string, MAX_BIO_LEN, MAX_NAME_LEN};
 
 use super::auth::{AuthResponse, UserResponse, SESSION_TTL_SECS};

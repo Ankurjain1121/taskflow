@@ -13,12 +13,12 @@ pub async fn create_key(
     created_by_id: Uuid,
 ) -> Result<WorkspaceApiKey, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceApiKey>(
-        r#"
+        r"
         INSERT INTO workspace_api_keys (id, workspace_id, name, key_hash, key_prefix, created_by_id, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING id, workspace_id, name, key_hash, key_prefix, created_by_id,
                   last_used_at, expires_at, revoked_at, created_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(workspace_id)
@@ -36,13 +36,13 @@ pub async fn list_keys(
     workspace_id: Uuid,
 ) -> Result<Vec<WorkspaceApiKey>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceApiKey>(
-        r#"
+        r"
         SELECT id, workspace_id, name, key_hash, key_prefix, created_by_id,
                last_used_at, expires_at, revoked_at, created_at
         FROM workspace_api_keys
         WHERE workspace_id = $1 AND revoked_at IS NULL
         ORDER BY created_at DESC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -56,11 +56,11 @@ pub async fn revoke_key(
     workspace_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE workspace_api_keys
         SET revoked_at = NOW()
         WHERE id = $1 AND workspace_id = $2 AND revoked_at IS NULL
-        "#,
+        ",
     )
     .bind(key_id)
     .bind(workspace_id)

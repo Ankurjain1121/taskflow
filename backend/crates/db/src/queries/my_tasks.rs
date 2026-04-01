@@ -109,7 +109,7 @@ pub async fn list_my_tasks(
 
     // Fixed parameter positions: $1=user_id, $2=board_filter, $3=cursor, $4=limit
     let query_str = format!(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -137,7 +137,7 @@ pub async fn list_my_tasks(
           AND ($3::uuid IS NULL OR t.id > $3)
         ORDER BY {}
         LIMIT $4
-        "#,
+        ",
         order_clause
     );
 
@@ -205,7 +205,7 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
     }
 
     let stats = sqlx::query_as::<_, StatsRow>(
-        r#"
+        r"
         SELECT
             COUNT(DISTINCT t.id)::bigint as total_assigned,
             COUNT(DISTINCT t.id) FILTER (
@@ -227,7 +227,7 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(three_days_from_now)
@@ -237,7 +237,7 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
 
     // Get completed this week - tasks that were moved to a 'done' status recently
     let completed_this_week = sqlx::query_scalar::<_, i64>(
-        r#"
+        r"
         SELECT COUNT(DISTINCT al.entity_id)::bigint
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
@@ -247,7 +247,7 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
           AND al.entity_type = 'task'
           AND al.created_at >= $2
           AND ps.type = 'done'
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(seven_days_ago)

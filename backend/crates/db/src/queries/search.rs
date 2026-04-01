@@ -79,7 +79,7 @@ pub async fn search_all(
     // Search tasks using full-text search with ILIKE fallback (board membership enforced)
     // Optional filters use the ($N::text IS NULL OR ...) pattern for conditional filtering
     let tasks = sqlx::query_as::<_, TaskSearchResult>(
-        r#"
+        r"
         SELECT t.id, t.title, t.description, t.project_id as board_id,
                b.name as board_name, b.workspace_id,
                w.name as workspace_name
@@ -107,7 +107,7 @@ pub async fn search_all(
         ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC,
                  t.updated_at DESC
         LIMIT $4
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(query)
@@ -124,7 +124,7 @@ pub async fn search_all(
     // Search boards (board membership enforced)
     // board_id filter applies here too (match only that board)
     let boards = sqlx::query_as::<_, BoardSearchResult>(
-        r#"
+        r"
         SELECT b.id, b.name, b.description, b.workspace_id,
                w.name as workspace_name
         FROM projects b
@@ -134,7 +134,7 @@ pub async fn search_all(
           AND (b.search_vector @@ plainto_tsquery('english', $6) OR b.name ILIKE $2 OR b.description ILIKE $2)
           AND ($5::uuid IS NULL OR b.id = $5)
         LIMIT $3
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(&like_query)
@@ -148,7 +148,7 @@ pub async fn search_all(
     // Search comments (board membership enforced)
     // board_id filter applies to the parent task's board
     let comments = sqlx::query_as::<_, CommentSearchResult>(
-        r#"
+        r"
         SELECT c.id, c.content, c.task_id,
                t.title as task_title, t.project_id as board_id,
                b.name as board_name, b.workspace_id
@@ -160,7 +160,7 @@ pub async fn search_all(
           AND (c.search_vector @@ plainto_tsquery('english', $6) OR c.content ILIKE $2)
           AND ($5::uuid IS NULL OR t.project_id = $5)
         LIMIT $3
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(&like_query)

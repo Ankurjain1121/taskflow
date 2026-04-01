@@ -59,14 +59,14 @@ pub async fn list_templates(
     tenant_id: Uuid,
 ) -> Result<Vec<ProjectTemplate>, ProjectTemplateQueryError> {
     let templates = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         SELECT
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
         FROM project_templates
         WHERE tenant_id = $1 OR is_public = true
         ORDER BY created_at DESC
-        "#,
+        ",
     )
     .bind(tenant_id)
     .fetch_all(pool)
@@ -81,13 +81,13 @@ pub async fn get_template(
     template_id: Uuid,
 ) -> Result<TemplateWithDetails, ProjectTemplateQueryError> {
     let template = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         SELECT
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
         FROM project_templates
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_optional(pool)
@@ -95,20 +95,20 @@ pub async fn get_template(
     .ok_or(ProjectTemplateQueryError::NotFound)?;
 
     let columns = sqlx::query_as::<_, ProjectTemplateColumn>(
-        r#"
+        r"
         SELECT
             id, template_id, name, position, color
         FROM project_template_groups
         WHERE template_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
     .await?;
 
     let tasks = sqlx::query_as::<_, ProjectTemplateTask>(
-        r#"
+        r"
         SELECT
             id, template_id, column_index, title, description,
             priority,
@@ -116,7 +116,7 @@ pub async fn get_template(
         FROM project_template_tasks
         WHERE template_id = $1
         ORDER BY column_index ASC, position ASC
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
@@ -140,13 +140,13 @@ pub async fn create_template(
     let now = chrono::Utc::now();
 
     let template = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         INSERT INTO project_templates (id, name, description, category, is_public, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, false, $5, $6, $7, $7)
         RETURNING
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(&input.name)
@@ -170,13 +170,13 @@ pub async fn delete_template(
     user_role: UserRole,
 ) -> Result<(), ProjectTemplateQueryError> {
     let template = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         SELECT
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
         FROM project_templates
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_optional(pool)
@@ -193,9 +193,9 @@ pub async fn delete_template(
 
     // Cascade delete handles columns and tasks
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM project_templates WHERE id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .execute(pool)
@@ -233,13 +233,13 @@ pub async fn save_board_as_template(
     let now = chrono::Utc::now();
 
     let template = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         INSERT INTO project_templates (id, name, description, category, is_public, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, false, $5, $6, $7, $7)
         RETURNING
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(&input.name)
@@ -262,12 +262,12 @@ pub async fn save_board_as_template(
     }
 
     let board_columns = sqlx::query_as::<_, BoardCol>(
-        r#"
+        r"
         SELECT id, name, position, color
         FROM project_statuses
         WHERE project_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(&mut *tx)
@@ -284,10 +284,10 @@ pub async fn save_board_as_template(
         let color = col.color.clone().unwrap_or_else(|| "#6366f1".to_string());
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO project_template_groups (id, template_id, name, position, color)
             VALUES ($1, $2, $3, $4, $5)
-            "#,
+            ",
         )
         .bind(col_id)
         .bind(template_id)
@@ -312,7 +312,7 @@ pub async fn save_board_as_template(
     }
 
     let board_tasks = sqlx::query_as::<_, BoardTask>(
-        r#"
+        r"
         SELECT
             title, description,
             priority,
@@ -320,7 +320,7 @@ pub async fn save_board_as_template(
         FROM tasks
         WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY status_id, position ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(&mut *tx)
@@ -336,10 +336,10 @@ pub async fn save_board_as_template(
         let task_id = Uuid::new_v4();
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO project_template_tasks (id, template_id, column_index, title, description, priority, position)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            "#,
+            ",
         )
         .bind(task_id)
         .bind(template_id)
@@ -372,13 +372,13 @@ pub async fn create_board_from_template(
 ) -> Result<Uuid, ProjectTemplateQueryError> {
     // Verify the template exists
     let template = sqlx::query_as::<_, ProjectTemplate>(
-        r#"
+        r"
         SELECT
             id, name, description, category, is_public,
             tenant_id, created_by_id, created_at, updated_at
         FROM project_templates
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_optional(pool)
@@ -392,13 +392,13 @@ pub async fn create_board_from_template(
 
     // Fetch template columns
     let template_columns = sqlx::query_as::<_, ProjectTemplateColumn>(
-        r#"
+        r"
         SELECT
             id, template_id, name, position, color
         FROM project_template_groups
         WHERE template_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
@@ -406,7 +406,7 @@ pub async fn create_board_from_template(
 
     // Fetch template tasks
     let template_tasks = sqlx::query_as::<_, ProjectTemplateTask>(
-        r#"
+        r"
         SELECT
             id, template_id, column_index, title, description,
             priority,
@@ -414,7 +414,7 @@ pub async fn create_board_from_template(
         FROM project_template_tasks
         WHERE template_id = $1
         ORDER BY column_index ASC, position ASC
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_all(pool)
@@ -430,10 +430,10 @@ pub async fn create_board_from_template(
     let now = chrono::Utc::now();
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO projects (id, name, workspace_id, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $6)
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(&board_name)
@@ -446,10 +446,10 @@ pub async fn create_board_from_template(
 
     // Add creator as project member with editor role
     sqlx::query(
-        r#"
+        r"
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(user_id)
@@ -467,10 +467,10 @@ pub async fn create_board_from_template(
         let position = format!("a{}", col.position);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO project_statuses (id, name, project_id, position, color, type, is_default, tenant_id, created_at)
             VALUES ($1, $2, $3, $4, $5, 'not_started', false, $6, $7)
-            "#,
+            ",
         )
         .bind(col_id)
         .bind(&col.name)
@@ -504,10 +504,10 @@ pub async fn create_board_from_template(
         let position = format!("a{}", task.position);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO tasks (id, title, description, priority, status_id, project_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
-            "#,
+            ",
         )
         .bind(task_id)
         .bind(&task.title)
@@ -552,9 +552,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "ProjTmpl User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "ProjTmpl User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

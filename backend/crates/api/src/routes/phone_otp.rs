@@ -10,9 +10,7 @@ use sha2::{Digest, Sha256};
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
 
-use taskbolt_services::notifications::whatsapp::{
-    is_whatsapp_enabled, validate_e164_phone_number,
-};
+use taskbolt_services::notifications::whatsapp::{is_whatsapp_enabled, validate_e164_phone_number};
 
 // ============================================================================
 // Request/Response DTOs
@@ -85,8 +83,7 @@ pub async fn send_otp_handler(
     let phone = payload.phone_number.trim();
 
     // Validate E.164 format
-    validate_e164_phone_number(phone)
-        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    validate_e164_phone_number(phone).map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     // Check if WhatsApp is enabled
     if !is_whatsapp_enabled() {
@@ -162,7 +159,9 @@ pub async fn send_otp_handler(
         .await
         .map_err(|e| {
             tracing::error!(phone = phone, error = %e, "Failed to send OTP via WhatsApp");
-            AppError::ServiceUnavailable("Failed to send verification code. Please try again later.".into())
+            AppError::ServiceUnavailable(
+                "Failed to send verification code. Please try again later.".into(),
+            )
         })?;
 
     tracing::info!(phone = phone, "OTP sent successfully");
@@ -185,8 +184,7 @@ pub async fn verify_otp_handler(
     let code = payload.code.trim();
 
     // Validate inputs
-    validate_e164_phone_number(phone)
-        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    validate_e164_phone_number(phone).map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
         return Err(AppError::BadRequest("OTP must be a 6-digit code".into()));

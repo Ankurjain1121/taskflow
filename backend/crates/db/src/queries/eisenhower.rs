@@ -146,7 +146,7 @@ pub async fn get_eisenhower_matrix(
     };
 
     let query = format!(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -175,7 +175,7 @@ pub async fn get_eisenhower_matrix(
           AND ($3::uuid IS NULL OR t.project_id = $3)
           {daily_clause}
         ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
-        "#,
+        ",
     );
 
     let q = sqlx::query_as::<_, EisenhowerTaskRow>(&query)
@@ -194,13 +194,13 @@ pub async fn get_eisenhower_matrix(
 
     if !task_ids.is_empty() {
         let assignee_rows = sqlx::query_as::<_, AssigneeRow>(
-            r#"
+            r"
             SELECT ta.task_id, ta.user_id, u.name as display_name, u.avatar_url
             FROM task_assignees ta
             INNER JOIN users u ON ta.user_id = u.id
             WHERE ta.task_id = ANY($1)
             ORDER BY ta.assigned_at ASC
-            "#,
+            ",
         )
         .bind(&task_ids)
         .fetch_all(pool)
@@ -285,14 +285,14 @@ pub async fn update_eisenhower_overrides(
     importance: Option<bool>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         UPDATE tasks
         SET
             eisenhower_urgency = $1,
             eisenhower_importance = $2,
             updated_at = now()
         WHERE id = $3
-        "#,
+        ",
     )
     .bind(urgency)
     .bind(importance)
@@ -306,7 +306,7 @@ pub async fn update_eisenhower_overrides(
 /// Reset all manual overrides for a user's tasks (auto-sort)
 pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE tasks
         SET
             eisenhower_urgency = NULL,
@@ -321,7 +321,7 @@ pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<
             WHERE ta.user_id = $1
               AND t.deleted_at IS NULL
         )
-        "#,
+        ",
     )
     .bind(user_id)
     .execute(pool)

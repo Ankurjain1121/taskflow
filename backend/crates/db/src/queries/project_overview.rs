@@ -65,7 +65,7 @@ pub async fn get_project_overview(
 ) -> Result<ProjectOverview, sqlx::Error> {
     // 1. Task counts
     let task_counts = sqlx::query_as::<_, TaskCounts>(
-        r#"
+        r"
         SELECT
             COUNT(*)::bigint AS total,
             COUNT(*) FILTER (WHERE ps.type = 'todo' OR ps.type IS NULL)::bigint AS todo,
@@ -76,7 +76,7 @@ pub async fn get_project_overview(
         WHERE t.project_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_one(pool)
@@ -84,7 +84,7 @@ pub async fn get_project_overview(
 
     // 2. Overdue count
     let overdue_count = sqlx::query_scalar::<_, i64>(
-        r#"
+        r"
         SELECT COUNT(*)::bigint
         FROM tasks t
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
@@ -93,7 +93,7 @@ pub async fn get_project_overview(
           AND t.parent_task_id IS NULL
           AND t.due_date < NOW()
           AND (ps.type IS NULL OR ps.type != 'done')
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_one(pool)
@@ -101,7 +101,7 @@ pub async fn get_project_overview(
 
     // 3. Milestone progress
     let milestone_progress = sqlx::query_as::<_, MilestoneProgress>(
-        r#"
+        r"
         SELECT
             m.id,
             m.name,
@@ -115,7 +115,7 @@ pub async fn get_project_overview(
         GROUP BY m.id, m.name, m.due_date
         ORDER BY m.due_date ASC NULLS LAST
         LIMIT 10
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -123,7 +123,7 @@ pub async fn get_project_overview(
 
     // 4. Recent activity (last 20 entries)
     let recent_activity = sqlx::query_as::<_, RecentActivityItem>(
-        r#"
+        r"
         SELECT
             al.id,
             al.action::text,
@@ -136,7 +136,7 @@ pub async fn get_project_overview(
         WHERE al.project_id = $1
         ORDER BY al.created_at DESC
         LIMIT 20
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -144,7 +144,7 @@ pub async fn get_project_overview(
 
     // 5. Team members with task counts
     let team_members = sqlx::query_as::<_, TeamMemberInfo>(
-        r#"
+        r"
         SELECT
             pm.user_id,
             u.name,
@@ -163,7 +163,7 @@ pub async fn get_project_overview(
         ) tc ON true
         WHERE pm.project_id = $1
         ORDER BY tc.task_count DESC
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)

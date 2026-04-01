@@ -65,13 +65,13 @@ pub async fn batch_update_my_tasks(
     for update in &input.updates {
         // Check RBAC: user must be a project member for this task
         let is_member = sqlx::query_scalar::<_, bool>(
-            r#"
+            r"
             SELECT EXISTS(
                 SELECT 1 FROM tasks t
                 INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
                 WHERE t.id = $2 AND t.deleted_at IS NULL
             )
-            "#,
+            ",
         )
         .bind(user_id)
         .bind(update.task_id)

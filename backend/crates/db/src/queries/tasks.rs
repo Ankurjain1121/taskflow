@@ -108,11 +108,11 @@ pub async fn create_task(
         Some(sid) => Some(sid),
         None => {
             sqlx::query_scalar::<_, Uuid>(
-                r#"
+                r"
                 SELECT id FROM project_statuses
                 WHERE project_id = $1 AND is_default = true
                 LIMIT 1
-                "#,
+                ",
             )
             .bind(project_id)
             .fetch_optional(&mut *tx)
@@ -125,11 +125,11 @@ pub async fn create_task(
         Some(tlid) => Some(tlid),
         None => {
             sqlx::query_scalar::<_, Uuid>(
-                r#"
+                r"
                 SELECT id FROM task_lists
                 WHERE project_id = $1 AND is_default = true AND deleted_at IS NULL
                 LIMIT 1
-                "#,
+                ",
             )
             .bind(project_id)
             .fetch_optional(&mut *tx)
@@ -139,13 +139,13 @@ pub async fn create_task(
 
     // Get the last position in the project to calculate new position
     let last_position = sqlx::query_scalar::<_, String>(
-        r#"
+        r"
         SELECT position
         FROM tasks
         WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position DESC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_optional(&mut *tx)
@@ -179,7 +179,7 @@ pub async fn create_task(
     // Lock the project row (FOR UPDATE) to serialize task_number generation
     // and prevent race conditions from concurrent inserts.
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth,
@@ -193,7 +193,7 @@ pub async fn create_task(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(&input.title)
@@ -219,11 +219,11 @@ pub async fn create_task(
     if let Some(ref assignee_ids) = input.assignee_ids {
         if !assignee_ids.is_empty() {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_assignees (id, task_id, user_id)
                 SELECT gen_random_uuid(), $1, unnest($2::uuid[])
                 ON CONFLICT (task_id, user_id) DO NOTHING
-                "#,
+                ",
             )
             .bind(task_id)
             .bind(assignee_ids)
@@ -236,11 +236,11 @@ pub async fn create_task(
     if let Some(ref label_ids) = input.label_ids {
         if !label_ids.is_empty() {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_labels (id, task_id, label_id)
                 SELECT gen_random_uuid(), $1, unnest($2::uuid[])
                 ON CONFLICT (task_id, label_id) DO NOTHING
-                "#,
+                ",
             )
             .bind(task_id)
             .bind(label_ids)
@@ -264,7 +264,7 @@ pub async fn update_task(
     input: UpdateTaskInput,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         UPDATE tasks
         SET
             title = COALESCE($2, title),
@@ -284,7 +284,7 @@ pub async fn update_task(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(&input.title)
@@ -310,14 +310,14 @@ pub async fn update_task(
             // Check if the task still exists (version conflict) or is truly gone.
             if input.expected_version.is_some() {
                 let current = sqlx::query_as::<_, Task>(
-                    r#"
+                    r"
                     SELECT id, title, description, priority, due_date, start_date,
                            estimated_hours, project_id, task_list_id, status_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                            tenant_id, created_by_id, deleted_at, created_at, updated_at,
                            version, parent_task_id, depth, reporting_person_id
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
-                    "#,
+                    ",
                 )
                 .bind(task_id)
                 .fetch_optional(pool)
@@ -339,7 +339,7 @@ pub async fn update_task_status(
     status_id: Uuid,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         UPDATE tasks
         SET status_id = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
@@ -349,7 +349,7 @@ pub async fn update_task_status(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(status_id)
@@ -367,7 +367,7 @@ pub async fn update_task_list(
     task_list_id: Uuid,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         UPDATE tasks
         SET task_list_id = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
@@ -377,7 +377,7 @@ pub async fn update_task_list(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(task_list_id)
@@ -391,7 +391,7 @@ pub async fn update_task_list(
 /// Soft delete a task and its children (cascade)
 pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         WITH RECURSIVE task_tree AS (
             SELECT id FROM tasks WHERE id = $1 AND deleted_at IS NULL
             UNION ALL
@@ -402,7 +402,7 @@ pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQu
         UPDATE tasks
         SET deleted_at = NOW(), updated_at = NOW()
         WHERE id IN (SELECT id FROM task_tree)
-        "#,
+        ",
     )
     .bind(task_id)
     .execute(pool)
@@ -424,7 +424,7 @@ pub async fn move_task(
     new_position: String,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         UPDATE tasks
         SET
             status_id = $2,
@@ -437,7 +437,7 @@ pub async fn move_task(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(target_status_id)
@@ -457,7 +457,7 @@ pub async fn duplicate_task(
 ) -> Result<Task, TaskQueryError> {
     // Get the source task
     let source = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         SELECT
             id, title, description, priority, due_date, start_date,
             estimated_hours, project_id, task_list_id, status_id, position,
@@ -466,7 +466,7 @@ pub async fn duplicate_task(
             version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(source_task_id)
     .fetch_optional(pool)
@@ -475,13 +475,13 @@ pub async fn duplicate_task(
 
     // Get position after the source task
     let last_position = sqlx::query_scalar::<_, String>(
-        r#"
+        r"
         SELECT position
         FROM tasks
         WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position DESC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(source.project_id)
     .fetch_optional(pool)
@@ -495,7 +495,7 @@ pub async fn duplicate_task(
     // Insert the duplicate task with auto-assigned task_number.
     // Lock the project row (FOR UPDATE) to serialize task_number generation.
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
@@ -509,7 +509,7 @@ pub async fn duplicate_task(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(new_id)
     .bind(&new_title)
@@ -532,13 +532,13 @@ pub async fn duplicate_task(
 
     // Copy assignees
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_assignees (id, task_id, user_id)
         SELECT gen_random_uuid(), $2, user_id
         FROM task_assignees
         WHERE task_id = $1
         ON CONFLICT (task_id, user_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(source_task_id)
     .bind(new_id)
@@ -547,13 +547,13 @@ pub async fn duplicate_task(
 
     // Copy labels
     sqlx::query(
-        r#"
+        r"
         INSERT INTO task_labels (id, task_id, label_id)
         SELECT gen_random_uuid(), $2, label_id
         FROM task_labels
         WHERE task_id = $1
         ON CONFLICT (task_id, label_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(source_task_id)
     .bind(new_id)
@@ -562,14 +562,14 @@ pub async fn duplicate_task(
 
     // Copy child tasks (preserving parent_task_id pointing to new parent, and depth)
     sqlx::query(
-        r#"
+        r"
         INSERT INTO tasks (id, title, description, priority, project_id, status_id,
                           task_list_id, position, tenant_id, created_by_id, parent_task_id, depth)
         SELECT gen_random_uuid(), title, description, priority, project_id, status_id,
                task_list_id, position, tenant_id, $3, $2, depth
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(source_task_id)
     .bind(new_id)
@@ -590,7 +590,7 @@ pub async fn move_task_to_project(
     new_position: String,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         UPDATE tasks
         SET
             project_id = $2,
@@ -604,7 +604,7 @@ pub async fn move_task_to_project(
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
             version, parent_task_id, depth, reporting_person_id
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(target_project_id)
@@ -624,11 +624,11 @@ pub async fn strip_task_labels_for_project(
     source_project_id: Uuid,
 ) -> Result<u64, TaskQueryError> {
     let rows = sqlx::query(
-        r#"
+        r"
         DELETE FROM task_labels
         WHERE task_id = $1
           AND label_id IN (SELECT id FROM labels WHERE project_id = $2)
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(source_project_id)
@@ -647,7 +647,7 @@ pub async fn move_subtasks_to_project(
     target_status_id: Uuid,
 ) -> Result<Vec<Uuid>, TaskQueryError> {
     let subtask_ids = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         UPDATE tasks
         SET
             project_id = $2,
@@ -655,7 +655,7 @@ pub async fn move_subtasks_to_project(
             updated_at = NOW()
         WHERE parent_task_id = $1 AND deleted_at IS NULL
         RETURNING id
-        "#,
+        ",
     )
     .bind(parent_task_id)
     .bind(target_project_id)

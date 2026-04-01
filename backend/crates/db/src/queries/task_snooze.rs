@@ -40,13 +40,13 @@ pub async fn snooze_task(
 
     // Verify task exists and user has access
     let has_access = sqlx::query_scalar::<_, bool>(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM tasks t
             INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
             WHERE t.id = $2 AND t.deleted_at IS NULL
         )
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(task_id)
@@ -59,13 +59,13 @@ pub async fn snooze_task(
     }
 
     let snooze = sqlx::query_as::<_, TaskSnooze>(
-        r#"
+        r"
         INSERT INTO task_snoozes (user_id, task_id, snoozed_until)
         VALUES ($1, $2, $3)
         ON CONFLICT (user_id, task_id)
         DO UPDATE SET snoozed_until = $3, created_at = NOW()
         RETURNING id, user_id, task_id, snoozed_until, created_at
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(task_id)

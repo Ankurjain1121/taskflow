@@ -42,12 +42,11 @@ async fn get_webhook_board_id_internal(
     pool: &PgPool,
     webhook_id: Uuid,
 ) -> Result<Uuid, WebhookQueryError> {
-    let board_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM webhooks WHERE id = $1"#)
-            .bind(webhook_id)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(WebhookQueryError::NotFound)?;
+    let board_id = sqlx::query_scalar::<_, Uuid>(r"SELECT project_id FROM webhooks WHERE id = $1")
+        .bind(webhook_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(WebhookQueryError::NotFound)?;
 
     Ok(board_id)
 }
@@ -64,13 +63,13 @@ pub async fn list_webhooks(
     }
 
     let webhooks = sqlx::query_as::<_, Webhook>(
-        r#"
+        r"
         SELECT id, project_id, url, secret, events, is_active,
                tenant_id, created_by_id, created_at, updated_at
         FROM webhooks
         WHERE project_id = $1
         ORDER BY created_at DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -96,7 +95,7 @@ pub async fn create_webhook(
     let now = Utc::now();
 
     let webhook = sqlx::query_as::<_, Webhook>(
-        r#"
+        r"
         INSERT INTO webhooks (
             id, project_id, url, secret, events, is_active,
             tenant_id, created_by_id, created_at, updated_at
@@ -104,7 +103,7 @@ pub async fn create_webhook(
         VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $8)
         RETURNING id, project_id, url, secret, events, is_active,
                   tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(board_id)
@@ -135,7 +134,7 @@ pub async fn update_webhook(
     }
 
     let webhook = sqlx::query_as::<_, Webhook>(
-        r#"
+        r"
         UPDATE webhooks
         SET url = COALESCE($2, url),
             secret = COALESCE($3, secret),
@@ -145,7 +144,7 @@ pub async fn update_webhook(
         WHERE id = $1
         RETURNING id, project_id, url, secret, events, is_active,
                   tenant_id, created_by_id, created_at, updated_at
-        "#,
+        ",
     )
     .bind(webhook_id)
     .bind(&input.url)
@@ -171,7 +170,7 @@ pub async fn delete_webhook(
         return Err(WebhookQueryError::NotBoardMember);
     }
 
-    sqlx::query(r#"DELETE FROM webhooks WHERE id = $1"#)
+    sqlx::query(r"DELETE FROM webhooks WHERE id = $1")
         .bind(webhook_id)
         .execute(pool)
         .await?;
@@ -194,14 +193,14 @@ pub async fn get_webhook_deliveries(
     }
 
     let deliveries = sqlx::query_as::<_, WebhookDelivery>(
-        r#"
+        r"
         SELECT id, webhook_id, event_type, payload, response_status,
                response_body, delivered_at, success
         FROM webhook_deliveries
         WHERE webhook_id = $1
         ORDER BY delivered_at DESC
         LIMIT $2
-        "#,
+        ",
     )
     .bind(webhook_id)
     .bind(limit)
@@ -219,14 +218,14 @@ pub async fn get_active_webhooks_for_event(
     event_type: &str,
 ) -> Result<Vec<Webhook>, WebhookQueryError> {
     let webhooks = sqlx::query_as::<_, Webhook>(
-        r#"
+        r"
         SELECT id, project_id, url, secret, events, is_active,
                tenant_id, created_by_id, created_at, updated_at
         FROM webhooks
         WHERE project_id = $1
           AND is_active = true
           AND $2 = ANY(events)
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(event_type)
@@ -250,7 +249,7 @@ pub async fn log_webhook_delivery(
     let now = Utc::now();
 
     let delivery = sqlx::query_as::<_, WebhookDelivery>(
-        r#"
+        r"
         INSERT INTO webhook_deliveries (
             id, webhook_id, event_type, payload, response_status,
             response_body, delivered_at, success
@@ -258,7 +257,7 @@ pub async fn log_webhook_delivery(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, webhook_id, event_type, payload, response_status,
                   response_body, delivered_at, success
-        "#,
+        ",
     )
     .bind(id)
     .bind(webhook_id)
@@ -288,9 +287,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "WH Test User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "WH Test User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

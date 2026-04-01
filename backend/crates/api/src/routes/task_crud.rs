@@ -20,7 +20,9 @@ use taskbolt_db::queries::{
 use taskbolt_services::broadcast::events;
 use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
-use taskbolt_services::{spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext};
+use taskbolt_services::{
+    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+};
 
 use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{

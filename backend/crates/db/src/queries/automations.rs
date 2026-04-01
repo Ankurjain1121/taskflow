@@ -77,9 +77,9 @@ async fn get_rule_board_id_internal(
     rule_id: Uuid,
 ) -> Result<Uuid, AutomationQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM automation_rules WHERE id = $1
-        "#,
+        ",
     )
     .bind(rule_id)
     .fetch_optional(pool)
@@ -102,7 +102,7 @@ pub async fn list_rules(
     }
 
     let rows = sqlx::query_as::<_, RuleActionRow>(
-        r#"
+        r"
         SELECT
             ar.id as rule_id, ar.name as rule_name, ar.project_id, ar.trigger,
             ar.trigger_config, ar.is_active, ar.tenant_id, ar.created_by_id,
@@ -113,7 +113,7 @@ pub async fn list_rules(
         LEFT JOIN automation_actions aa ON aa.rule_id = ar.id
         WHERE ar.project_id = $1
         ORDER BY ar.created_at DESC, aa.position ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -130,7 +130,7 @@ pub async fn get_rule(
     user_id: Uuid,
 ) -> Result<AutomationRuleWithActions, AutomationQueryError> {
     let rule = sqlx::query_as::<_, AutomationRule>(
-        r#"
+        r"
         SELECT
             id,
             name,
@@ -147,7 +147,7 @@ pub async fn get_rule(
             last_triggered_at
         FROM automation_rules
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(rule_id)
     .fetch_optional(pool)
@@ -159,12 +159,12 @@ pub async fn get_rule(
     }
 
     let actions = sqlx::query_as::<_, AutomationAction>(
-        r#"
+        r"
         SELECT id, rule_id, action_type, action_config, position
         FROM automation_actions
         WHERE rule_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(rule.id)
     .fetch_all(pool)
@@ -192,7 +192,7 @@ pub async fn create_rule(
     let now = Utc::now();
 
     let rule = sqlx::query_as::<_, AutomationRule>(
-        r#"
+        r"
         INSERT INTO automation_rules (
             id, name, project_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
@@ -212,7 +212,7 @@ pub async fn create_rule(
             conditions,
             execution_count,
             last_triggered_at
-        "#,
+        ",
     )
     .bind(rule_id)
     .bind(&input.name)
@@ -228,7 +228,7 @@ pub async fn create_rule(
     let mut actions = Vec::with_capacity(input.actions.len());
     for (i, action_input) in input.actions.into_iter().enumerate() {
         let action = sqlx::query_as::<_, AutomationAction>(
-            r#"
+            r"
             INSERT INTO automation_actions (
                 id, rule_id, action_type, action_config, position
             )
@@ -239,7 +239,7 @@ pub async fn create_rule(
                 action_type,
                 action_config,
                 position
-            "#,
+            ",
         )
         .bind(Uuid::new_v4())
         .bind(rule_id)
@@ -275,7 +275,7 @@ pub async fn update_rule(
     let mut tx = pool.begin().await?;
 
     let rule = sqlx::query_as::<_, AutomationRule>(
-        r#"
+        r"
         UPDATE automation_rules
         SET
             name = COALESCE($2, name),
@@ -298,7 +298,7 @@ pub async fn update_rule(
             conditions,
             execution_count,
             last_triggered_at
-        "#,
+        ",
     )
     .bind(rule_id)
     .bind(&input.name)
@@ -312,9 +312,9 @@ pub async fn update_rule(
     let actions = if let Some(new_actions) = input.actions {
         // Delete existing actions
         sqlx::query(
-            r#"
+            r"
             DELETE FROM automation_actions WHERE rule_id = $1
-            "#,
+            ",
         )
         .bind(rule_id)
         .execute(&mut *tx)
@@ -324,7 +324,7 @@ pub async fn update_rule(
         let mut actions = Vec::with_capacity(new_actions.len());
         for (i, action_input) in new_actions.into_iter().enumerate() {
             let action = sqlx::query_as::<_, AutomationAction>(
-                r#"
+                r"
                 INSERT INTO automation_actions (
                     id, rule_id, action_type, action_config, position
                 )
@@ -335,7 +335,7 @@ pub async fn update_rule(
                     action_type,
                     action_config,
                     position
-                "#,
+                ",
             )
             .bind(Uuid::new_v4())
             .bind(rule_id)
@@ -351,7 +351,7 @@ pub async fn update_rule(
     } else {
         // Fetch existing actions
         sqlx::query_as::<_, AutomationAction>(
-            r#"
+            r"
             SELECT
                 id,
                 rule_id,
@@ -361,7 +361,7 @@ pub async fn update_rule(
             FROM automation_actions
             WHERE rule_id = $1
             ORDER BY position ASC
-            "#,
+            ",
         )
         .bind(rule_id)
         .fetch_all(&mut *tx)
@@ -388,9 +388,9 @@ pub async fn delete_rule(
     }
 
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM automation_rules WHERE id = $1
-        "#,
+        ",
     )
     .bind(rule_id)
     .execute(pool)
@@ -418,7 +418,7 @@ pub async fn list_project_activity(
     }
 
     let entries = sqlx::query_as::<_, AutomationActivityEntry>(
-        r#"
+        r"
         SELECT
             al.id,
             'automation' as entry_type,
@@ -432,7 +432,7 @@ pub async fn list_project_activity(
         WHERE ar.project_id = $1
         ORDER BY al.triggered_at DESC
         LIMIT $2 OFFSET $3
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(limit)
@@ -456,10 +456,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user =
-            auth::create_user_with_tenant(pool, &unique_email(), "Automation User", FAKE_HASH, None, false)
-                .await
-                .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "Automation User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

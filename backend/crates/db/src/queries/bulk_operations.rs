@@ -103,11 +103,11 @@ pub async fn snapshot_tasks(
             Option<chrono::DateTime<chrono::Utc>>,
         ),
     >(
-        r#"
+        r"
         SELECT id, status_id, priority, milestone_id, task_list_id, deleted_at
         FROM tasks
         WHERE id = ANY($1) AND project_id = $2
-        "#,
+        ",
     )
     .bind(task_ids)
     .bind(board_id)
@@ -158,11 +158,11 @@ pub async fn execute_bulk_operation(
     });
 
     let op = sqlx::query_as::<_, BulkOperation>(
-        r#"
+        r"
         INSERT INTO bulk_operations (workspace_id, project_id, user_id, action_type, action_config, affected_task_ids, changes_summary, task_count)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(board_id)
@@ -203,12 +203,12 @@ pub async fn undo_bulk_operation(
     let mut restored: u64 = 0;
     for snap in snapshots {
         let result = sqlx::query(
-            r#"
+            r"
             UPDATE tasks
             SET status_id = $1, priority = $2, milestone_id = $3,
                 task_list_id = $4, deleted_at = $5, updated_at = now()
             WHERE id = $6 AND project_id = $7
-            "#,
+            ",
         )
         .bind(snap.status_id)
         .bind(&snap.priority)
@@ -238,12 +238,12 @@ pub async fn list_bulk_operations(
     user_id: Uuid,
 ) -> Result<Vec<BulkOperation>, TaskQueryError> {
     let ops = sqlx::query_as::<_, BulkOperation>(
-        r#"
+        r"
         SELECT * FROM bulk_operations
         WHERE project_id = $1 AND user_id = $2 AND expires_at > now()
         ORDER BY created_at DESC
         LIMIT 10
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(user_id)
@@ -305,13 +305,13 @@ async fn apply_action(
         }
         BulkAction::AssignUser { user_id } => {
             sqlx::query(
-                r#"
+                r"
                 INSERT INTO task_assignees (task_id, user_id)
                 SELECT t.id, $1
                 FROM tasks t
                 WHERE t.id = ANY($2) AND t.project_id = $3 AND t.deleted_at IS NULL
                 ON CONFLICT (task_id, user_id) DO NOTHING
-                "#,
+                ",
             )
             .bind(user_id)
             .bind(task_ids)
@@ -321,12 +321,12 @@ async fn apply_action(
         }
         BulkAction::UnassignUser { user_id } => {
             sqlx::query(
-                r#"
+                r"
                 DELETE FROM task_assignees
                 WHERE user_id = $1 AND task_id = ANY(
                     SELECT id FROM tasks WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
                 )
-                "#,
+                ",
             )
             .bind(user_id)
             .bind(task_ids)

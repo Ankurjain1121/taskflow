@@ -50,13 +50,13 @@ pub async fn list_saved_views(
     workspace_id: Uuid,
 ) -> Result<Vec<SavedView>, sqlx::Error> {
     sqlx::query_as::<_, SavedView>(
-        r#"
+        r"
         SELECT id, user_id, workspace_id, project_id, name, view_type,
                config, pinned, shared, created_at, updated_at
         FROM saved_views
         WHERE user_id = $1 AND workspace_id = $2
         ORDER BY pinned DESC, updated_at DESC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -92,12 +92,12 @@ pub async fn create_saved_view(
     let shared = input.shared.unwrap_or(false);
 
     sqlx::query_as::<_, SavedView>(
-        r#"
+        r"
         INSERT INTO saved_views (user_id, workspace_id, project_id, name, view_type, config, pinned, shared)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, user_id, workspace_id, project_id, name, view_type,
                   config, pinned, shared, created_at, updated_at
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -137,13 +137,13 @@ pub async fn update_saved_view(
     let shared = input.shared.unwrap_or(existing.shared);
 
     sqlx::query_as::<_, SavedView>(
-        r#"
+        r"
         UPDATE saved_views
         SET name = $1, config = $2, pinned = $3, shared = $4, updated_at = NOW()
         WHERE id = $5
         RETURNING id, user_id, workspace_id, project_id, name, view_type,
                   config, pinned, shared, created_at, updated_at
-        "#,
+        ",
     )
     .bind(name)
     .bind(config)
@@ -203,13 +203,13 @@ pub async fn toggle_pin(
     }
 
     sqlx::query_as::<_, SavedView>(
-        r#"
+        r"
         UPDATE saved_views
         SET pinned = $1, updated_at = NOW()
         WHERE id = $2
         RETURNING id, user_id, workspace_id, project_id, name, view_type,
                   config, pinned, shared, created_at, updated_at
-        "#,
+        ",
     )
     .bind(pinned)
     .bind(view_id)
@@ -221,12 +221,12 @@ pub async fn toggle_pin(
 /// Get a saved view by ID
 pub async fn get_saved_view(pool: &PgPool, view_id: Uuid) -> Result<SavedView, SavedViewError> {
     sqlx::query_as::<_, SavedView>(
-        r#"
+        r"
         SELECT id, user_id, workspace_id, project_id, name, view_type,
                config, pinned, shared, created_at, updated_at
         FROM saved_views
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(view_id)
     .fetch_optional(pool)

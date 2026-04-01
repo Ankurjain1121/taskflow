@@ -58,7 +58,7 @@ pub async fn list_comments_by_task(
     task_id: Uuid,
 ) -> Result<Vec<CommentWithAuthor>, CommentQueryError> {
     let comments = sqlx::query_as::<_, CommentWithAuthor>(
-        r#"
+        r"
         SELECT
             c.id,
             c.content,
@@ -74,7 +74,7 @@ pub async fn list_comments_by_task(
         JOIN users u ON u.id = c.author_id
         WHERE c.task_id = $1 AND c.deleted_at IS NULL
         ORDER BY c.created_at ASC
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)
@@ -97,7 +97,7 @@ pub async fn create_comment(
         serde_json::to_value(mentioned_user_ids).unwrap_or_else(|_| serde_json::json!([]));
 
     let comment = sqlx::query_as::<_, CommentWithAuthor>(
-        r#"
+        r"
         WITH inserted AS (
             INSERT INTO comments (id, content, task_id, author_id, parent_id, mentioned_user_ids)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -116,7 +116,7 @@ pub async fn create_comment(
             u.avatar_url as author_avatar_url
         FROM inserted i
         JOIN users u ON u.id = i.author_id
-        "#,
+        ",
     )
     .bind(comment_id)
     .bind(content)
@@ -143,7 +143,7 @@ pub async fn update_comment(
         serde_json::to_value(mentioned_user_ids).unwrap_or_else(|_| serde_json::json!([]));
 
     let comment = sqlx::query_as::<_, CommentWithAuthor>(
-        r#"
+        r"
         WITH updated AS (
             UPDATE comments
             SET content = $2, mentioned_user_ids = $3, updated_at = NOW()
@@ -163,7 +163,7 @@ pub async fn update_comment(
             usr.avatar_url as author_avatar_url
         FROM updated u
         JOIN users usr ON usr.id = u.author_id
-        "#,
+        ",
     )
     .bind(comment_id)
     .bind(content)
@@ -178,11 +178,11 @@ pub async fn update_comment(
 /// Soft delete a comment
 pub async fn delete_comment(pool: &PgPool, comment_id: Uuid) -> Result<(), CommentQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         UPDATE comments
         SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(comment_id)
     .execute(pool)
@@ -202,11 +202,11 @@ pub async fn get_comment_by_id(
     comment_id: Uuid,
 ) -> Result<Option<Comment>, CommentQueryError> {
     let comment = sqlx::query_as::<_, Comment>(
-        r#"
+        r"
         SELECT id, content, task_id, author_id, parent_id, mentioned_user_ids, created_at, updated_at
         FROM comments
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(comment_id)
     .fetch_optional(pool)
@@ -221,9 +221,9 @@ pub async fn get_comment_task_id(
     comment_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar(
-        r#"
+        r"
         SELECT task_id FROM comments WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(comment_id)
     .fetch_optional(pool)
@@ -236,9 +236,9 @@ pub async fn get_comment_author_id(
     comment_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar(
-        r#"
+        r"
         SELECT author_id FROM comments WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(comment_id)
     .fetch_optional(pool)

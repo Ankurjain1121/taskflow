@@ -56,7 +56,7 @@ pub async fn get_dashboard_stats(
     // NOTE: Parameters are shared between outer query and scalar subquery.
     // $1=user_id, $2=now, $3=seven_days_ago, $4=workspace_id
     let stats = sqlx::query_as::<_, StatsRow>(
-        r#"
+        r"
         SELECT
             COUNT(DISTINCT t.id)::bigint AS total_tasks,
             COUNT(DISTINCT t.id) FILTER (
@@ -85,7 +85,7 @@ pub async fn get_dashboard_stats(
         WHERE ta.user_id = $1 AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(now)
@@ -113,7 +113,7 @@ pub async fn get_recent_activity(
     let limit = limit.clamp(1, 20);
 
     let entries = sqlx::query_as::<_, DashboardActivityEntry>(
-        r#"
+        r"
         SELECT
             al.id,
             al.action,
@@ -131,7 +131,7 @@ pub async fn get_recent_activity(
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         ORDER BY al.created_at DESC
         LIMIT $2
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(limit)
@@ -165,7 +165,7 @@ pub async fn get_overdue_tasks(
     let limit = limit.clamp(1, 50);
 
     let rows = sqlx::query_as::<_, OverdueTask>(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -188,7 +188,7 @@ pub async fn get_overdue_tasks(
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT $3
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(now)
@@ -222,7 +222,7 @@ pub async fn get_upcoming_deadlines(
     let end_date = now + chrono::Duration::days(days);
 
     let rows = sqlx::query_as::<_, UpcomingDeadline>(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -245,7 +245,7 @@ pub async fn get_upcoming_deadlines(
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT 50
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(now)

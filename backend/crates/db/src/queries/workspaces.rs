@@ -18,21 +18,21 @@ pub async fn list_workspaces_for_user(
 ) -> Result<Vec<Workspace>, sqlx::Error> {
     if is_global_admin {
         sqlx::query_as::<_, Workspace>(
-            r#"
+            r"
             SELECT id, name, description, logo_url, visibility,
                    tenant_id, created_by_id, deleted_at, created_at, updated_at
             FROM workspaces
             WHERE tenant_id = $1
               AND deleted_at IS NULL
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(tenant_id)
         .fetch_all(pool)
         .await
     } else {
         sqlx::query_as::<_, Workspace>(
-            r#"
+            r"
             SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
                    w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
             FROM workspaces w
@@ -41,7 +41,7 @@ pub async fn list_workspaces_for_user(
               AND w.tenant_id = $2
               AND w.deleted_at IS NULL
             ORDER BY w.created_at DESC
-            "#,
+            ",
         )
         .bind(user_id)
         .bind(tenant_id)
@@ -80,14 +80,14 @@ pub async fn get_workspace_by_id(
     tenant_id: Uuid,
 ) -> Result<Option<WorkspaceWithMembers>, sqlx::Error> {
     let workspace = sqlx::query_as::<_, Workspace>(
-        r#"
+        r"
         SELECT id, name, description, logo_url, visibility, tenant_id, created_by_id,
                deleted_at, created_at, updated_at
         FROM workspaces
         WHERE id = $1
           AND tenant_id = $2
           AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .bind(tenant_id)
@@ -97,7 +97,7 @@ pub async fn get_workspace_by_id(
     match workspace {
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
-                r#"
+                r"
                 SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin, phone_number, last_login_at
                 FROM (
                     -- Explicit workspace members
@@ -127,7 +127,7 @@ pub async fn get_workspace_by_id(
                       )
                 ) combined
                 ORDER BY is_org_admin DESC, joined_at ASC
-                "#,
+                ",
             )
             .bind(id)
             .bind(ws.tenant_id)
@@ -154,12 +154,12 @@ pub async fn create_workspace(
     let mut tx = pool.begin().await?;
 
     let workspace = sqlx::query_as::<_, Workspace>(
-        r#"
+        r"
         INSERT INTO workspaces (name, description, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4)
         RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
                   deleted_at, created_at, updated_at
-        "#,
+        ",
     )
     .bind(name)
     .bind(description)
@@ -170,10 +170,10 @@ pub async fn create_workspace(
 
     // Add creator as workspace owner
     sqlx::query(
-        r#"
+        r"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, 'owner')
-        "#,
+        ",
     )
     .bind(workspace.id)
     .bind(created_by_id)
@@ -196,14 +196,14 @@ pub async fn update_workspace(
     description: Option<&str>,
 ) -> Result<Option<Workspace>, sqlx::Error> {
     sqlx::query_as::<_, Workspace>(
-        r#"
+        r"
         UPDATE workspaces
         SET name = $2, description = $3
         WHERE id = $1
           AND deleted_at IS NULL
         RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
                   deleted_at, created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(name)
@@ -219,14 +219,14 @@ pub async fn update_workspace_visibility(
     visibility: WorkspaceVisibility,
 ) -> Result<Option<Workspace>, sqlx::Error> {
     sqlx::query_as::<_, Workspace>(
-        r#"
+        r"
         UPDATE workspaces
         SET visibility = $2
         WHERE id = $1
           AND deleted_at IS NULL
         RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
                   deleted_at, created_at, updated_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(visibility)
@@ -237,12 +237,12 @@ pub async fn update_workspace_visibility(
 /// Soft-delete a workspace
 pub async fn soft_delete_workspace(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE workspaces
         SET deleted_at = NOW()
         WHERE id = $1
           AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(id)
     .execute(pool)
@@ -267,7 +267,7 @@ pub async fn search_workspace_members(
         .replace('_', "\\_");
     let pattern = format!("%{}%", escaped);
     sqlx::query_as::<_, UserPublic>(
-        r#"
+        r"
         SELECT DISTINCT u.id, u.email, u.name, u.avatar_url, u.job_title, u.department,
                u.role, u.tenant_id, u.onboarding_completed, u.created_at
         FROM users u
@@ -279,7 +279,7 @@ pub async fn search_workspace_members(
           )
         ORDER BY u.name ASC
         LIMIT $4
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(tenant_id)
@@ -296,12 +296,12 @@ pub async fn add_workspace_member(
     user_id: Uuid,
 ) -> Result<WorkspaceMember, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceMember>(
-        r#"
+        r"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, 'member')
         ON CONFLICT (workspace_id, user_id) DO UPDATE SET joined_at = workspace_members.joined_at
         RETURNING id, workspace_id, user_id, role, joined_at
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -319,14 +319,14 @@ pub async fn remove_workspace_member(
 
     // Remove from project_members for all projects in this workspace
     sqlx::query(
-        r#"
+        r"
         DELETE FROM project_members
         WHERE user_id = $1
           AND project_id IN (
               SELECT id FROM projects
               WHERE workspace_id = $2 AND deleted_at IS NULL
           )
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)
@@ -335,10 +335,10 @@ pub async fn remove_workspace_member(
 
     // Remove from workspace_members
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM workspace_members
         WHERE workspace_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -360,7 +360,7 @@ pub async fn is_workspace_member(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result: (bool,) = sqlx::query_as(
-        r#"
+        r"
         SELECT EXISTS(
             SELECT 1 FROM workspace_members
             WHERE workspace_id = $1 AND user_id = $2
@@ -368,7 +368,7 @@ pub async fn is_workspace_member(
             SELECT 1 FROM users
             WHERE id = $2 AND role = 'admin' AND deleted_at IS NULL
         )
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -385,10 +385,10 @@ pub async fn get_workspace_member_role(
     user_id: Uuid,
 ) -> Result<Option<WorkspaceMemberRole>, sqlx::Error> {
     let row = sqlx::query_as::<_, (WorkspaceMemberRole,)>(
-        r#"
+        r"
         SELECT role FROM workspace_members
         WHERE workspace_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -406,11 +406,11 @@ pub async fn update_workspace_member_role(
     role: WorkspaceMemberRole,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE workspace_members
         SET role = $3
         WHERE workspace_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -428,7 +428,7 @@ pub async fn list_open_workspaces(
     user_id: Uuid,
 ) -> Result<Vec<Workspace>, sqlx::Error> {
     sqlx::query_as::<_, Workspace>(
-        r#"
+        r"
         SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
                w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
         FROM workspaces w
@@ -441,7 +441,7 @@ pub async fn list_open_workspaces(
           )
         ORDER BY w.name ASC
         LIMIT 100
-        "#,
+        ",
     )
     .bind(tenant_id)
     .bind(user_id)
@@ -456,12 +456,12 @@ pub async fn join_open_workspace(
     user_id: Uuid,
 ) -> Result<WorkspaceMember, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceMember>(
-        r#"
+        r"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, 'member')
         ON CONFLICT (workspace_id, user_id) DO UPDATE SET joined_at = workspace_members.joined_at
         RETURNING id, workspace_id, user_id, role, joined_at
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -493,7 +493,7 @@ pub async fn list_tenant_members(
     tenant_id: Uuid,
 ) -> Result<Vec<TenantMemberInfo>, sqlx::Error> {
     sqlx::query_as::<_, TenantMemberInfo>(
-        r#"
+        r"
         SELECT u.id AS user_id, u.name, u.email, u.avatar_url,
                u.job_title, u.department, u.role,
                COUNT(wm.workspace_id) AS workspace_count,
@@ -509,7 +509,7 @@ pub async fn list_tenant_members(
                  u.job_title, u.department, u.role, u.created_at
         ORDER BY u.name ASC
         LIMIT 500
-        "#,
+        ",
     )
     .bind(tenant_id)
     .fetch_all(pool)
@@ -532,7 +532,7 @@ pub async fn get_user_workspaces(
     tenant_id: Uuid,
 ) -> Result<Vec<UserWorkspaceMembership>, sqlx::Error> {
     sqlx::query_as::<_, UserWorkspaceMembership>(
-        r#"
+        r"
         SELECT w.id AS workspace_id, w.name AS workspace_name,
                wm.role, wm.joined_at
         FROM workspace_members wm
@@ -541,7 +541,7 @@ pub async fn get_user_workspaces(
           AND w.tenant_id = $2
           AND w.deleted_at IS NULL
         ORDER BY w.name ASC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(tenant_id)
@@ -561,12 +561,12 @@ pub async fn bulk_add_workspace_members(
     }
 
     let result = sqlx::query(
-        r#"
+        r"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         SELECT $1, uid, 'member'::workspace_member_role
         FROM unnest($2::uuid[]) AS uid
         ON CONFLICT (workspace_id, user_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_ids)
@@ -607,7 +607,7 @@ pub async fn get_user_workspace_matrix(
     );
 
     sqlx::query_as::<_, WorkspaceMatrixEntry>(
-        r#"
+        r"
         SELECT w.id AS workspace_id,
                w.name AS workspace_name,
                (wm.user_id IS NOT NULL OR $3) AS is_member,
@@ -618,7 +618,7 @@ pub async fn get_user_workspace_matrix(
         WHERE w.tenant_id = $2
           AND w.deleted_at IS NULL
         ORDER BY w.name ASC
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(tenant_id)
@@ -633,10 +633,10 @@ pub async fn get_workspace_visibility(
     workspace_id: Uuid,
 ) -> Result<Option<WorkspaceVisibility>, sqlx::Error> {
     let row = sqlx::query_as::<_, (WorkspaceVisibility,)>(
-        r#"
+        r"
         SELECT visibility FROM workspaces
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_optional(pool)

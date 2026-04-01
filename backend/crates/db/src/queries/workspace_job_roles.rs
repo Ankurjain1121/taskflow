@@ -36,12 +36,12 @@ pub async fn list_job_roles(
     workspace_id: Uuid,
 ) -> Result<Vec<WorkspaceJobRole>, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceJobRole>(
-        r#"
+        r"
         SELECT id, workspace_id, name, color, description, created_at, updated_at
         FROM workspace_job_roles
         WHERE workspace_id = $1
         ORDER BY name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -55,11 +55,11 @@ pub async fn create_job_role(
     input: CreateJobRoleInput,
 ) -> Result<WorkspaceJobRole, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceJobRole>(
-        r#"
+        r"
         INSERT INTO workspace_job_roles (id, workspace_id, name, color, description)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, workspace_id, name, color, description, created_at, updated_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(workspace_id)
@@ -77,7 +77,7 @@ pub async fn update_job_role(
     input: UpdateJobRoleInput,
 ) -> Result<WorkspaceJobRole, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceJobRole>(
-        r#"
+        r"
         UPDATE workspace_job_roles
         SET
             name = COALESCE($2, name),
@@ -86,7 +86,7 @@ pub async fn update_job_role(
             updated_at = NOW()
         WHERE id = $1
         RETURNING id, workspace_id, name, color, description, created_at, updated_at
-        "#,
+        ",
     )
     .bind(role_id)
     .bind(&input.name)
@@ -113,11 +113,11 @@ pub async fn assign_role_to_member(
     job_role_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO workspace_member_job_roles (id, workspace_id, user_id, job_role_id)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (user_id, job_role_id) DO NOTHING
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(workspace_id)
@@ -135,10 +135,10 @@ pub async fn remove_role_from_member(
     job_role_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         DELETE FROM workspace_member_job_roles
         WHERE user_id = $1 AND job_role_id = $2
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(job_role_id)
@@ -154,7 +154,7 @@ pub async fn get_member_roles(
     user_id: Uuid,
 ) -> Result<Vec<MemberJobRoleInfo>, sqlx::Error> {
     sqlx::query_as::<_, MemberJobRoleInfo>(
-        r#"
+        r"
         SELECT
             jr.id as role_id,
             jr.name as role_name,
@@ -164,7 +164,7 @@ pub async fn get_member_roles(
         JOIN workspace_job_roles jr ON jr.id = mjr.job_role_id
         WHERE mjr.workspace_id = $1 AND mjr.user_id = $2
         ORDER BY jr.name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .bind(user_id)
@@ -175,9 +175,9 @@ pub async fn get_member_roles(
 /// Get all user IDs that have a specific role (for automation actions)
 pub async fn get_members_with_role(pool: &PgPool, role_id: Uuid) -> Result<Vec<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT user_id FROM workspace_member_job_roles WHERE job_role_id = $1
-        "#,
+        ",
     )
     .bind(role_id)
     .fetch_all(pool)
@@ -198,7 +198,7 @@ pub async fn get_roles_for_all_members(
     workspace_id: Uuid,
 ) -> Result<Vec<MemberRoleBatch>, sqlx::Error> {
     sqlx::query_as::<_, MemberRoleBatch>(
-        r#"
+        r"
         SELECT
             mjr.user_id,
             jr.id as role_id,
@@ -208,7 +208,7 @@ pub async fn get_roles_for_all_members(
         JOIN workspace_job_roles jr ON jr.id = mjr.job_role_id
         WHERE mjr.workspace_id = $1
         ORDER BY jr.name ASC
-        "#,
+        ",
     )
     .bind(workspace_id)
     .fetch_all(pool)

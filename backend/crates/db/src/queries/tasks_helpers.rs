@@ -60,7 +60,7 @@ pub async fn get_task_row(
     task_id: Uuid,
 ) -> Result<Option<crate::models::Task>, sqlx::Error> {
     sqlx::query_as::<_, crate::models::Task>(
-        r#"
+        r"
         SELECT
             id, title, description, priority,
             due_date, start_date, estimated_hours,
@@ -70,7 +70,7 @@ pub async fn get_task_row(
             version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -90,10 +90,10 @@ pub async fn get_task_status_id(pool: &PgPool, task_id: Uuid) -> Result<Option<U
 /// Check whether a project status has type = 'done'.
 pub async fn is_done_status(pool: &PgPool, status_id: Uuid) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar::<_, bool>(
-        r#"
+        r"
         SELECT type = 'done'
         FROM project_statuses WHERE id = $1
-        "#,
+        ",
     )
     .bind(status_id)
     .fetch_optional(pool)
@@ -107,12 +107,12 @@ pub async fn find_done_status(
     project_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar(
-        r#"
+        r"
         SELECT id FROM project_statuses
         WHERE project_id = $1 AND type = 'done'
         ORDER BY position ASC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_optional(pool)
@@ -125,12 +125,12 @@ pub async fn find_non_done_status(
     project_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar(
-        r#"
+        r"
         SELECT id FROM project_statuses
         WHERE project_id = $1 AND type != 'done'
         ORDER BY position ASC
         LIMIT 1
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_optional(pool)
@@ -154,9 +154,9 @@ pub async fn get_task_project_id(
     task_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -182,7 +182,7 @@ pub async fn list_tasks_by_board(
 
     // Fetch tasks for the project with safety limit (respects visibility filtering)
     let tasks = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         SELECT
             t.id, t.title, t.description, t.priority, t.due_date, t.start_date,
             t.estimated_hours, t.project_id, t.task_list_id, t.status_id, t.position,
@@ -210,7 +210,7 @@ pub async fn list_tasks_by_board(
           )
         ORDER BY t.position ASC
         LIMIT 1000
-        "#,
+        ",
     )
     .bind(project_id)
     .bind(user_id)
@@ -236,7 +236,7 @@ pub async fn get_task_by_id(
 ) -> Result<Option<TaskWithDetails>, TaskQueryError> {
     // Fetch the task first
     let task = sqlx::query_as::<_, Task>(
-        r#"
+        r"
         SELECT
             id, title, description, priority, due_date, start_date,
             estimated_hours, project_id, task_list_id, status_id, position,
@@ -245,7 +245,7 @@ pub async fn get_task_by_id(
             version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -264,7 +264,7 @@ pub async fn get_task_by_id(
     // Fetch assignees, labels, counts, and watchers in parallel
     let (assignees, labels, comment_count, attachment_count, watchers) = tokio::try_join!(
         sqlx::query_as::<_, AssigneeInfo>(
-            r#"
+            r"
             SELECT
                 ta.user_id,
                 u.name,
@@ -273,35 +273,35 @@ pub async fn get_task_by_id(
             FROM task_assignees ta
             JOIN users u ON u.id = ta.user_id
             WHERE ta.task_id = $1
-            "#,
+            ",
         )
         .bind(task_id)
         .fetch_all(pool),
         sqlx::query_as::<_, Label>(
-            r#"
+            r"
             SELECT l.id, l.name, l.color, l.project_id
             FROM labels l
             JOIN task_labels tl ON tl.label_id = l.id
             WHERE tl.task_id = $1
-            "#,
+            ",
         )
         .bind(task_id)
         .fetch_all(pool),
         sqlx::query_scalar::<_, i64>(
-            r#"
+            r"
             SELECT COUNT(*)
             FROM comments
             WHERE task_id = $1 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(task_id)
         .fetch_one(pool),
         sqlx::query_scalar::<_, i64>(
-            r#"
+            r"
             SELECT COUNT(*)
             FROM attachments
             WHERE task_id = $1 AND deleted_at IS NULL
-            "#,
+            ",
         )
         .bind(task_id)
         .fetch_one(pool),
@@ -333,14 +333,14 @@ pub async fn list_child_tasks(
     parent_task_id: Uuid,
 ) -> Result<Vec<Task>, TaskQueryError> {
     let children = sqlx::query_as::<_, Task>(
-        r#"SELECT id, title, description, priority, due_date, start_date,
+        r"SELECT id, title, description, priority, due_date, start_date,
            estimated_hours, project_id, task_list_id, status_id, position,
            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
            tenant_id, created_by_id, deleted_at,
            created_at, updated_at, version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
-        ORDER BY position ASC"#,
+        ORDER BY position ASC",
     )
     .bind(parent_task_id)
     .fetch_all(pool)
@@ -363,12 +363,12 @@ pub async fn list_child_tasks_with_details(
 
     // 2. Batch fetch assignees for all children
     let assignee_rows = sqlx::query_as::<_, ChildAssigneeRow>(
-        r#"
+        r"
         SELECT ta.task_id, ta.user_id, u.name, u.avatar_url, ta.assigned_at
         FROM task_assignees ta
         JOIN users u ON u.id = ta.user_id
         WHERE ta.task_id = ANY($1)
-        "#,
+        ",
     )
     .bind(&child_ids)
     .fetch_all(pool)
@@ -376,12 +376,12 @@ pub async fn list_child_tasks_with_details(
 
     // 3. Batch fetch labels for all children
     let label_rows = sqlx::query_as::<_, ChildLabelRow>(
-        r#"
+        r"
         SELECT tl.task_id, l.id, l.name, l.color, l.project_id
         FROM task_labels tl
         JOIN labels l ON l.id = tl.label_id
         WHERE tl.task_id = ANY($1)
-        "#,
+        ",
     )
     .bind(&child_ids)
     .fetch_all(pool)

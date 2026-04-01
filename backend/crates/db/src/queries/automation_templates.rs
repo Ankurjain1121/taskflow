@@ -12,14 +12,14 @@ pub async fn list_templates(
 ) -> Result<Vec<AutomationTemplate>, sqlx::Error> {
     if let Some(cat) = category {
         sqlx::query_as::<_, AutomationTemplate>(
-            r#"
+            r"
             SELECT id, workspace_id, name, description, category,
                    trigger_type, trigger_config, action_type, action_config,
                    enabled, is_system, created_at, updated_at
             FROM automation_templates
             WHERE workspace_id = $1 AND category = $2
             ORDER BY is_system DESC, name ASC
-            "#,
+            ",
         )
         .bind(workspace_id)
         .bind(cat)
@@ -27,14 +27,14 @@ pub async fn list_templates(
         .await
     } else {
         sqlx::query_as::<_, AutomationTemplate>(
-            r#"
+            r"
             SELECT id, workspace_id, name, description, category,
                    trigger_type, trigger_config, action_type, action_config,
                    enabled, is_system, created_at, updated_at
             FROM automation_templates
             WHERE workspace_id = $1
             ORDER BY is_system DESC, name ASC
-            "#,
+            ",
         )
         .bind(workspace_id)
         .fetch_all(pool)
@@ -48,13 +48,13 @@ pub async fn get_template(
     template_id: Uuid,
 ) -> Result<Option<AutomationTemplate>, sqlx::Error> {
     sqlx::query_as::<_, AutomationTemplate>(
-        r#"
+        r"
         SELECT id, workspace_id, name, description, category,
                trigger_type, trigger_config, action_type, action_config,
                enabled, is_system, created_at, updated_at
         FROM automation_templates
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(template_id)
     .fetch_optional(pool)
@@ -68,14 +68,14 @@ pub async fn toggle_template(
     enabled: bool,
 ) -> Result<Option<AutomationTemplate>, sqlx::Error> {
     sqlx::query_as::<_, AutomationTemplate>(
-        r#"
+        r"
         UPDATE automation_templates
         SET enabled = $2
         WHERE id = $1
         RETURNING id, workspace_id, name, description, category,
                   trigger_type, trigger_config, action_type, action_config,
                   enabled, is_system, created_at, updated_at
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(enabled)
@@ -96,13 +96,13 @@ pub async fn apply_template(
 ) -> Result<Uuid, sqlx::Error> {
     // Fetch the template
     let template = sqlx::query_as::<_, AutomationTemplate>(
-        r#"
+        r"
         SELECT id, workspace_id, name, description, category,
                trigger_type, trigger_config, action_type, action_config,
                enabled, is_system, created_at, updated_at
         FROM automation_templates
         WHERE id = $1 AND workspace_id = $2
-        "#,
+        ",
     )
     .bind(template_id)
     .bind(workspace_id)
@@ -127,13 +127,13 @@ pub async fn apply_template(
 
     // Create the automation rule
     sqlx::query(
-        r#"
+        r"
         INSERT INTO automation_rules (
             id, name, project_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4::automation_trigger, $5, true, $6, $7, $8, $8)
-        "#,
+        ",
     )
     .bind(rule_id)
     .bind(&template.name)
@@ -148,12 +148,12 @@ pub async fn apply_template(
 
     // Create the automation action
     sqlx::query(
-        r#"
+        r"
         INSERT INTO automation_actions (
             id, rule_id, action_type, action_config, position
         )
         VALUES ($1, $2, $3::automation_action_type, $4, 0)
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(rule_id)
@@ -390,7 +390,7 @@ pub async fn seed_system_templates(pool: &PgPool, workspace_id: Uuid) -> Result<
         templates
     {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO automation_templates (
                 workspace_id, name, description, category,
                 trigger_type, trigger_config, action_type, action_config,
@@ -398,7 +398,7 @@ pub async fn seed_system_templates(pool: &PgPool, workspace_id: Uuid) -> Result<
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
             ON CONFLICT DO NOTHING
-            "#,
+            ",
         )
         .bind(workspace_id)
         .bind(name)

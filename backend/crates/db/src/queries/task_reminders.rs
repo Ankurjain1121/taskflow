@@ -38,13 +38,13 @@ pub async fn set_reminder(
     remind_before_minutes: i32,
 ) -> Result<TaskReminder, TaskQueryError> {
     let reminder = sqlx::query_as::<_, TaskReminder>(
-        r#"
+        r"
         INSERT INTO task_reminders (id, task_id, user_id, remind_before_minutes)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (task_id, user_id, remind_before_minutes)
         DO UPDATE SET is_sent = FALSE, sent_at = NULL
         RETURNING id, task_id, user_id, remind_before_minutes, is_sent, sent_at, created_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(task_id)
@@ -63,10 +63,10 @@ pub async fn remove_reminder(
     user_id: Uuid,
 ) -> Result<(), TaskQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM task_reminders
         WHERE id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(reminder_id)
     .bind(user_id)
@@ -88,12 +88,12 @@ pub async fn list_reminders_for_task(
     user_id: Uuid,
 ) -> Result<Vec<ReminderInfo>, sqlx::Error> {
     sqlx::query_as::<_, ReminderInfo>(
-        r#"
+        r"
         SELECT id, task_id, remind_before_minutes, is_sent, created_at
         FROM task_reminders
         WHERE task_id = $1 AND user_id = $2
         ORDER BY remind_before_minutes ASC
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(user_id)
@@ -108,7 +108,7 @@ pub async fn get_pending_reminders(
     now: DateTime<Utc>,
 ) -> Result<Vec<PendingReminder>, sqlx::Error> {
     sqlx::query_as::<_, PendingReminder>(
-        r#"
+        r"
         SELECT
             tr.id,
             tr.task_id,
@@ -133,7 +133,7 @@ pub async fn get_pending_reminders(
           )
         ORDER BY t.due_date ASC
         LIMIT 500
-        "#,
+        ",
     )
     .bind(now)
     .fetch_all(pool)
@@ -143,11 +143,11 @@ pub async fn get_pending_reminders(
 /// Mark a reminder as sent
 pub async fn mark_reminder_sent(pool: &PgPool, reminder_id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         UPDATE task_reminders
         SET is_sent = TRUE, sent_at = NOW()
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(reminder_id)
     .execute(pool)
@@ -159,11 +159,11 @@ pub async fn mark_reminder_sent(pool: &PgPool, reminder_id: Uuid) -> Result<(), 
 /// Reset all reminders for a task (when due_date changes)
 pub async fn reset_reminders_for_task(pool: &PgPool, task_id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"
+        r"
         UPDATE task_reminders
         SET is_sent = FALSE, sent_at = NULL
         WHERE task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .execute(pool)

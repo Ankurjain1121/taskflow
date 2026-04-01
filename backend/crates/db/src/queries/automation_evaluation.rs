@@ -103,7 +103,7 @@ pub async fn get_active_rules_for_trigger(
     trigger: AutomationTrigger,
 ) -> Result<Vec<AutomationRuleWithActions>, AutomationQueryError> {
     let rows = sqlx::query_as::<_, RuleActionRow>(
-        r#"
+        r"
         SELECT
             ar.id as rule_id, ar.name as rule_name, ar.project_id, ar.trigger,
             ar.trigger_config, ar.is_active, ar.tenant_id, ar.created_by_id,
@@ -116,7 +116,7 @@ pub async fn get_active_rules_for_trigger(
           AND ar.trigger = $2
           AND ar.is_active = true
         ORDER BY ar.created_at ASC, aa.position ASC
-        "#,
+        ",
     )
     .bind(board_id)
     .bind(&trigger)
@@ -135,7 +135,7 @@ pub async fn log_automation(
     details: Option<serde_json::Value>,
 ) -> Result<AutomationLog, AutomationQueryError> {
     let log = sqlx::query_as::<_, AutomationLog>(
-        r#"
+        r"
         INSERT INTO automation_logs (id, rule_id, task_id, triggered_at, status, details)
         VALUES ($1, $2, $3, NOW(), $4, $5)
         RETURNING
@@ -145,7 +145,7 @@ pub async fn log_automation(
             triggered_at,
             status,
             details
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(rule_id)
@@ -157,12 +157,12 @@ pub async fn log_automation(
 
     // Update execution stats on the rule
     sqlx::query(
-        r#"
+        r"
         UPDATE automation_rules
         SET execution_count = execution_count + 1,
             last_triggered_at = NOW()
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(rule_id)
     .execute(pool)
@@ -180,9 +180,9 @@ pub async fn get_rule_logs(
     limit: i64,
 ) -> Result<Vec<AutomationLog>, AutomationQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM automation_rules WHERE id = $1
-        "#,
+        ",
     )
     .bind(rule_id)
     .fetch_optional(pool)
@@ -194,7 +194,7 @@ pub async fn get_rule_logs(
     }
 
     let logs = sqlx::query_as::<_, AutomationLog>(
-        r#"
+        r"
         SELECT
             id,
             rule_id,
@@ -206,7 +206,7 @@ pub async fn get_rule_logs(
         WHERE rule_id = $1
         ORDER BY triggered_at DESC
         LIMIT $2
-        "#,
+        ",
     )
     .bind(rule_id)
     .bind(limit)
@@ -238,7 +238,7 @@ pub async fn get_scheduled_trigger_tasks(
 ) -> Result<Vec<ScheduledTriggerTask>, sqlx::Error> {
     // Find tasks whose due dates have passed (overdue)
     let overdue = sqlx::query_as::<_, ScheduledTriggerTask>(
-        r#"
+        r"
         SELECT DISTINCT
             t.id as task_id,
             t.project_id,
@@ -259,14 +259,14 @@ pub async fn get_scheduled_trigger_tasks(
           )
         ORDER BY t.due_date ASC
         LIMIT 500
-        "#,
+        ",
     )
     .fetch_all(pool)
     .await?;
 
     // Find tasks whose due dates are approaching (within next 24h)
     let approaching = sqlx::query_as::<_, ScheduledTriggerTask>(
-        r#"
+        r"
         SELECT DISTINCT
             t.id as task_id,
             t.project_id,
@@ -287,7 +287,7 @@ pub async fn get_scheduled_trigger_tasks(
           )
         ORDER BY t.due_date ASC
         LIMIT 500
-        "#,
+        ",
     )
     .fetch_all(pool)
     .await?;
@@ -312,9 +312,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "AutoEval User", FAKE_HASH, None, false)
-            .await
-            .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "AutoEval User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

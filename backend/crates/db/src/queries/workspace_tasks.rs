@@ -74,7 +74,7 @@ pub async fn list_workspace_tasks(
     });
 
     let rows = sqlx::query_as::<_, WorkspaceTaskItem>(
-        r#"
+        r"
         SELECT
             t.id,
             t.title,
@@ -108,7 +108,7 @@ pub async fn list_workspace_tasks(
           AND ($8::uuid IS NULL OR t.id > $8)
         ORDER BY t.updated_at DESC, t.id ASC
         LIMIT $9
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(workspace_id)

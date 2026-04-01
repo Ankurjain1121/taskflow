@@ -54,9 +54,9 @@ pub async fn list_activity_by_task(
     let items = if let Some(cursor_id) = cursor {
         // Get the created_at of the cursor entry to use for pagination
         let cursor_created_at: Option<DateTime<Utc>> = sqlx::query_scalar(
-            r#"
+            r"
             SELECT created_at FROM activity_log WHERE id = $1
-            "#,
+            ",
         )
         .bind(cursor_id)
         .fetch_optional(pool)
@@ -64,7 +64,7 @@ pub async fn list_activity_by_task(
 
         if let Some(cursor_time) = cursor_created_at {
             sqlx::query_as::<_, ActivityLogWithActor>(
-                r#"
+                r"
                 SELECT
                     al.id,
                     al.action,
@@ -83,7 +83,7 @@ pub async fn list_activity_by_task(
                   AND (al.created_at, al.id) < ($2, $3)
                 ORDER BY al.created_at DESC, al.id DESC
                 LIMIT $4
-                "#,
+                ",
             )
             .bind(task_id)
             .bind(cursor_time)
@@ -94,7 +94,7 @@ pub async fn list_activity_by_task(
         } else {
             // Invalid cursor, return first page
             sqlx::query_as::<_, ActivityLogWithActor>(
-                r#"
+                r"
                 SELECT
                     al.id,
                     al.action,
@@ -111,7 +111,7 @@ pub async fn list_activity_by_task(
                 WHERE al.entity_type = 'task' AND al.entity_id = $1
                 ORDER BY al.created_at DESC, al.id DESC
                 LIMIT $2
-                "#,
+                ",
             )
             .bind(task_id)
             .bind(fetch_limit)
@@ -120,7 +120,7 @@ pub async fn list_activity_by_task(
         }
     } else {
         sqlx::query_as::<_, ActivityLogWithActor>(
-            r#"
+            r"
             SELECT
                 al.id,
                 al.action,
@@ -137,7 +137,7 @@ pub async fn list_activity_by_task(
             WHERE al.entity_type = 'task' AND al.entity_id = $1
             ORDER BY al.created_at DESC, al.id DESC
             LIMIT $2
-            "#,
+            ",
         )
         .bind(task_id)
         .bind(fetch_limit)
@@ -181,7 +181,7 @@ pub async fn list_activity_by_project(
     let limit = limit.clamp(1, 100);
     let fetch_limit = limit + 1;
 
-    let base_query = r#"
+    let base_query = r"
         SELECT
             al.id,
             al.action,
@@ -204,7 +204,7 @@ pub async fn list_activity_by_project(
                 SELECT id FROM project_statuses WHERE project_id = $1
             ))
         )
-    "#;
+    ";
 
     let items = if let Some(cursor_id) = cursor {
         let cursor_created_at: Option<DateTime<Utc>> =
@@ -274,7 +274,7 @@ pub async fn insert_activity_log(
     let entry_id = Uuid::new_v4();
 
     let entry = sqlx::query_as::<_, ActivityLogWithActor>(
-        r#"
+        r"
         WITH inserted AS (
             INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
             VALUES ($1, $2, 'task', $3, $4, $5, $6)
@@ -293,7 +293,7 @@ pub async fn insert_activity_log(
             u.avatar_url as actor_avatar_url
         FROM inserted i
         JOIN users u ON u.id = i.user_id
-        "#,
+        ",
     )
     .bind(entry_id)
     .bind(action as ActivityAction)

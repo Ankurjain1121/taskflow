@@ -23,12 +23,12 @@ pub async fn add_watcher(
     user_id: Uuid,
 ) -> Result<TaskWatcher, TaskQueryError> {
     let watcher = sqlx::query_as::<_, TaskWatcher>(
-        r#"
+        r"
         INSERT INTO task_watchers (id, task_id, user_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (task_id, user_id) DO UPDATE SET watched_at = task_watchers.watched_at
         RETURNING id, task_id, user_id, watched_at
-        "#,
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(task_id)
@@ -46,10 +46,10 @@ pub async fn remove_watcher(
     user_id: Uuid,
 ) -> Result<(), TaskQueryError> {
     let rows_affected = sqlx::query(
-        r#"
+        r"
         DELETE FROM task_watchers
         WHERE task_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(task_id)
     .bind(user_id)
@@ -67,9 +67,9 @@ pub async fn remove_watcher(
 /// Get watcher IDs for a task
 pub async fn get_task_watcher_ids(pool: &PgPool, task_id: Uuid) -> Result<Vec<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT user_id FROM task_watchers WHERE task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)
@@ -82,7 +82,7 @@ pub async fn get_watcher_info(
     task_id: Uuid,
 ) -> Result<Vec<WatcherInfo>, sqlx::Error> {
     sqlx::query_as::<_, WatcherInfo>(
-        r#"
+        r"
         SELECT
             tw.user_id,
             u.name,
@@ -91,7 +91,7 @@ pub async fn get_watcher_info(
         FROM task_watchers tw
         JOIN users u ON u.id = tw.user_id
         WHERE tw.task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_all(pool)

@@ -55,14 +55,14 @@ pub async fn list_board_shares(
     }
 
     let shares = sqlx::query_as::<_, BoardShare>(
-        r#"
+        r"
         SELECT id, project_id, share_token, name, password_hash,
                expires_at, is_active, permissions, tenant_id,
                created_by_id, created_at
         FROM project_shares
         WHERE project_id = $1
         ORDER BY created_at DESC
-        "#,
+        ",
     )
     .bind(board_id)
     .fetch_all(pool)
@@ -102,7 +102,7 @@ pub async fn create_board_share(
         .unwrap_or_else(|| serde_json::json!({"view_tasks": true, "view_comments": false}));
 
     let share = sqlx::query_as::<_, BoardShare>(
-        r#"
+        r"
         INSERT INTO project_shares (
             id, project_id, share_token, name, password_hash,
             expires_at, is_active, permissions, tenant_id,
@@ -112,7 +112,7 @@ pub async fn create_board_share(
         RETURNING id, project_id, share_token, name, password_hash,
                   expires_at, is_active, permissions, tenant_id,
                   created_by_id, created_at
-        "#,
+        ",
     )
     .bind(id)
     .bind(board_id)
@@ -139,7 +139,7 @@ pub async fn delete_board_share(
 ) -> Result<(), BoardShareQueryError> {
     // Get share to find project_id
     let board_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
+        sqlx::query_scalar::<_, Uuid>(r"SELECT project_id FROM project_shares WHERE id = $1")
             .bind(share_id)
             .fetch_optional(pool)
             .await?
@@ -149,7 +149,7 @@ pub async fn delete_board_share(
         return Err(BoardShareQueryError::NotBoardMember);
     }
 
-    sqlx::query(r#"DELETE FROM project_shares WHERE id = $1"#)
+    sqlx::query(r"DELETE FROM project_shares WHERE id = $1")
         .bind(share_id)
         .execute(pool)
         .await?;
@@ -165,7 +165,7 @@ pub async fn toggle_board_share(
     user_id: Uuid,
 ) -> Result<BoardShare, BoardShareQueryError> {
     let board_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
+        sqlx::query_scalar::<_, Uuid>(r"SELECT project_id FROM project_shares WHERE id = $1")
             .bind(share_id)
             .fetch_optional(pool)
             .await?
@@ -176,13 +176,13 @@ pub async fn toggle_board_share(
     }
 
     let share = sqlx::query_as::<_, BoardShare>(
-        r#"
+        r"
         UPDATE project_shares SET is_active = $2
         WHERE id = $1
         RETURNING id, project_id, share_token, name, password_hash,
                   expires_at, is_active, permissions, tenant_id,
                   created_by_id, created_at
-        "#,
+        ",
     )
     .bind(share_id)
     .bind(is_active)
@@ -200,13 +200,13 @@ pub async fn access_shared_board(
     password: Option<&str>,
 ) -> Result<SharedBoardAccess, BoardShareQueryError> {
     let share = sqlx::query_as::<_, BoardShare>(
-        r#"
+        r"
         SELECT id, project_id, share_token, name, password_hash,
                expires_at, is_active, permissions, tenant_id,
                created_by_id, created_at
         FROM project_shares
         WHERE share_token = $1
-        "#,
+        ",
     )
     .bind(token)
     .fetch_optional(pool)
@@ -245,7 +245,7 @@ pub async fn access_shared_board(
 
     // Fetch project info
     let board_name = sqlx::query_scalar::<_, String>(
-        r#"SELECT name FROM projects WHERE id = $1 AND deleted_at IS NULL"#,
+        r"SELECT name FROM projects WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(share.project_id)
     .fetch_optional(pool)
@@ -254,12 +254,12 @@ pub async fn access_shared_board(
 
     // Fetch statuses
     let columns = sqlx::query_as::<_, SharedColumn>(
-        r#"
+        r"
         SELECT id, name, position, color
         FROM project_statuses
         WHERE project_id = $1
         ORDER BY position ASC
-        "#,
+        ",
     )
     .bind(share.project_id)
     .fetch_all(pool)
@@ -274,7 +274,7 @@ pub async fn access_shared_board(
 
     let tasks = if view_tasks {
         sqlx::query_as::<_, SharedTask>(
-            r#"
+            r"
             SELECT t.id, t.title, t.description,
                    t.priority,
                    t.due_date, t.status_id, ps.name as status_name
@@ -282,7 +282,7 @@ pub async fn access_shared_board(
             LEFT JOIN project_statuses ps ON ps.id = t.status_id
             WHERE t.project_id = $1 AND t.deleted_at IS NULL
             ORDER BY t.position ASC
-            "#,
+            ",
         )
         .bind(share.project_id)
         .fetch_all(pool)
@@ -344,10 +344,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user =
-            auth::create_user_with_tenant(pool, &unique_email(), "BoardShare User", FAKE_HASH, None, false)
-                .await
-                .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "BoardShare User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 

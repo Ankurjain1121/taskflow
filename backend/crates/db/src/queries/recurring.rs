@@ -116,9 +116,9 @@ async fn get_task_board_id_internal(
     task_id: Uuid,
 ) -> Result<Uuid, RecurringQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"
+        r"
         SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -250,7 +250,7 @@ pub async fn list_configs_for_project(
     }
 
     let configs = sqlx::query_as::<_, RecurringConfigWithTask>(
-        r#"
+        r"
         SELECT
             r.id,
             r.task_id,
@@ -279,7 +279,7 @@ pub async fn list_configs_for_project(
         LEFT JOIN tasks t ON t.id = r.task_id AND t.deleted_at IS NULL
         WHERE r.project_id = $1
         ORDER BY r.next_run_at ASC
-        "#,
+        ",
     )
     .bind(project_id)
     .fetch_all(pool)
@@ -302,7 +302,7 @@ pub async fn get_config_for_task(
     }
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         SELECT
             id,
             task_id,
@@ -328,7 +328,7 @@ pub async fn get_config_for_task(
             task_template
         FROM recurring_task_configs
         WHERE task_id = $1
-        "#,
+        ",
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -378,7 +378,7 @@ pub async fn create_config(
     let next_run = calculate_next_run(base_time, &calc);
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         INSERT INTO recurring_task_configs (
             id, task_id, pattern, cron_expression, interval_days,
             next_run_at, is_active, max_occurrences, occurrences_created,
@@ -410,7 +410,7 @@ pub async fn create_config(
             creation_mode,
             position_id,
             task_template
-        "#,
+        ",
     )
     .bind(id)
     .bind(task_id)
@@ -444,7 +444,7 @@ pub async fn update_config(
 ) -> Result<RecurringTaskConfig, RecurringQueryError> {
     // Fetch existing config to verify it exists
     let existing = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         SELECT
             id,
             task_id,
@@ -470,7 +470,7 @@ pub async fn update_config(
             task_template
         FROM recurring_task_configs
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(config_id)
     .fetch_optional(pool)
@@ -504,7 +504,7 @@ pub async fn update_config(
     let new_next_run = calculate_next_run(Utc::now(), &calc);
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         UPDATE recurring_task_configs
         SET pattern = $2,
             cron_expression = $3,
@@ -542,7 +542,7 @@ pub async fn update_config(
             creation_mode,
             position_id,
             task_template
-        "#,
+        ",
     )
     .bind(config_id)
     .bind(&new_pattern)
@@ -570,7 +570,7 @@ pub async fn delete_config(
 ) -> Result<(), RecurringQueryError> {
     // Fetch config to verify board membership
     let existing = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         SELECT
             id,
             task_id,
@@ -595,7 +595,7 @@ pub async fn delete_config(
             position_id
         FROM recurring_task_configs
         WHERE id = $1
-        "#,
+        ",
     )
     .bind(config_id)
     .fetch_optional(pool)
@@ -608,9 +608,9 @@ pub async fn delete_config(
     }
 
     sqlx::query(
-        r#"
+        r"
         DELETE FROM recurring_task_configs WHERE id = $1
-        "#,
+        ",
     )
     .bind(config_id)
     .execute(pool)
@@ -668,7 +668,7 @@ pub async fn create_template_config(
     };
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
-        r#"
+        r"
         INSERT INTO recurring_task_configs (
             id, task_id, task_template, pattern, cron_expression, interval_days,
             next_run_at, is_active, max_occurrences, occurrences_created,
@@ -683,7 +683,7 @@ pub async fn create_template_config(
             project_id, tenant_id, created_by_id, created_at, updated_at,
             end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
             position_id, task_template
-        "#,
+        ",
     )
     .bind(id)
     .bind(&template_json)
@@ -728,10 +728,16 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user =
-            auth::create_user_with_tenant(pool, &unique_email(), "Recurring Test User", FAKE_HASH, None, false)
-                .await
-                .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(
+            pool,
+            &unique_email(),
+            "Recurring Test User",
+            FAKE_HASH,
+            None,
+            false,
+        )
+        .await
+        .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 
@@ -946,14 +952,14 @@ mod tests {
 
         // Verify new task was created
         let new_task = sqlx::query_as::<_, crate::models::Task>(
-            r#"
+            r"
             SELECT id, title, description, priority,
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
                    created_at, updated_at, version, parent_task_id, depth, reporting_person_id
             FROM tasks WHERE id = $1
-            "#,
+            ",
         )
         .bind(new_task_id)
         .fetch_one(&pool)
