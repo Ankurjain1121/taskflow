@@ -73,11 +73,11 @@ import { ResourceUtilizationEntry } from '../../../core/services/reports.service
 
         <div class="mt-3 flex items-center justify-center gap-4 text-xs print-hide">
           <div class="flex items-center gap-1.5">
-            <div class="w-2.5 h-2.5 rounded" style="background: rgba(59, 130, 246, 0.6)"></div>
+            <div class="w-2.5 h-2.5 rounded" style="background: color-mix(in srgb, var(--primary) 60%, transparent)"></div>
             <span style="color: var(--muted-foreground)">Planned</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <div class="w-2.5 h-2.5 rounded" style="background: rgba(16, 185, 129, 0.7)"></div>
+            <div class="w-2.5 h-2.5 rounded" style="background: color-mix(in srgb, var(--success) 70%, transparent)"></div>
             <span style="color: var(--muted-foreground)">Actual</span>
           </div>
         </div>

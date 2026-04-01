@@ -6,14 +6,14 @@ Fix all issues found by the deep scan (2026-04-01). Priority order by user impac
 ## Tasks
 
 ### CRITICAL
-- [ ] 1. Fix unprotected subscriptions in 15+ components (memory leaks)
+- [x] 1. Fix unprotected subscriptions in 8 workspace components (27 subs protected, 7 dashboard/task-detail files reviewed — HTTP auto-complete, no leak)
 
 ### HIGH
 - [ ] 2. Fix clippy raw string hashes (426 instances — mechanical)
 - [ ] 3. Replace 28 hardcoded inline colors with CSS variables
 
 ### MEDIUM
-- [ ] 4. Add LIMIT to `list_all_invitations()` query
+- [x] 4. Add LIMIT 500 to `list_all_invitations()` query
 - [ ] 5. Add aria-label to 20+ buttons
 - [ ] 6. Investigate frontend bundle size (1.24 MB vs 800 KB budget)
 
