@@ -7,7 +7,7 @@ use super::common::TaskPriority;
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
 #[serde(tag = "type")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum WsBoardEvent {
     TaskCreated {
         task: TaskBroadcast,
@@ -27,20 +27,20 @@ pub enum WsBoardEvent {
         task_id: Uuid,
         origin_user_id: Uuid,
     },
-    StatusCreated {
-        status: StatusBroadcast,
+    ColumnCreated {
+        column: ColumnBroadcast,
         origin_user_id: Uuid,
     },
-    StatusUpdated {
-        status: StatusBroadcast,
+    ColumnUpdated {
+        column: ColumnBroadcast,
         origin_user_id: Uuid,
     },
-    StatusDeleted {
-        status_id: Uuid,
+    ColumnDeleted {
+        column_id: Uuid,
         origin_user_id: Uuid,
     },
     PresenceUpdate {
-        board_id: Uuid,
+        project_id: Uuid,
         user_ids: Vec<Uuid>,
     },
     TaskLocked {
@@ -55,7 +55,7 @@ pub enum WsBoardEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub struct TaskBroadcast {
     pub id: Uuid,
     pub title: String,
@@ -72,8 +72,8 @@ pub struct TaskBroadcast {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
-pub struct StatusBroadcast {
+#[ts(export)]
+pub struct ColumnBroadcast {
     pub id: Uuid,
     pub name: String,
     pub position: String,
@@ -90,7 +90,7 @@ mod tests {
     fn export_types() {
         WsBoardEvent::export_all().expect("Failed to export WsBoardEvent");
         TaskBroadcast::export_all().expect("Failed to export TaskBroadcast");
-        StatusBroadcast::export_all().expect("Failed to export StatusBroadcast");
+        ColumnBroadcast::export_all().expect("Failed to export ColumnBroadcast");
     }
 
     #[test]
@@ -186,9 +186,9 @@ mod tests {
     }
 
     #[test]
-    fn test_status_created_event_serde() {
-        let event = WsBoardEvent::StatusCreated {
-            status: StatusBroadcast {
+    fn test_column_created_event_serde() {
+        let event = WsBoardEvent::ColumnCreated {
+            column: ColumnBroadcast {
                 id: Uuid::new_v4(),
                 name: "New Status".to_string(),
                 position: "a0".to_string(),
@@ -199,8 +199,8 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed["type"], "StatusCreated");
-        assert_eq!(parsed["status"]["name"], "New Status");
+        assert_eq!(parsed["type"], "ColumnCreated");
+        assert_eq!(parsed["column"]["name"], "New Status");
     }
 
     #[test]
@@ -226,18 +226,18 @@ mod tests {
     }
 
     #[test]
-    fn test_status_broadcast_serde_roundtrip() {
-        let status = StatusBroadcast {
+    fn test_column_broadcast_serde_roundtrip() {
+        let column = ColumnBroadcast {
             id: Uuid::new_v4(),
             name: "Open".to_string(),
             position: "a0".to_string(),
             color: "#94a3b8".to_string(),
             status_type: "not_started".to_string(),
         };
-        let json = serde_json::to_string(&status).unwrap();
-        let deserialized: StatusBroadcast = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.id, status.id);
-        assert_eq!(deserialized.name, status.name);
+        let json = serde_json::to_string(&column).unwrap();
+        let deserialized: ColumnBroadcast = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.id, column.id);
+        assert_eq!(deserialized.name, column.name);
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod tests {
             changed_fields: None,
             origin_user_name: None,
         };
-        let status = StatusBroadcast {
+        let column = ColumnBroadcast {
             id: Uuid::new_v4(),
             name: "S".to_string(),
             position: "a0".to_string(),
@@ -296,30 +296,30 @@ mod tests {
                 },
             ),
             (
-                "StatusCreated",
-                WsBoardEvent::StatusCreated {
-                    status: status.clone(),
+                "ColumnCreated",
+                WsBoardEvent::ColumnCreated {
+                    column: column.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
-                "StatusUpdated",
-                WsBoardEvent::StatusUpdated {
-                    status: status.clone(),
+                "ColumnUpdated",
+                WsBoardEvent::ColumnUpdated {
+                    column: column.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
-                "StatusDeleted",
-                WsBoardEvent::StatusDeleted {
-                    status_id: uid,
+                "ColumnDeleted",
+                WsBoardEvent::ColumnDeleted {
+                    column_id: uid,
                     origin_user_id: uid,
                 },
             ),
             (
                 "PresenceUpdate",
                 WsBoardEvent::PresenceUpdate {
-                    board_id: uid,
+                    project_id: uid,
                     user_ids: vec![uid],
                 },
             ),

@@ -4,7 +4,7 @@ use ts_rs::TS;
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
 #[sqlx(type_name = "user_role", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum UserRole {
     SuperAdmin,
     Admin,
@@ -15,7 +15,7 @@ pub enum UserRole {
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
 #[sqlx(type_name = "workspace_member_role", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum WorkspaceMemberRole {
     Owner,
     Admin,
@@ -25,7 +25,7 @@ pub enum WorkspaceMemberRole {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
 #[sqlx(type_name = "workspace_visibility", rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum WorkspaceVisibility {
     Open,
     Closed,
@@ -34,7 +34,7 @@ pub enum WorkspaceVisibility {
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "project_member_role", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum BoardMemberRole {
     Viewer,
     Editor,
@@ -44,7 +44,7 @@ pub enum BoardMemberRole {
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "task_priority", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum TaskPriority {
     Urgent,
     High,
@@ -54,7 +54,7 @@ pub enum TaskPriority {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "activity_action", rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum ActivityAction {
     Created,
     Updated,
@@ -70,7 +70,7 @@ pub enum ActivityAction {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "dependency_type", rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum DependencyType {
     Blocks,
     BlockedBy,
@@ -79,7 +79,7 @@ pub enum DependencyType {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "custom_field_type", rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum CustomFieldType {
     Text,
     Number,
@@ -91,7 +91,7 @@ pub enum CustomFieldType {
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "recurrence_pattern", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+#[ts(export)]
 pub enum RecurrencePattern {
     Daily,
     Weekly,
@@ -388,5 +388,19 @@ mod tests {
             result.is_err(),
             "Invalid board member role should be rejected"
         );
+    }
+
+    #[test]
+    #[ignore = "Run with: cargo test -p taskbolt-db -- export_types --ignored"]
+    fn export_types() {
+        UserRole::export_all().expect("Failed to export UserRole");
+        WorkspaceMemberRole::export_all().expect("Failed to export WorkspaceMemberRole");
+        WorkspaceVisibility::export_all().expect("Failed to export WorkspaceVisibility");
+        BoardMemberRole::export_all().expect("Failed to export BoardMemberRole");
+        TaskPriority::export_all().expect("Failed to export TaskPriority");
+        ActivityAction::export_all().expect("Failed to export ActivityAction");
+        DependencyType::export_all().expect("Failed to export DependencyType");
+        CustomFieldType::export_all().expect("Failed to export CustomFieldType");
+        RecurrencePattern::export_all().expect("Failed to export RecurrencePattern");
     }
 }
