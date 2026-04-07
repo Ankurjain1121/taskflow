@@ -71,12 +71,14 @@ interface PreferenceRow {
         </div>
         @if (pushService.permission() === 'granted') {
           <span
-            class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 ml-4 shrink-0"
+            class="px-2 py-1 text-xs font-medium rounded-full ml-4 shrink-0"
+            style="background: color-mix(in srgb, var(--success) 15%, var(--card)); color: var(--success)"
             >Enabled</span
           >
         } @else if (pushService.permission() === 'denied') {
           <span
-            class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ml-4 shrink-0"
+            class="px-2 py-1 text-xs font-medium rounded-full ml-4 shrink-0"
+            style="background: color-mix(in srgb, var(--destructive) 15%, var(--card)); color: var(--destructive)"
             >Blocked</span
           >
         } @else {
@@ -88,7 +90,7 @@ interface PreferenceRow {
       </div>
       @if (!pushService.isSupported) {
         <p class="text-sm" style="color: var(--muted-foreground)">
-          <i class="pi pi-exclamation-triangle text-orange-500 mr-1"></i>
+          <i class="pi pi-exclamation-triangle mr-1" style="color: var(--accent-warm)"></i>
           Your browser does not support desktop notifications.
         </p>
       } @else if (pushService.permission() === 'granted') {
@@ -96,7 +98,7 @@ interface PreferenceRow {
           class="text-sm flex items-center gap-2"
           style="color: var(--muted-foreground)"
         >
-          <i class="pi pi-check-circle text-green-500"></i>
+          <i class="pi pi-check-circle" style="color: var(--success)"></i>
           Desktop notifications are active.
         </p>
       } @else if (pushService.permission() === 'denied') {
@@ -104,7 +106,7 @@ interface PreferenceRow {
           class="text-sm flex items-center gap-2"
           style="color: var(--muted-foreground)"
         >
-          <i class="pi pi-info-circle text-orange-500"></i>
+          <i class="pi pi-info-circle" style="color: var(--accent-warm)"></i>
           Notifications are blocked. Enable them in your browser settings, then
           refresh this page.
         </p>
@@ -167,7 +169,7 @@ interface PreferenceRow {
               </th>
               <th scope="col" class="!font-semibold !text-center">
                 <span class="flex items-center justify-center gap-1">
-                  <i class="pi pi-whatsapp text-green-500 text-xs"></i>
+                  <i class="pi pi-whatsapp text-xs" style="color: var(--success)"></i>
                   WhatsApp
                 </span>
               </th>
@@ -328,7 +330,7 @@ interface PreferenceRow {
     <!-- Help text -->
     <div class="mt-6 text-sm" style="color: var(--muted-foreground)">
       <p class="flex items-center gap-2">
-        <i class="pi pi-info-circle text-blue-500"></i>
+        <i class="pi pi-info-circle" style="color: var(--primary)"></i>
         In-app notifications cannot be disabled to ensure you always receive
         important updates.
       </p>

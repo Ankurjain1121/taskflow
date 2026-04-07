@@ -85,7 +85,7 @@ const TAB_EVENT_TYPES: Record<
         <div
           class="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]"
         >
-          <h3 class="text-lg font-semibold text-[var(--foreground)]">
+          <h3 class="text-lg font-semibold font-display text-[var(--foreground)]">
             Notifications
           </h3>
           <div class="flex items-center gap-1">

@@ -17,25 +17,25 @@ interface EventTypeConfig {
 }
 
 const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
-  task_assigned: { icon: 'pi pi-user', color: 'text-blue-500' },
-  task_due_soon: { icon: 'pi pi-clock', color: 'text-orange-500' },
-  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-red-500' },
-  task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
-  task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
-  mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
-  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-indigo-500' },
-  task_reminder: { icon: 'pi pi-bell', color: 'text-amber-500' },
+  task_assigned: { icon: 'pi pi-user', color: 'text-[var(--primary)]' },
+  task_due_soon: { icon: 'pi pi-clock', color: 'text-[var(--accent-warm)]' },
+  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-[var(--destructive)]' },
+  task_commented: { icon: 'pi pi-comment', color: 'text-[var(--success)]' },
+  task_completed: { icon: 'pi pi-check-circle', color: 'text-[var(--success)]' },
+  mention_in_comment: { icon: 'pi pi-at', color: 'text-[var(--primary)]' },
+  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-[var(--muted-foreground)]' },
+  task_reminder: { icon: 'pi pi-bell', color: 'text-[var(--accent-warm)]' },
 };
 
 const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
-  task_assigned: 'bg-blue-100 dark:bg-blue-900/30',
-  task_due_soon: 'bg-orange-100 dark:bg-orange-900/30',
-  task_overdue: 'bg-red-100 dark:bg-red-900/30',
-  task_commented: 'bg-green-100 dark:bg-green-900/30',
-  task_completed: 'bg-emerald-100 dark:bg-emerald-900/30',
-  mention_in_comment: 'bg-purple-100 dark:bg-purple-900/30',
-  task_updated_watcher: 'bg-indigo-100 dark:bg-indigo-900/30',
-  task_reminder: 'bg-amber-100 dark:bg-amber-900/30',
+  task_assigned: 'bg-[color-mix(in_srgb,var(--primary)_12%,var(--card))]',
+  task_due_soon: 'bg-[color-mix(in_srgb,var(--accent-warm)_12%,var(--card))]',
+  task_overdue: 'bg-[color-mix(in_srgb,var(--destructive)_12%,var(--card))]',
+  task_commented: 'bg-[color-mix(in_srgb,var(--success)_12%,var(--card))]',
+  task_completed: 'bg-[color-mix(in_srgb,var(--success)_12%,var(--card))]',
+  mention_in_comment: 'bg-[color-mix(in_srgb,var(--primary)_12%,var(--card))]',
+  task_updated_watcher: 'bg-[color-mix(in_srgb,var(--muted-foreground)_12%,var(--card))]',
+  task_reminder: 'bg-[color-mix(in_srgb,var(--accent-warm)_12%,var(--card))]',
 };
 
 @Component({
@@ -47,11 +47,11 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
     <div class="group relative">
       <div
         pRipple
-        class="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700"
+        class="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-[var(--border)]"
         [ngClass]="{
-          'border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30':
+          'border-l-4 border-l-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] hover:bg-[color-mix(in_srgb,var(--primary)_10%,var(--card))]':
             !notification().is_read,
-          'hover:bg-gray-50 dark:hover:bg-gray-800': notification().is_read,
+          'hover:bg-[var(--muted)]': notification().is_read,
         }"
         (click)="onClick()"
       >
@@ -71,29 +71,25 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
           <p
             class="text-sm truncate"
             [ngClass]="{
-              'font-semibold text-gray-900 dark:text-gray-100':
-                !notification().is_read,
-              'font-medium text-gray-700 dark:text-gray-300':
-                notification().is_read,
+              'font-semibold': !notification().is_read,
+              'font-medium': notification().is_read,
             }"
+            [style.color]="notification().is_read ? 'var(--muted-foreground)' : 'var(--foreground)'"
           >
             {{ notification().title }}
           </p>
           <p
             class="text-sm line-clamp-2 mt-0.5"
-            [ngClass]="{
-              'text-gray-600 dark:text-gray-400': !notification().is_read,
-              'text-gray-500 dark:text-gray-500': notification().is_read,
-            }"
+            style="color: var(--muted-foreground)"
           >
             {{ notification().body }}
           </p>
           <div class="flex items-center gap-2 mt-1">
-            <p class="text-xs text-gray-400 dark:text-gray-500">
+            <p class="text-xs" style="color: var(--muted-foreground)">
               {{ getRelativeTime() }}
             </p>
             @if (notification().link_url) {
-              <span class="text-xs text-blue-500 dark:text-blue-400">
+              <span class="text-xs" style="color: var(--primary)">
                 View
               </span>
             }
@@ -103,7 +99,8 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
         <!-- Unread indicator dot -->
         @if (!notification().is_read) {
           <div
-            class="flex-shrink-0 w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 shadow-sm"
+            class="flex-shrink-0 w-2.5 h-2.5 rounded-full mt-2 shadow-sm"
+            style="background: var(--primary)"
           ></div>
         }
       </div>
@@ -111,7 +108,8 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
       <button
         class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity
                w-5 h-5 rounded-full flex items-center justify-center z-10
-               hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+               hover:bg-[var(--muted)]"
+        style="color: var(--muted-foreground)"
         (click)="onDismiss($event)"
         title="Dismiss"
         aria-label="Dismiss notification"
@@ -140,7 +138,7 @@ export class NotificationItemComponent {
     return (
       EVENT_TYPE_ICONS[this.notification().event_type] || {
         icon: 'pi pi-bell',
-        color: 'text-gray-500',
+        color: 'text-[var(--muted-foreground)]',
       }
     );
   }
