@@ -32,12 +32,12 @@ interface ShortcutGroup {
       >
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white"
+            class="text-2xl font-bold font-display text-[var(--card-foreground)] dark:text-white"
           >
             Help
           </h1>
           <p
-            class="text-[var(--muted-foreground)] dark:text-gray-400 mt-1 text-sm"
+            class="text-[var(--muted-foreground)] mt-1 text-sm"
           >
             Learn how to use TaskBolt effectively
           </p>

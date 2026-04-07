@@ -15,7 +15,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
   template: `
     <div class="settings-container">
       <nav class="settings-sidebar">
-        <h2 class="sidebar-title">Settings</h2>
+        <h2 class="sidebar-title font-display">Settings</h2>
         <ul class="nav-list">
           @for (item of navItems; track item.path) {
             <li>

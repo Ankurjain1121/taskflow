@@ -59,7 +59,7 @@ interface PreferenceRow {
       <div class="flex items-start justify-between mb-3">
         <div>
           <h2
-            class="text-xl font-semibold mb-1"
+            class="text-xl font-semibold mb-1 font-display"
             style="color: var(--foreground)"
           >
             Desktop Notifications
@@ -126,7 +126,7 @@ interface PreferenceRow {
       style="background: var(--card); border-color: var(--border)"
     >
       <div class="p-6 pb-2">
-        <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+        <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
           Notification Channels
         </h2>
         <p class="text-sm" style="color: var(--muted-foreground)">
@@ -233,7 +233,7 @@ interface PreferenceRow {
       class="rounded-lg border shadow-sm p-6 mb-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Quiet Hours
       </h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
@@ -245,14 +245,14 @@ interface PreferenceRow {
           [ngModel]="quietHoursEnabled()"
           (ngModelChange)="quietHoursEnabled.set($event)"
         />
-        <label class="text-sm font-medium" style="color: var(--foreground)">
+        <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--foreground)">
           Enable quiet hours
         </label>
       </div>
       @if (quietHoursEnabled()) {
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium" style="color: var(--foreground)">
+            <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
               Start Time
             </label>
             <input
@@ -270,7 +270,7 @@ interface PreferenceRow {
             >to</span
           >
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium" style="color: var(--foreground)">
+            <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
               End Time
             </label>
             <input
@@ -293,7 +293,7 @@ interface PreferenceRow {
       class="rounded-lg border shadow-sm p-6 mb-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Digest Frequency
       </h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
@@ -308,7 +308,7 @@ interface PreferenceRow {
               [value]="option.value"
               [(ngModel)]="digestFrequency"
             />
-            <label class="text-sm" style="color: var(--foreground)">
+            <label class="text-xs uppercase tracking-wider" style="color: var(--foreground)">
               {{ option.label }}
             </label>
           </div>

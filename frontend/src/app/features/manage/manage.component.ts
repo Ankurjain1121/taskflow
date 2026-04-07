@@ -81,7 +81,7 @@ const ALL_TABS: TabDef[] = [
 
         <!-- Error Banner -->
         @if (errorMessage()) {
-          <div class="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <div class="mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm" style="border-color: var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, transparent); color: var(--destructive)">
             <i class="pi pi-exclamation-circle"></i>
             <span>{{ errorMessage() }}</span>
           </div>
@@ -89,7 +89,7 @@ const ALL_TABS: TabDef[] = [
 
         <!-- Hero Section: People-forward -->
         <div class="rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--accent-50)] to-transparent dark:from-[var(--accent-950)] dark:to-transparent p-6 mb-6 shadow-sm">
-          <h1 class="font-display text-2xl font-bold text-[var(--foreground)] mb-3">Your Team</h1>
+          <h1 class="text-2xl font-bold font-display text-[var(--foreground)] mb-3">Your Team</h1>
 
           @if (loading()) {
             <!-- Skeleton: avatar pills -->
@@ -110,13 +110,13 @@ const ALL_TABS: TabDef[] = [
                       [alt]="member.name"
                       [pTooltip]="member.name"
                       tooltipPosition="top"
-                      class="w-9 h-9 rounded-full ring-2 ring-[var(--background)] object-cover"
+                      class="w-9 h-9 rounded-full ring-2 ring-[var(--card)] object-cover"
                     />
                   } @else {
                     <div
                       [pTooltip]="member.name"
                       tooltipPosition="top"
-                      class="w-9 h-9 rounded-full ring-2 ring-[var(--background)] bg-[var(--accent-100)] dark:bg-[var(--accent-900)] flex items-center justify-center text-xs font-semibold text-[var(--accent-700)] dark:text-[var(--accent-300)]">
+                      class="w-9 h-9 rounded-full ring-2 ring-[var(--card)] bg-[var(--accent-100)] dark:bg-[var(--accent-900)] flex items-center justify-center text-xs font-semibold text-[var(--accent-700)] dark:text-[var(--accent-300)]">
                       {{ getInitials(member.name) }}
                     </div>
                   }
@@ -134,7 +134,7 @@ const ALL_TABS: TabDef[] = [
               {{ memberCount() }} {{ memberCount() === 1 ? 'member' : 'members' }}
               @if (pendingInvites() > 0) {
                 &middot;
-                <span class="text-amber-600 dark:text-amber-400">
+                <span style="color: var(--accent-warm)">
                   {{ pendingInvites() }} pending
                 </span>
               }

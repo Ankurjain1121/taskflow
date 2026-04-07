@@ -58,7 +58,7 @@ interface BoardViewOption {
       class="rounded-lg border shadow-sm p-6 mb-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Theme
       </h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
@@ -107,7 +107,7 @@ interface BoardViewOption {
       class="rounded-lg border shadow-sm p-6 mb-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Light Theme
       </h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
@@ -158,7 +158,7 @@ interface BoardViewOption {
       class="rounded-lg border shadow-sm p-6 mb-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Dark Theme
       </h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
@@ -209,7 +209,7 @@ interface BoardViewOption {
       class="rounded-lg border shadow-sm p-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--foreground)">
         Preferences
       </h2>
       <p class="text-sm mb-5" style="color: var(--muted-foreground)">
@@ -219,7 +219,7 @@ interface BoardViewOption {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <!-- Timezone -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
+          <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
             Timezone
           </label>
           <p-select
@@ -236,7 +236,7 @@ interface BoardViewOption {
 
         <!-- Date Format -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
+          <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
             Date Format
           </label>
           <p-select
@@ -251,7 +251,7 @@ interface BoardViewOption {
 
         <!-- Default Board View -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
+          <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
             Default Project View
           </label>
           <p-select
@@ -266,7 +266,7 @@ interface BoardViewOption {
 
         <!-- Sidebar Density -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
+          <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
             Sidebar Density
           </label>
           <div class="flex gap-4 mt-1">
@@ -276,7 +276,7 @@ interface BoardViewOption {
                 value="compact"
                 [(ngModel)]="preferences.sidebarDensity"
               />
-              <label class="text-sm" style="color: var(--foreground)"
+              <label class="text-xs uppercase tracking-wider" style="color: var(--foreground)"
                 >Compact</label
               >
             </div>
@@ -286,7 +286,7 @@ interface BoardViewOption {
                 value="comfortable"
                 [(ngModel)]="preferences.sidebarDensity"
               />
-              <label class="text-sm" style="color: var(--foreground)"
+              <label class="text-xs uppercase tracking-wider" style="color: var(--foreground)"
                 >Comfortable</label
               >
             </div>
@@ -295,7 +295,7 @@ interface BoardViewOption {
 
         <!-- Language -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
+          <label class="text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground)">
             Language
           </label>
           <p-select

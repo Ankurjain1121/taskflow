@@ -45,7 +45,7 @@ import { makeCellId } from '../project-view/swimlane-utils';
           class="w-40 flex-shrink-0 border-r border-[var(--border)] px-2 py-2"
         >
           <span
-            class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide"
+            class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider"
           >
             {{ groupByLabel() }}
           </span>
