@@ -68,12 +68,12 @@ const CAPABILITY_ITEMS: CapabilityItem[] = [
         <table class="w-full text-sm" role="grid">
           <thead>
             <tr class="border-b border-[var(--border)]">
-              <th class="text-left p-3 font-semibold text-[var(--foreground)] sticky left-0 bg-[var(--background)] min-w-[180px]"
+              <th class="text-left p-3 font-display font-semibold text-[var(--foreground)] uppercase tracking-wider sticky left-0 bg-[var(--background)] min-w-[180px]"
                   role="columnheader">
                 Capability
               </th>
               @for (role of roles(); track role.id) {
-                <th class="p-3 text-center font-semibold text-[var(--foreground)] min-w-[80px]"
+                <th class="p-3 text-center font-semibold text-[var(--foreground)] uppercase tracking-wider min-w-[80px]"
                     role="columnheader">
                   <span class="text-xs">{{ role.name }}</span>
                 </th>

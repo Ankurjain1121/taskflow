@@ -27,7 +27,7 @@ import {
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+          <h1 class="font-display text-2xl font-bold text-[var(--card-foreground)]">
             Workload Balance
           </h1>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
@@ -107,7 +107,7 @@ import {
                       </div>
                       @if (member.is_overloaded) {
                         <span
-                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700"
+                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-red-100 text-red-700"
                         >
                           Overloaded
                         </span>
@@ -445,7 +445,7 @@ export class WorkloadBalanceComponent implements OnInit {
       medium: 'bg-yellow-100 text-yellow-700',
       low: 'bg-blue-100 text-blue-700',
     };
-    return classes[priority.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return classes[priority.toLowerCase()] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }
 
   isOverdue(dateStr: string): boolean {

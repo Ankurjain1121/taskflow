@@ -41,7 +41,7 @@ export class RoleBadgeComponent {
 
   readonly badgeClasses = computed(() => {
     const base =
-      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium';
+      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider';
 
     const colorMap: Record<string, string> = {
       superadmin:
