@@ -79,7 +79,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
         <div
           class="rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--accent-50)] to-transparent dark:from-[var(--accent-950)] dark:to-transparent p-6 mb-6 shadow-sm"
         >
-          <h1 class="text-2xl font-bold text-[var(--foreground)]">People</h1>
+          <h1 class="font-display text-2xl font-bold text-[var(--foreground)]">People</h1>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
             View and manage organization members across workspaces
           </p>
@@ -168,7 +168,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
                         >
                         @if (member.is_org_admin) {
                           <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
                             pTooltip="Has automatic access to all workspaces"
                             tooltipPosition="top"
                             >Org Admin</span
@@ -185,7 +185,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
                     <!-- Right Side: Role Badge + Workspace Count -->
                     <div class="flex items-center gap-2 flex-shrink-0">
                       <span
-                        class="text-xs px-2 py-0.5 rounded-full font-medium"
+                        class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                         [class]="getRoleBadgeClass(member.role)"
                         >{{ member.role | titlecase }}</span
                       >

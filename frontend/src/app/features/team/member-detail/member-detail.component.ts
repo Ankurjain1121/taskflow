@@ -93,7 +93,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
               </div>
 
               <div class="flex-1 min-w-0">
-                <h1 class="text-2xl font-bold text-[var(--foreground)]">
+                <h1 class="font-display text-2xl font-bold text-[var(--foreground)]">
                   {{ member()?.name }}
                 </h1>
                 <p class="text-sm text-[var(--muted-foreground)] mt-1">
@@ -121,7 +121,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div class="flex items-center gap-3 mt-3">
                   <span
                     [class]="
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ' +
                       getRoleBadgeClass(member()?.role || 'member')
                     "
                   >
@@ -162,7 +162,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ workload()?.active_tasks || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                     Active Tasks
                   </p>
                 </div>
@@ -192,7 +192,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ workload()?.done_tasks || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                     Completed
                   </p>
                 </div>
@@ -204,12 +204,12 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div
                   class="w-10 h-10 rounded-lg flex items-center justify-center"
                   [class.bg-red-100]="(workload()?.overdue_tasks || 0) > 0"
-                  [class.bg-gray-100]="(workload()?.overdue_tasks || 0) === 0"
+                  [class.bg-[var(--muted)]]="(workload()?.overdue_tasks || 0) === 0"
                 >
                   <svg
                     class="w-5 h-5"
                     [class.text-red-600]="(workload()?.overdue_tasks || 0) > 0"
-                    [class.text-gray-400]="
+                    [class.text-[var(--muted-foreground)]]="
                       (workload()?.overdue_tasks || 0) === 0
                     "
                     fill="none"
@@ -234,7 +234,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   >
                     {{ workload()?.overdue_tasks || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">Overdue</p>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Overdue</p>
                 </div>
               </div>
             </div>
@@ -244,12 +244,12 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div
                   class="w-10 h-10 rounded-lg flex items-center justify-center"
                   [class.bg-amber-100]="(workload()?.due_today || 0) > 0"
-                  [class.bg-gray-100]="(workload()?.due_today || 0) === 0"
+                  [class.bg-[var(--muted)]]="(workload()?.due_today || 0) === 0"
                 >
                   <svg
                     class="w-5 h-5"
                     [class.text-amber-600]="(workload()?.due_today || 0) > 0"
-                    [class.text-gray-400]="(workload()?.due_today || 0) === 0"
+                    [class.text-[var(--muted-foreground)]]="(workload()?.due_today || 0) === 0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -272,7 +272,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   >
                     {{ workload()?.due_today || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                     Due Today
                   </p>
                 </div>
@@ -302,7 +302,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   <p class="text-2xl font-bold text-blue-600">
                     {{ workload()?.due_this_week || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                     Due This Week
                   </p>
                 </div>
@@ -358,7 +358,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                           [class.bg-orange-500]="task.priority === 'high'"
                           [class.bg-yellow-500]="task.priority === 'medium'"
                           [class.bg-blue-400]="task.priority === 'low'"
-                          [class.bg-gray-300]="
+                          [class.bg-[var(--muted)]]="
                             task.priority === 'none' || !task.priority
                           "
                           [title]="task.priority || 'none'"
@@ -507,10 +507,10 @@ export class MemberDetailComponent implements OnInit {
       owner: 'bg-purple-100 text-purple-800',
       admin: 'bg-blue-100 text-blue-800',
       manager: 'bg-primary/10 text-primary',
-      member: 'bg-gray-100 text-gray-800',
+      member: 'bg-[var(--muted)] text-[var(--muted-foreground)]',
       viewer: 'bg-orange-100 text-orange-800',
     };
-    return classes[role] || 'bg-gray-100 text-gray-800';
+    return classes[role] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }
 
   formatDate(dateString: string): string {
