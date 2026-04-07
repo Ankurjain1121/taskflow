@@ -161,12 +161,12 @@ import { formatDuration, formatDate } from './task-fields-utils';
                 }
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-400 flex-shrink-0">{{
+                <span class="text-xs text-[var(--muted-foreground)] flex-shrink-0">{{
                   formatDate(entry.started_at)
                 }}</span>
                 <button
                   (click)="timeEntryDeleted.emit(entry.id)"
-                  class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 p-0.5"
+                  class="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-[var(--destructive)] p-0.5"
                   aria-label="Delete time entry"
                 >
                   <i class="pi pi-times text-xs"></i>
@@ -176,7 +176,7 @@ import { formatDuration, formatDate } from './task-fields-utils';
           }
         </div>
       } @else if (!showLogTimeForm()) {
-        <div class="text-sm text-gray-400">No time entries</div>
+        <div class="text-sm text-[var(--muted-foreground)]">No time entries</div>
       }
     </div>
   `,

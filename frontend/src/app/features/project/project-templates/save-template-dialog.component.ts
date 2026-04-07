@@ -62,7 +62,7 @@ const TEMPLATE_CATEGORIES = [
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-[var(--muted-foreground)] mb-4">
         Save "{{ boardName() }}" as a reusable template. The template will
         include all columns and tasks.
       </p>
@@ -70,7 +70,7 @@ const TEMPLATE_CATEGORIES = [
         <div class="flex flex-col gap-1">
           <label
             for="templateName"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Template Name</label
           >
           <input
@@ -84,14 +84,14 @@ const TEMPLATE_CATEGORIES = [
             form.controls['name'].hasError('required') &&
             form.controls['name'].touched
           ) {
-            <small class="text-red-500">Name is required</small>
+            <small class="text-[var(--destructive)]">Name is required</small>
           }
         </div>
 
         <div class="flex flex-col gap-1">
           <label
             for="templateDesc"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Description</label
           >
           <textarea
@@ -107,7 +107,7 @@ const TEMPLATE_CATEGORIES = [
         <div class="flex flex-col gap-1">
           <label
             for="templateCategory"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Category</label
           >
           <p-select

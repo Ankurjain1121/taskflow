@@ -41,7 +41,7 @@ import { ActivityLogTabComponent } from './activity-log-tab.component';
               >Back to Project</a
             >
           </nav>
-          <h1 class="text-3xl font-bold text-[var(--foreground)]">
+          <h1 class="text-3xl font-display font-bold text-[var(--foreground)]">
             Automations
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">

@@ -68,7 +68,7 @@ import { MessageService } from 'primeng/api';
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label
-                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                   >Type</label
                 >
                 <select
@@ -96,7 +96,7 @@ import { MessageService } from 'primeng/api';
             @if (newFieldType === 'dropdown') {
               <div>
                 <label
-                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                   >Options (one per line)</label
                 >
                 <textarea
@@ -173,7 +173,7 @@ import { MessageService } from 'primeng/api';
                   @if (field.field_type === 'dropdown') {
                     <div>
                       <label
-                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                         >Options (one per line)</label
                       >
                       <textarea
@@ -242,7 +242,8 @@ import { MessageService } from 'primeng/api';
                         >
                         @if (field.is_required) {
                           <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium"
+                            style="background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive)"
                           >
                             Required
                           </span>
@@ -276,7 +277,7 @@ import { MessageService } from 'primeng/api';
                     </button>
                     <button
                       (click)="confirmDelete(field)"
-                      class="p-1.5 text-[var(--muted-foreground)] hover:text-red-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)] rounded"
                       title="Delete"
                     >
                       <svg

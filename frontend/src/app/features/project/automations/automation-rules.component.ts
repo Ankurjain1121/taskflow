@@ -28,7 +28,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
     <div class="space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-[var(--card-foreground)]">
+        <h3 class="text-lg font-display font-semibold text-[var(--card-foreground)]">
           Automation Rules
         </h3>
         <button
@@ -89,7 +89,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
         <!-- Empty State -->
         <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
           <svg
-            class="w-10 h-10 text-gray-400 mx-auto mb-2"
+            class="w-10 h-10 text-[var(--muted-foreground)] mx-auto mb-2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -152,11 +152,11 @@ import { RuleBuilderComponent } from './rule-builder.component';
                       </div>
                       <div class="flex items-center gap-2 mt-0.5">
                         <span
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-[var(--primary)]/10 text-[var(--primary)]"
                         >
                           {{ getTriggerLabel(rwa.rule.trigger) }}
                         </span>
-                        <span class="text-xs text-gray-400">
+                        <span class="text-xs text-[var(--muted-foreground)]">
                           {{ rwa.actions.length }} action{{
                             rwa.actions.length !== 1 ? 's' : ''
                           }}
@@ -184,7 +184,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                     <!-- Expand Logs -->
                     <button
                       (click)="toggleLogs(rwa.rule.id)"
-                      class="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                       title="View Logs"
                     >
                       <svg
@@ -204,7 +204,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                     <!-- Edit -->
                     <button
                       (click)="editRule(rwa)"
-                      class="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                       title="Edit"
                     >
                       <svg
@@ -224,7 +224,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                     <!-- Delete -->
                     <button
                       (click)="confirmDelete(rwa)"
-                      class="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)] rounded"
                       title="Delete"
                     >
                       <svg
@@ -284,7 +284,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                   @if (logsLoading()) {
                     <div class="flex items-center justify-center py-4">
                       <svg
-                        class="animate-spin h-4 w-4 text-gray-400"
+                        class="animate-spin h-4 w-4 text-[var(--muted-foreground)]"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -304,7 +304,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                       </svg>
                     </div>
                   } @else if (logs().length === 0) {
-                    <p class="text-xs text-gray-400 text-center py-2">
+                    <p class="text-xs text-[var(--muted-foreground)] text-center py-2">
                       No executions yet.
                     </p>
                   } @else {
@@ -325,7 +325,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
                               log.status
                             }}</span>
                           </div>
-                          <span class="text-gray-400">{{
+                          <span class="text-[var(--muted-foreground)]">{{
                             log.triggered_at | date: 'short'
                           }}</span>
                         </div>
@@ -417,7 +417,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       due_date_approaching: 'bg-amber-100',
       member_joined: 'bg-pink-100',
     };
-    return map[trigger] || 'bg-gray-100';
+    return map[trigger] || 'bg-[var(--muted)]';
   }
 
   getTriggerIconClass(trigger: AutomationTrigger): string {
@@ -435,7 +435,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       due_date_approaching: 'text-amber-600',
       member_joined: 'text-pink-600',
     };
-    return map[trigger] || 'text-gray-600';
+    return map[trigger] || 'text-[var(--muted-foreground)]';
   }
 
   toggleActive(rwa: AutomationRuleWithActions): void {

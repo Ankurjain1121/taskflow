@@ -21,7 +21,7 @@ import {
   template: `
     <!-- Filter bar -->
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-sm font-medium text-[var(--foreground)]">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">
         Automation Activity
       </h3>
     </div>
@@ -37,7 +37,7 @@ import {
         <i
           class="pi pi-history text-4xl text-[var(--muted-foreground)] opacity-40 mb-4"
         ></i>
-        <h3 class="text-lg font-medium text-[var(--foreground)] mb-2">
+        <h3 class="text-lg font-display font-medium text-[var(--foreground)] mb-2">
           No activity yet
         </h3>
         <p class="text-sm text-[var(--muted-foreground)]">

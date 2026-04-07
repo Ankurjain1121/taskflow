@@ -259,8 +259,8 @@ const ALL_TABS: TabDef[] = [
                   <!-- Danger Zone (Super Admin only) -->
                   @if (permissionService.isSuperAdmin()) {
                     <section>
-                      <div class="rounded-xl border-2 border-red-200 dark:border-red-800 p-5">
-                        <h2 class="text-lg font-semibold text-red-700 dark:text-red-300 mb-4">Danger Zone</h2>
+                      <div class="rounded-xl border-2 p-5" style="border-color: var(--destructive)">
+                        <h2 class="text-lg font-semibold mb-4" style="color: var(--destructive)">Danger Zone</h2>
                         <div class="flex items-center justify-between">
                           <div>
                             <h3 class="text-sm font-medium text-[var(--foreground)]">Delete Workspace</h3>
@@ -270,7 +270,8 @@ const ALL_TABS: TabDef[] = [
                           </div>
                           <button
                             (click)="onDeleteWorkspace()"
-                            class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-[var(--card)] hover:bg-red-50 dark:hover:bg-red-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-offset-2"
+                            style="border-color: var(--destructive); color: var(--destructive)"
                           >
                             Delete Workspace
                           </button>
