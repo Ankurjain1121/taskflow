@@ -126,6 +126,9 @@ services:
       start_period: 30s
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: taskbolt-frontend
     container_name: taskbolt-frontend
     restart: unless-stopped
