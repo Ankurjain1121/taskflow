@@ -16,20 +16,20 @@ import { DashboardStats } from '../../../core/services/dashboard.service';
         class="text-2xl font-bold tracking-tight font-display"
         style="color: var(--foreground)"
       >
-        {{ greetingPrefix() }}@if (userName()) {, <span class="truncate inline-block max-w-[200px] align-bottom" style="color: var(--primary)">{{ userName() }}</span>}@if (isQuestion()) {?}
+        {{ greetingPrefix() }}@if (userName()) {, <em class="truncate inline-block max-w-[200px] align-bottom" style="color: var(--primary)">{{ userName() }}</em>}@if (isQuestion()) {?}
       </h1>
       <p class="text-sm mt-1" style="color: var(--muted-foreground)">
         @if (overdue() > 0) {
-          You have
-          <span class="font-semibold text-red-500">{{ overdue() }}</span>
+          {{ warmIntro() }} You have
+          <span class="font-semibold" style="color: var(--destructive)">{{ overdue() }}</span>
           overdue {{ overdue() === 1 ? 'task' : 'tasks' }} that
-          {{ overdue() === 1 ? 'needs' : 'need' }} attention
+          {{ overdue() === 1 ? 'needs' : 'need' }} attention.
         } @else if (dueToday() > 0) {
-          You have {{ dueToday() }}
-          {{ dueToday() === 1 ? 'task' : 'tasks' }} due today &mdash;
-          let's knock them out
+          {{ warmIntro() }} You have {{ totalTasks() }} {{ totalTasks() === 1 ? 'task' : 'tasks' }} on your drafting table, {{ dueToday() }} due today.
+        } @else if (totalTasks() > 0) {
+          {{ warmIntro() }} You have a productive day ahead with {{ totalTasks() }} {{ totalTasks() === 1 ? 'task' : 'tasks' }} on your drafting table.
         } @else {
-          All clear &mdash; you're on top of things!
+          {{ warmIntro() }} Your drafting table is clear &mdash; time to plan something new.
         }
       </p>
     </div>
@@ -41,6 +41,7 @@ export class SmartGreetingComponent {
 
   readonly overdue = computed(() => this.stats()?.overdue ?? 0);
   readonly dueToday = computed(() => this.stats()?.due_today ?? 0);
+  readonly totalTasks = computed(() => this.stats()?.total_tasks ?? 0);
 
   readonly greetingPrefix = computed(() => {
     const hour = new Date().getHours();
@@ -53,5 +54,13 @@ export class SmartGreetingComponent {
   readonly isQuestion = computed(() => {
     const hour = new Date().getHours();
     return hour < 5 || hour >= 21;
+  });
+
+  readonly warmIntro = computed(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'The workshop is quiet and ready.';
+    if (hour >= 12 && hour < 17) return 'The afternoon light fills the studio.';
+    if (hour >= 17 && hour < 21) return 'The evening settles in nicely.';
+    return 'The midnight workshop hums softly.';
   });
 }

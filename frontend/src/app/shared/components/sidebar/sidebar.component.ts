@@ -202,6 +202,27 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .collapse-icon {
         transition: transform 200ms ease;
       }
+
+      /* Terracotta Studio: flat sidebar — no gradient, no overlay */
+      :host-context([data-theme="terracotta-studio"]) .sidebar-root {
+        background: var(--sidebar-bg) !important;
+      }
+      :host-context([data-theme="terracotta-studio"]) .sidebar-overlay {
+        opacity: 0 !important;
+      }
+      :host-context([data-theme="terracotta-studio"]) .sidebar-root::before {
+        display: none !important;
+      }
+
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-root {
+        background: var(--sidebar-bg) !important;
+      }
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-overlay {
+        opacity: 0 !important;
+      }
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-root::before {
+        display: none !important;
+      }
     `,
   ],
   template: `

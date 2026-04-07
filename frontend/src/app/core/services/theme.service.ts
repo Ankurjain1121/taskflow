@@ -46,11 +46,11 @@ export class ThemeService implements OnDestroy {
   );
 
   readonly lightTheme = signal<LightTheme>(
-    this.loadFromStorage(LIGHT_THEME_KEY, 'warm-earth') as LightTheme,
+    this.loadFromStorage(LIGHT_THEME_KEY, 'terracotta-studio') as LightTheme,
   );
 
   readonly darkTheme = signal<DarkTheme>(
-    this.loadFromStorage(DARK_THEME_KEY, 'warm-earth-dark') as DarkTheme,
+    this.loadFromStorage(DARK_THEME_KEY, 'terracotta-studio-dark') as DarkTheme,
   );
 
   private readonly systemPrefersDark = signal<boolean>(

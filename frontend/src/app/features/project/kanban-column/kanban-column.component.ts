@@ -113,7 +113,7 @@ export interface TaskMoveEvent {
               }
 
               <!-- Column Name -->
-              <h3 class="font-medium text-[var(--foreground)] truncate min-w-0">
+              <h3 class="font-medium text-[var(--foreground)] truncate min-w-0 uppercase tracking-wider">
                 {{ column().name }}
               </h3>
 

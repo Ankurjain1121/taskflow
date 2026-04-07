@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Nunito+Sans:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Nunito+Sans:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@400;600&family=Outfit:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
       rel="stylesheet"
     />
     <link
@@ -28,14 +28,13 @@
         if (isDark) document.documentElement.classList.add('dark');
         document.documentElement.setAttribute('data-sidebar-style', 'light');
 
-        // Light theme
-        var lightTheme = localStorage.getItem('taskbolt-light-theme') || 'warm-earth';
-        if (lightTheme !== 'warm-earth')
-          document.documentElement.setAttribute('data-theme', lightTheme);
+        // Light theme — always set attribute
+        var lightTheme = localStorage.getItem('taskbolt-light-theme') || 'terracotta-studio';
+        document.documentElement.setAttribute('data-theme', lightTheme);
 
-        // Dark theme (only set attribute when dark mode active)
-        var darkTheme = localStorage.getItem('taskbolt-dark-theme') || 'warm-earth-dark';
-        if (isDark && darkTheme !== 'warm-earth-dark')
+        // Dark theme — always set attribute when dark mode active
+        var darkTheme = localStorage.getItem('taskbolt-dark-theme') || 'terracotta-studio-dark';
+        if (isDark)
           document.documentElement.setAttribute('data-dark-theme', darkTheme);
       })();
     </script>

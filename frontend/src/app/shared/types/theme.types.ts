@@ -11,7 +11,8 @@ export type LightTheme =
   | 'purple-scale'
   | 'pastel-rose'
   | 'french-blues'
-  | 'sunset-website';
+  | 'sunset-website'
+  | 'terracotta-studio';
 
 export type DarkTheme =
   | 'warm-earth-dark'
@@ -29,6 +30,7 @@ export type DarkTheme =
   | 'yellow-dark'
   | 'forest-night'
   | 'bloodstone'
-  | 'red-noir';
+  | 'red-noir'
+  | 'terracotta-studio-dark';
 
 export type ColorMode = 'light' | 'dark' | 'system';

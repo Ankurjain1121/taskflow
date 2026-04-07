@@ -98,6 +98,30 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         outline-offset: -2px;
         border-radius: 0.375rem;
       }
+
+      /* Terracotta Studio: subtle topbar border */
+      :host-context([data-theme="terracotta-studio"]) .top-nav {
+        border-bottom: 1px solid var(--border);
+      }
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .top-nav {
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* Terracotta Studio: ghost-bordered search pill */
+      :host-context([data-theme="terracotta-studio"]) .search-pill {
+        background: transparent;
+        border: 1px solid var(--border);
+      }
+      :host-context([data-theme="terracotta-studio"]) .search-pill:hover {
+        background: var(--muted);
+      }
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .search-pill {
+        background: transparent;
+        border: 1px solid var(--border);
+      }
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .search-pill:hover {
+        background: var(--muted);
+      }
     `,
   ],
   template: `
