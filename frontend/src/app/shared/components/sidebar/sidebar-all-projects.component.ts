@@ -56,7 +56,7 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
       }
       .section-label {
         font-size: 10px; font-weight: 600;
-        letter-spacing: 0.1em; text-transform: uppercase;
+        letter-spacing: 0.15em; text-transform: uppercase;
         color: var(--sidebar-text-muted);
         padding: 0.25rem 0.75rem;
         display: flex; align-items: center; justify-content: space-between;

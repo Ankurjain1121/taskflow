@@ -28,25 +28,19 @@ import { Board } from '../../../core/services/project.service';
       :host { display: block; }
       .project-item {
         transition: background var(--duration-fast) var(--ease-standard);
-        position: relative;
+        min-height: 40px;
       }
       .project-item:hover { background: var(--sidebar-surface-hover); }
-      .project-item.active { background: var(--sidebar-surface-active); }
-      .project-item.active .nav-indicator { opacity: 1; }
-      .nav-indicator {
-        position: absolute; left: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 3px; height: 16px;
-        border-radius: 0 3px 3px 0;
-        background: var(--primary); opacity: 0;
-        transition: opacity var(--duration-fast) var(--ease-standard);
+      .project-item.active {
+        background: var(--sidebar-surface-active);
+        font-weight: 600;
       }
       .color-dot {
         width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
       }
       .section-label {
         font-size: 10px; font-weight: 600;
-        letter-spacing: 0.1em; text-transform: uppercase;
+        letter-spacing: 0.15em; text-transform: uppercase;
         color: var(--sidebar-text-muted);
         padding: 0.25rem 0.75rem;
         display: flex; align-items: center; justify-content: space-between;
@@ -124,7 +118,6 @@ import { Board } from '../../../core/services/project.service';
                  routerLinkActive="active"
                  (click)="navClick.emit()"
                  class="project-item flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm cursor-pointer">
-                <span class="nav-indicator"></span>
                 <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
                 <span class="truncate flex-1" style="color: var(--sidebar-text-secondary)">
                   {{ project.name }}
