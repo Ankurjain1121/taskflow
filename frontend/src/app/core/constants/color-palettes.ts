@@ -553,6 +553,44 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     palette6: ['#fff0ec', '#f8e0de', '#8b597b', '#493129', '#3a2520', '#1e1310'],
     preview: { bg: '#fff0ec', primary: '#493129', fg: '#1e1310' },
   },
+  'terracotta-studio': {
+    ramp: {
+      '50': '#fef7f0',
+      '100': '#fdebd8',
+      '200': '#f9d0a8',
+      '300': '#f4b070',
+      '400': '#e88a3a',
+      '500': '#c46a1a',
+      '600': '#9e3d00',
+      '700': '#7c2e00',
+      '800': '#5c2200',
+      '900': '#3e1700',
+      '950': '#200c00',
+    },
+    surface: {
+      base: '#fbf9f5',
+      s1: '#ffffff',
+      s2: '#f5f3ef',
+      fg: '#1b1c1a',
+      border: 'rgba(224,192,178,0.20)',
+      mutedFg: '#75584d',
+    },
+    sidebar: {
+      bg: '#f5f3ef',
+      surface: 'rgba(158,61,0,0.04)',
+      surfaceHover: 'rgba(158,61,0,0.08)',
+      surfaceActive: 'rgba(158,61,0,0.12)',
+      border: 'rgba(158,61,0,0.08)',
+      textPrimary: '#1b1c1a',
+      textSecondary: '#594238',
+      textMuted: '#75584d',
+    },
+    fontDisplay: "'Manrope', system-ui, sans-serif",
+    fontBody: "'Plus Jakarta Sans', system-ui, sans-serif",
+    name: 'Terracotta Studio',
+    palette6: ['#fbf9f5', '#f5f3ef', '#9e3d00', '#904800', '#75584d', '#1b1c1a'],
+    preview: { bg: '#fbf9f5', primary: '#9e3d00', fg: '#1b1c1a' },
+  },
 };
 
 // =============================================================================
@@ -1183,6 +1221,44 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     palette6: ['#140f17', '#210207', '#480415', '#730c1e', '#A67070', '#E8C8C8'],
     preview: { bg: '#140f17', primary: '#730c1e', fg: '#E8C8C8' },
   },
+  'terracotta-studio-dark': {
+    ramp: {
+      '50': '#fef7f0',
+      '100': '#fdebd8',
+      '200': '#f9d0a8',
+      '300': '#f4b070',
+      '400': '#e88a3a',
+      '500': '#c46a1a',
+      '600': '#9e3d00',
+      '700': '#7c2e00',
+      '800': '#5c2200',
+      '900': '#3e1700',
+      '950': '#200c00',
+    },
+    surface: {
+      base: '#1a1714',
+      s1: '#242019',
+      s2: '#2e2a22',
+      fg: '#e4e2de',
+      border: 'rgba(224,192,178,0.10)',
+      mutedFg: '#8c7166',
+    },
+    sidebar: {
+      bg: '#161310',
+      surface: 'rgba(196,97,42,0.04)',
+      surfaceHover: 'rgba(196,97,42,0.08)',
+      surfaceActive: 'rgba(196,97,42,0.15)',
+      border: 'rgba(196,97,42,0.07)',
+      textPrimary: 'rgba(228,226,222,0.95)',
+      textSecondary: 'rgba(228,226,222,0.7)',
+      textMuted: 'rgba(228,226,222,0.4)',
+    },
+    fontDisplay: "'Manrope', system-ui, sans-serif",
+    fontBody: "'Plus Jakarta Sans', system-ui, sans-serif",
+    name: 'Terracotta Studio Dark',
+    palette6: ['#1a1714', '#242019', '#9e3d00', '#c46a1a', '#8c7166', '#e4e2de'],
+    preview: { bg: '#1a1714', primary: '#c46a1a', fg: '#e4e2de' },
+  },
 };
 
 // =============================================================================
@@ -1203,6 +1279,7 @@ export const LIGHT_THEMES: readonly LightTheme[] = [
   'pastel-rose',
   'french-blues',
   'sunset-website',
+  'terracotta-studio',
 ] as const;
 
 export const DARK_THEMES: readonly DarkTheme[] = [
@@ -1222,19 +1299,20 @@ export const DARK_THEMES: readonly DarkTheme[] = [
   'forest-night',
   'bloodstone',
   'red-noir',
+  'terracotta-studio-dark',
 ] as const;
 
 /** Maps old accent_color DB values to new LightTheme names */
 export const LEGACY_THEME_MAP: Record<string, LightTheme> = {
-  indigo: 'warm-earth',
-  blue: 'warm-earth',
-  green: 'warm-earth',
-  orange: 'warm-earth',
-  rose: 'warm-earth',
-  violet: 'warm-earth',
-  amber: 'warm-earth',
-  slate: 'warm-earth',
-  earth: 'warm-earth',
+  indigo: 'terracotta-studio',
+  blue: 'terracotta-studio',
+  green: 'terracotta-studio',
+  orange: 'terracotta-studio',
+  rose: 'terracotta-studio',
+  violet: 'terracotta-studio',
+  amber: 'terracotta-studio',
+  slate: 'terracotta-studio',
+  earth: 'terracotta-studio',
 };
 
 /**
@@ -1242,5 +1320,5 @@ export const LEGACY_THEME_MAP: Record<string, LightTheme> = {
  * Kept for backward compatibility during migration.
  */
 export const COLOR_PALETTES: Record<string, Record<string, string>> = {
-  earth: THEME_PALETTES['warm-earth'].ramp,
+  earth: THEME_PALETTES['terracotta-studio'].ramp,
 };

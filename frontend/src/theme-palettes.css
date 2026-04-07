@@ -539,6 +539,55 @@ html[data-theme="sunset-website"] {
   --surface-overlay: rgba(255,240,236,0.96);
 }
 
+/* Terracotta Studio: #fbf9f5, #f5f3ef, #9e3d00, #904800, #75584d, #1b1c1a */
+html[data-theme="terracotta-studio"] {
+  --background: #fbf9f5;
+  --card: #ffffff;
+  --card-foreground: #1b1c1a;
+  --muted: #f5f3ef;
+  --sidebar-bg: #f5f3ef;
+  --topbar-bg: #efeeea;
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --border: rgba(224,192,178,0.20);
+  --input: rgba(224,192,178,0.15);
+  --secondary: rgba(158,61,0,0.08);
+  --secondary-foreground: #75584d;
+  --sidebar-surface: rgba(158,61,0,0.04);
+  --sidebar-surface-hover: rgba(158,61,0,0.08);
+  --sidebar-surface-active: rgba(158,61,0,0.12);
+  --sidebar-border: rgba(158,61,0,0.08);
+  --primary: #9e3d00;
+  --primary-foreground: #ffffff;
+  --ring: #9e3d00;
+  --accent: rgba(158,61,0,0.06);
+  --accent-foreground: #9e3d00;
+  --accent-warm: #904800;
+  --accent-warm-light: rgba(144,72,0,0.1);
+  --shadow-glow: 0 0 0 1px rgba(158,61,0,0.12), 0 8px 32px rgba(158,61,0,0.08);
+  --widget-hover-border: rgba(158,61,0,0.28);
+  --muted-foreground: #594238;
+  --accent-warm-foreground: #75584d;
+  --sidebar-text-secondary: #594238;
+  --sidebar-text-muted: #75584d;
+  --foreground: #1b1c1a;
+  --sidebar-text-primary: #1b1c1a;
+  --success: #2E7D2B;
+  --success-light: rgba(46,125,43,0.1);
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --surface-overlay: rgba(251,249,245,0.96);
+  --shadow-xs: 0 1px 2px rgba(27,28,26,0.03);
+  --shadow-sm: 0 2px 8px rgba(27,28,26,0.04), 0 1px 3px rgba(27,28,26,0.03);
+  --shadow-md: 0 8px 24px rgba(27,28,26,0.06), 0 4px 8px rgba(27,28,26,0.04);
+  --shadow-lg: 0 20px 56px rgba(27,28,26,0.08), 0 8px 16px rgba(27,28,26,0.05);
+  --shadow-xl: 0 28px 72px rgba(27,28,26,0.10), 0 12px 24px rgba(27,28,26,0.06);
+  --surface-0: #fbf9f5;
+  --surface-1: #ffffff;
+  --surface-2: #f5f3ef;
+  --surface-3: #efeeea;
+}
+
 /* =============================================================================
    Dark theme overrides (warm-earth-dark is html.dark default — not repeated)
    ============================================================================= */
@@ -1140,4 +1189,53 @@ html.dark[data-dark-theme="red-noir"] {
   --font-display: 'Crimson Text', system-ui, serif;
   --font-body: 'Nunito', system-ui, sans-serif;
   --surface-overlay: rgba(20,15,23,0.96);
+}
+
+/* Terracotta Studio Dark */
+html.dark[data-dark-theme="terracotta-studio-dark"] {
+  --background: #1a1714;
+  --card: #242019;
+  --card-foreground: #e4e2de;
+  --muted: #1f1c18;
+  --sidebar-bg: #161310;
+  --topbar-bg: #1f1c18;
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --border: rgba(224,192,178,0.10);
+  --input: rgba(224,192,178,0.08);
+  --secondary: rgba(196,97,42,0.12);
+  --secondary-foreground: #e4beb2;
+  --sidebar-surface: rgba(196,97,42,0.04);
+  --sidebar-surface-hover: rgba(196,97,42,0.08);
+  --sidebar-surface-active: rgba(196,97,42,0.15);
+  --sidebar-border: rgba(196,97,42,0.07);
+  --primary: #c46a1a;
+  --primary-foreground: #ffffff;
+  --ring: #c46a1a;
+  --accent: rgba(196,106,26,0.10);
+  --accent-foreground: #e88a3a;
+  --accent-warm: #ffb783;
+  --accent-warm-light: rgba(255,183,131,0.10);
+  --shadow-glow: 0 0 0 1px rgba(196,106,26,0.15), 0 8px 32px rgba(196,106,26,0.12);
+  --widget-hover-border: rgba(196,106,26,0.30);
+  --muted-foreground: #8c7166;
+  --accent-warm-foreground: #ffb783;
+  --sidebar-text-secondary: rgba(228,226,222,0.7);
+  --sidebar-text-muted: rgba(228,226,222,0.4);
+  --foreground: #e4e2de;
+  --sidebar-text-primary: rgba(228,226,222,0.95);
+  --success: #7AAF60;
+  --success-light: rgba(122,175,96,0.1);
+  --destructive: #D42020;
+  --destructive-foreground: #ffffff;
+  --surface-overlay: rgba(26,23,20,0.96);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.16), 0 4px 8px rgba(0,0,0,0.10);
+  --shadow-lg: 0 20px 56px rgba(0,0,0,0.20), 0 8px 16px rgba(0,0,0,0.12);
+  --shadow-xl: 0 28px 72px rgba(0,0,0,0.24), 0 12px 24px rgba(0,0,0,0.16);
+  --surface-0: #1a1714;
+  --surface-1: #242019;
+  --surface-2: #2e2a22;
+  --surface-3: #38342b;
 }

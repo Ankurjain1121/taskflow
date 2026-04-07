@@ -94,3 +94,29 @@
         backdrop-filter: blur(12px) saturate(180%);
         -webkit-backdrop-filter: blur(12px) saturate(180%);
       }
+
+      /* Terracotta Studio: borderless cards with tonal layering */
+      :host-context([data-theme="terracotta-studio"]) .task-card {
+        border: none;
+        box-shadow: 0 1px 4px rgba(27,28,26,0.04);
+      }
+
+      :host-context([data-theme="terracotta-studio"]) .task-card:hover {
+        box-shadow: 0 4px 12px rgba(27,28,26,0.06);
+      }
+
+      :host-context([data-theme="terracotta-studio"]) .task-card.priority-urgent,
+      :host-context([data-theme="terracotta-studio"]) .task-card.priority-high,
+      :host-context([data-theme="terracotta-studio"]) .task-card.priority-medium,
+      :host-context([data-theme="terracotta-studio"]) .task-card.priority-low {
+        background: var(--card);
+      }
+
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .task-card {
+        border: none;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      }
+
+      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .task-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      }
