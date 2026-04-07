@@ -73,7 +73,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           />
         } @else {
           <div
-            class="text-sm font-semibold cursor-pointer hover:underline"
+            class="text-xs font-semibold uppercase tracking-wider cursor-pointer hover:underline"
             [style.color]="groupData().group.color"
             (dblclick)="startNameEdit()"
           >
@@ -142,7 +142,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
     <!-- Color popover -->
     <p-popover #colorPopover>
       <div class="px-4 py-2">
-        <div class="text-xs font-medium text-[var(--muted-foreground)] mb-2">
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
           GROUP COLOR
         </div>
         <div class="grid grid-cols-6 gap-2">
@@ -153,7 +153,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
               [style.background-color]="color"
               [class.ring-2]="groupData().group.color === color"
               [class.ring-offset-2]="groupData().group.color === color"
-              [class.ring-gray-800]="groupData().group.color === color"
+              [style.--tw-ring-color]="groupData().group.color === color ? 'var(--foreground)' : 'transparent'"
             ></button>
           }
         </div>
@@ -198,7 +198,7 @@ export class TaskGroupHeaderComponent {
     {
       label: 'Delete group',
       icon: 'pi pi-trash',
-      styleClass: 'text-red-600',
+      styleClass: 'text-[var(--destructive)]',
       command: () => this.onDelete(),
     },
   ];
