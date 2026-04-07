@@ -544,6 +544,7 @@ html[data-theme="terracotta-studio"] {
   --background: #fbf9f5;
   --card: #ffffff;
   --card-foreground: #1b1c1a;
+  --sidebar-gradient: var(--sidebar-bg);
   --muted: #f5f3ef;
   --sidebar-bg: #f5f3ef;
   --topbar-bg: #efeeea;
@@ -587,6 +588,7 @@ html[data-theme="terracotta-studio"] {
   --surface-2: #f5f3ef;
   --surface-3: #efeeea;
 }
+
 
 /* =============================================================================
    Dark theme overrides (warm-earth-dark is html.dark default — not repeated)
@@ -1196,6 +1198,7 @@ html.dark[data-dark-theme="terracotta-studio-dark"] {
   --background: #1a1714;
   --card: #242019;
   --card-foreground: #e4e2de;
+  --sidebar-gradient: var(--sidebar-bg);
   --muted: #1f1c18;
   --sidebar-bg: #161310;
   --topbar-bg: #1f1c18;
@@ -1239,3 +1242,4 @@ html.dark[data-dark-theme="terracotta-studio-dark"] {
   --surface-2: #2e2a22;
   --surface-3: #38342b;
 }
+

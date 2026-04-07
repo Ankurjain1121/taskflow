@@ -10,39 +10,14 @@ const VALID_PROJECT_VIEWS: &[&str] = &["kanban", "list"];
 const VALID_SIDEBAR_DENSITIES: &[&str] = &["compact", "comfortable"];
 const VALID_DIGEST_FREQUENCIES: &[&str] = &["realtime", "hourly", "daily"];
 const VALID_COLOR_MODES: &[&str] = &["light", "dark", "system"];
-const VALID_ACCENT_COLORS: &[&str] = &[
-    "white-heaven",
-    "sea-foam",
-    "warm-earth",
-    "storm-cloud",
-    "morning-sky",
-    "misty-forest",
-    "modern-dental",
-    "cosmic",
-    "mindful",
-    "purple-scale",
-    "pastel-rose",
-    "french-blues",
-    "sunset-website",
-];
-const VALID_DARK_THEMES: &[&str] = &[
-    "warm-earth-dark",
-    "purple-night",
-    "cherry-blossom",
-    "sunset-dusk",
-    "purple-haze",
-    "ocean-deep",
-    "luna",
-    "coffee",
-    "moon",
-    "wine",
-    "gold-crimson",
-    "pink-gray",
-    "yellow-dark",
-    "forest-night",
-    "bloodstone",
-    "red-noir",
-];
+/// Theme names are a frontend concern. Backend validates format only:
+/// lowercase alphanumeric + hyphens, 1-60 chars.
+fn is_valid_theme_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 60
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
 
 /// Validate preference values server-side
 pub fn validate_preferences(
@@ -86,12 +61,12 @@ pub fn validate_theme_preferences(
         }
     }
     if let Some(accent) = accent_color {
-        if !VALID_ACCENT_COLORS.contains(&accent) {
+        if !is_valid_theme_slug(accent) {
             return Err(format!("Invalid accent_color: {}", accent));
         }
     }
     if let Some(dark) = dark_theme {
-        if !VALID_DARK_THEMES.contains(&dark) {
+        if !is_valid_theme_slug(dark) {
             return Err(format!("Invalid dark_theme: {}", dark));
         }
     }
@@ -434,14 +409,14 @@ mod tests {
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_accent() {
         let result =
-            validate_theme_preferences(Some("dark"), Some("rainbow"), Some("warm-earth-dark"));
+            validate_theme_preferences(Some("dark"), Some("UPPERCASE!"), Some("warm-earth-dark"));
         assert!(result.is_err());
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_dark_theme() {
         let result =
-            validate_theme_preferences(Some("dark"), Some("warm-earth"), Some("invalid-dark"));
+            validate_theme_preferences(Some("dark"), Some("warm-earth"), Some("has spaces bad"));
         assert!(result.is_err());
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
