@@ -28,7 +28,8 @@ import { Board } from '../../../core/services/project.service';
       :host { display: block; }
       .project-item {
         transition: background var(--duration-fast) var(--ease-standard);
-        min-height: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
       }
       .project-item:hover { background: var(--sidebar-surface-hover); }
       .project-item.active {
@@ -37,13 +38,6 @@ import { Board } from '../../../core/services/project.service';
       }
       .color-dot {
         width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      }
-      .section-label {
-        font-size: 10px; font-weight: 600;
-        letter-spacing: 0.15em; text-transform: uppercase;
-        color: var(--sidebar-text-muted);
-        padding: 0.25rem 0.75rem;
-        display: flex; align-items: center; justify-content: space-between;
       }
       .collapsed-dot {
         display: flex; align-items: center; justify-content: center;
@@ -88,7 +82,7 @@ import { Board } from '../../../core/services/project.service';
     `,
   ],
   template: `
-    <div class="section-label mt-1 mb-1.5 sidebar-label">
+    <div class="text-label-meta mt-1 mb-1.5 sidebar-label px-3" style="color: var(--sidebar-text-muted)">
       <span>Projects</span>
     </div>
 

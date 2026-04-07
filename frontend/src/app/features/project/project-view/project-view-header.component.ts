@@ -7,20 +7,68 @@ import {
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
+import { type ViewMode } from '../project-toolbar/project-toolbar.component';
+
+interface ViewTab {
+  value: ViewMode;
+  label: string;
+}
+
+const VIEW_TABS: ViewTab[] = [
+  { value: 'kanban', label: 'Board' },
+  { value: 'list', label: 'List' },
+  { value: 'calendar', label: 'Calendar' },
+  { value: 'gantt', label: 'Gantt' },
+  { value: 'reports', label: 'Reports' },
+];
+
 @Component({
   selector: 'app-project-view-header',
   standalone: true,
   imports: [RouterModule, Menu],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      .view-tab {
+        padding: 0.25rem 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        border-bottom: 2px solid transparent;
+        transition: color 150ms ease, border-color 150ms ease;
+        cursor: pointer;
+      }
+      .view-tab:hover {
+        color: var(--foreground);
+      }
+      .view-tab.active {
+        color: var(--foreground);
+        font-weight: 600;
+        border-bottom-color: var(--primary);
+      }
+    `,
+  ],
   template: `
     <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
       <div class="flex items-center justify-between">
-        <div>
+        <div class="flex items-center gap-6">
           <h1 class="text-2xl font-bold text-[var(--foreground)]">
             {{ boardName() || 'Loading...' }}
           </h1>
+          <!-- View Switcher Tabs -->
+          <nav class="hidden sm:flex items-center gap-4" aria-label="View switcher">
+            @for (tab of viewTabs; track tab.value) {
+              <button
+                class="view-tab"
+                [class.active]="viewMode() === tab.value"
+                (click)="viewModeChanged.emit(tab.value)"
+              >{{ tab.label }}</button>
+            }
+          </nav>
+        </div>
+        <div class="flex items-center gap-3">
           @if (boardDescription()) {
-            <p class="text-sm text-[var(--muted-foreground)] mt-1">
+            <p class="text-sm text-[var(--muted-foreground)] hidden lg:block">
               {{ boardDescription() }}
             </p>
           }
@@ -136,7 +184,11 @@ export class ProjectViewHeaderComponent {
   workspaceId = input('');
   boardId = input('');
   menuItems = input<MenuItem[]>([]);
+  viewMode = input<ViewMode>('kanban');
 
   createTask = output<void>();
   createGroup = output<void>();
+  viewModeChanged = output<ViewMode>();
+
+  readonly viewTabs = VIEW_TABS;
 }

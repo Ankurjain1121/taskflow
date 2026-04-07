@@ -54,13 +54,7 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
         display: flex; align-items: center; justify-content: center;
         border-radius: 0.25rem; font-weight: 700; color: #fff; flex-shrink: 0;
       }
-      .section-label {
-        font-size: 10px; font-weight: 600;
-        letter-spacing: 0.15em; text-transform: uppercase;
-        color: var(--sidebar-text-muted);
-        padding: 0.25rem 0.75rem;
-        display: flex; align-items: center; justify-content: space-between;
-      }
+      /* section-label replaced by text-label-meta utility */
       .skeleton {
         background: var(--sidebar-surface-hover);
         animation: pulse 1.5s ease-in-out infinite;
@@ -73,7 +67,7 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
   ],
   template: `
     @if (!collapsed()) {
-      <div class="section-label mt-3 mb-1.5">
+      <div class="text-label-meta mt-3 mb-1.5 px-3 flex items-center justify-between" style="color: var(--sidebar-text-muted)">
         <span>All Projects</span>
       </div>
 
