@@ -188,8 +188,8 @@
               >
                 <div
                   class="flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors hover:brightness-95"
-                  [style.background-color]="(group?.group?.color ?? '#6b7280') + '15'"
-                  [style.border-left]="'3px solid ' + (group?.group?.color ?? '#6b7280')"
+                  [style.background-color]="(group?.group?.color ?? 'var(--muted-foreground)') + '15'"
+                  [style.border-left]="'3px solid ' + (group?.group?.color ?? 'var(--muted-foreground)')"
                   (click)="onToggleGroupById(task.task_list_id)"
                 >
                   <div class="flex items-center gap-2">
@@ -199,8 +199,8 @@
                       [class.pi-chevron-down]="!group?.group?.collapsed"
                     ></i>
                     <span
-                      class="text-sm font-semibold"
-                      [style.color]="group?.group?.color ?? '#6b7280'"
+                      class="text-xs font-semibold uppercase tracking-wider"
+                      [style.color]="group?.group?.color ?? 'var(--muted-foreground)'"
                     >
                       {{ group?.group?.name ?? 'Ungrouped' }}
                     </span>
@@ -228,7 +228,7 @@
                       {{ getCompletionPct(group) }}%
                     </span>
                   </div>
-                  <span class="text-xs text-[var(--muted-foreground)]">
+                  <span class="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
                     {{ group?.task_count ?? 0 }} tasks
                   </span>
                 </div>
