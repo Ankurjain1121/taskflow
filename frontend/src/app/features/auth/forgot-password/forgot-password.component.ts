@@ -151,8 +151,10 @@ import { AuthService } from '../../../core/services/auth.service';
 
       .field-label {
         display: block;
-        font-size: 0.875rem;
-        font-weight: 500;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         color: var(--foreground);
         margin-bottom: 0.375rem;
       }
