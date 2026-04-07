@@ -56,7 +56,7 @@ export type { CommandAction } from './command-palette.types';
   template: `
     @if (isOpen()) {
       <div
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]"
+        class="fixed inset-0 bg-black/40 backdrop-blur-[12px] z-50 flex items-start justify-center pt-[15vh]"
         (click)="onBackdropClick($event)"
         (keydown)="onKeydown($event)"
       >
@@ -138,7 +138,7 @@ export type { CommandAction } from './command-palette.types';
                     >
                     @if (action.shortcut) {
                       <kbd
-                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono"
+                        class="kbd-hint"
                       >
                         {{ action.shortcut }}
                       </kbd>
@@ -256,7 +256,7 @@ export type { CommandAction } from './command-palette.types';
                     >
                     @if (action.shortcut) {
                       <kbd
-                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono"
+                        class="kbd-hint"
                       >
                         {{ action.shortcut }}
                       </kbd>
@@ -415,32 +415,20 @@ export type { CommandAction } from './command-palette.types';
           >
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1">
-                <kbd
-                  class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
-                  >&#8593;&#8595;</kbd
-                >
+                <kbd class="kbd-hint">&#8593;&#8595;</kbd>
                 navigate
               </span>
               <span class="flex items-center gap-1">
-                <kbd
-                  class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
-                  >&#9166;</kbd
-                >
+                <kbd class="kbd-hint">&#9166;</kbd>
                 select
               </span>
             </div>
             <span class="flex items-center gap-1">
-              <kbd
-                class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
-                >&gt;</kbd
-              >
+              <kbd class="kbd-hint">&gt;</kbd>
               commands
             </span>
             <span class="flex items-center gap-1">
-              <kbd
-                class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
-                >esc</kbd
-              >
+              <kbd class="kbd-hint">ESC</kbd>
               close
             </span>
           </div>
@@ -455,7 +443,7 @@ export type { CommandAction } from './command-palette.types';
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .backdrop-blur-sm {
+        [class*='backdrop-blur'] {
           backdrop-filter: none !important;
         }
       }
