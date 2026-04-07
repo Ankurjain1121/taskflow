@@ -29,7 +29,7 @@ export interface ConfirmDialogData {
       [header]="data().title"
       (onHide)="cancelled.emit()"
     >
-      <p class="text-gray-600 dark:text-gray-400">{{ data().message }}</p>
+      <p class="text-[var(--muted-foreground)]">{{ data().message }}</p>
 
       <ng-template #footer>
         <div class="flex justify-end gap-2">

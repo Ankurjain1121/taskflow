@@ -38,12 +38,12 @@ export interface ExportDialogData {
       [style]="{ width: '480px' }"
       [closable]="true"
     >
-      <p class="text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-[var(--muted-foreground)] mb-4">
         Export tasks from "{{ boardName() }}" to a file.
       </p>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+        <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
           >Format</label
         >
         <div class="flex flex-col gap-3">
@@ -56,7 +56,7 @@ export interface ExportDialogData {
             />
             <label for="formatCsv" class="text-sm cursor-pointer">
               <span class="font-medium">CSV</span>
-              <span class="text-gray-500 dark:text-gray-400 ml-1"
+              <span class="text-[var(--muted-foreground)] ml-1"
                 >- Spreadsheet compatible (Excel, Google Sheets)</span
               >
             </label>
@@ -70,7 +70,7 @@ export interface ExportDialogData {
             />
             <label for="formatJson" class="text-sm cursor-pointer">
               <span class="font-medium">JSON</span>
-              <span class="text-gray-500 dark:text-gray-400 ml-1"
+              <span class="text-[var(--muted-foreground)] ml-1"
                 >- Structured data with board metadata</span
               >
             </label>

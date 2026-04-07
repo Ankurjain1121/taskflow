@@ -134,13 +134,14 @@ import {
       @if (blockedByDeps().length > 0) {
         <div class="mb-2">
           <span
-            class="text-xs font-medium text-orange-600 uppercase tracking-wide"
+            class="text-xs font-semibold uppercase tracking-wider" style="color: var(--status-amber-text)"
             >Blocked by</span
           >
           <div class="mt-1 space-y-1">
             @for (dep of blockedByDeps(); track dep.id) {
               <div
-                class="flex items-center justify-between px-2 py-1.5 bg-orange-50 rounded text-sm group"
+                class="flex items-center justify-between px-2 py-1.5 rounded text-sm group"
+                style="background: var(--status-amber-bg)"
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
@@ -152,16 +153,17 @@ import {
                     "
                     [class.bg-blue-500]="dep.related_task_priority === 'low'"
                   ></span>
-                  <span class="truncate text-orange-800">{{
+                  <span class="truncate" style="color: var(--status-amber-text)">{{
                     dep.related_task_title
                   }}</span>
-                  <span class="text-xs text-orange-400 flex-shrink-0">{{
+                  <span class="text-xs flex-shrink-0" style="color: var(--status-amber-text); opacity: 0.7">{{
                     dep.related_task_column_name
                   }}</span>
                 </div>
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
-                  class="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 p-0.5"
+                  class="opacity-0 group-hover:opacity-100 p-0.5"
+                  style="color: var(--status-amber-text)"
                   aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>
@@ -182,7 +184,7 @@ import {
           <div class="mt-1 space-y-1">
             @for (dep of relatedDeps(); track dep.id) {
               <div
-                class="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded text-sm group"
+                class="flex items-center justify-between px-2 py-1.5 bg-[var(--muted)] rounded text-sm group"
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
@@ -194,16 +196,16 @@ import {
                     "
                     [class.bg-blue-500]="dep.related_task_priority === 'low'"
                   ></span>
-                  <span class="truncate text-gray-800">{{
+                  <span class="truncate text-[var(--foreground)]">{{
                     dep.related_task_title
                   }}</span>
-                  <span class="text-xs text-gray-400 flex-shrink-0">{{
+                  <span class="text-xs text-[var(--muted-foreground)] flex-shrink-0">{{
                     dep.related_task_column_name
                   }}</span>
                 </div>
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
-                  class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-[var(--foreground)] p-0.5"
+                  class="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-0.5"
                   aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>
@@ -215,7 +217,7 @@ import {
       }
 
       @if (dependencies().length === 0 && !showAddDependency()) {
-        <div class="text-sm text-gray-400">No dependencies</div>
+        <div class="text-sm text-[var(--muted-foreground)]">No dependencies</div>
       }
     </div>
   `,

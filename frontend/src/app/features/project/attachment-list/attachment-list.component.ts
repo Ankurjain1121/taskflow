@@ -52,7 +52,7 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
       </div>
     } @else if (attachments().length === 0) {
       <div class="text-center py-8 text-[var(--muted-foreground)]">
-        <i class="pi pi-paperclip text-4xl text-gray-300 mb-2"></i>
+        <i class="pi pi-paperclip text-4xl mb-2" style="color: var(--muted-foreground)"></i>
         <p>No files attached yet.</p>
       </div>
     } @else {
@@ -84,11 +84,11 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
               >
                 {{ attachment.file_name }}
               </button>
-              <div class="text-xs text-gray-400 flex items-center gap-2">
+              <div class="text-xs text-[var(--muted-foreground)] flex items-center gap-2">
                 <span>{{ attachment.file_size | fileSize }}</span>
-                <span class="text-gray-300">|</span>
+                <span style="opacity: 0.5">|</span>
                 <span>{{ attachment.uploader.display_name }}</span>
-                <span class="text-gray-300">|</span>
+                <span style="opacity: 0.5">|</span>
                 <span>{{ formatTimestamp(attachment.created_at) }}</span>
               </div>
             </div>
@@ -123,7 +123,7 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
                 [disabled]="deletingId() === attachment.id"
                 title="Delete"
                 aria-label="Delete"
-                class="text-gray-400 hover:text-red-500"
+                class="text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
               >
                 @if (deletingId() === attachment.id) {
                   <p-progressSpinner
