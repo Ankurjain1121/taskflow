@@ -94,7 +94,7 @@ import { Board } from '../../../core/services/project.service';
     `,
   ],
   template: `
-    <div class="section-label mt-1 mb-1.5 sidebar-label">
+    <div class="section-label mt-1 mb-1.5 sidebar-label uppercase tracking-wider">
       <span>Projects</span>
     </div>
 
@@ -123,7 +123,7 @@ import { Board } from '../../../core/services/project.service';
               <a [routerLink]="['/workspace', ctx.activeWorkspaceId(), 'project', project.id]"
                  routerLinkActive="active"
                  (click)="navClick.emit()"
-                 class="project-item flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm cursor-pointer">
+                 class="project-item flex items-center gap-2.5 px-3 h-10 rounded-md text-sm cursor-pointer w-full">
                 <span class="nav-indicator"></span>
                 <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
                 <span class="truncate flex-1" style="color: var(--sidebar-text-secondary)">

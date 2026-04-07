@@ -73,7 +73,7 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
   ],
   template: `
     @if (!collapsed()) {
-      <div class="section-label mt-3 mb-1.5">
+      <div class="section-label mt-3 mb-1.5 uppercase tracking-wider">
         <span>All Projects</span>
       </div>
 

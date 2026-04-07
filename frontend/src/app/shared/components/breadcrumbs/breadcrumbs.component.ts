@@ -25,7 +25,7 @@ export interface Breadcrumb {
   template: `
     @if (breadcrumbs().length > 0) {
       <nav
-        class="flex items-center gap-1 text-sm min-w-0"
+        class="flex items-center gap-1 text-xs min-w-0 uppercase tracking-wider"
         aria-label="Breadcrumb"
       >
         @for (

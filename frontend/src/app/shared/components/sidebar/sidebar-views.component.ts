@@ -71,13 +71,13 @@ interface ViewItem {
     `,
   ],
   template: `
-    <div class="section-label mt-1 mb-1.5 sidebar-label">Views</div>
+    <div class="section-label mt-1 mb-1.5 sidebar-label uppercase tracking-wider">Views</div>
     <div class="space-y-0.5">
       @for (view of views(); track view.label) {
         <a [routerLink]="view.path"
            routerLinkActive="active"
            (click)="navClick.emit()"
-           class="view-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+           class="view-item flex items-center gap-3 px-3 h-10 rounded-md text-sm w-full"
            [class.justify-center]="collapsed()"
            [pTooltip]="collapsed() ? view.label : ''" tooltipPosition="right">
           <span class="nav-indicator"></span>
