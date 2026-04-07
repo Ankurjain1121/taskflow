@@ -115,7 +115,7 @@ import { Toast } from 'primeng/toast';
 
         @if (board() && workspace()) {
           <div
-            class="flex items-center gap-1.5 text-sm"
+            class="flex items-center gap-1.5 text-xs uppercase tracking-wider"
             style="color: var(--muted-foreground)"
           >
             <a
@@ -264,11 +264,11 @@ import { Toast } from 'primeng/toast';
                 <p-tablist>
                   <p-tab value="0">
                     <i class="pi pi-comments mr-1.5"></i>
-                    Comments
+                    <span class="uppercase tracking-wider text-xs font-semibold">Comments</span>
                   </p-tab>
                   <p-tab value="1">
                     <i class="pi pi-history mr-1.5"></i>
-                    Activity
+                    <span class="uppercase tracking-wider text-xs font-semibold">Activity</span>
                   </p-tab>
                 </p-tablist>
                 <p-tabpanels>
