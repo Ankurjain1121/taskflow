@@ -35,13 +35,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 100%;
       }
       .sidebar-root {
-        background: linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--sidebar-bg) 88%, white) 0%,
-          var(--sidebar-bg) 30%,
-          color-mix(in srgb, var(--sidebar-bg) 92%, black) 70%,
-          color-mix(in srgb, var(--sidebar-bg) 80%, black) 100%
-        );
+        background: var(--sidebar-gradient, var(--sidebar-bg));
         position: relative;
         overflow: hidden;
       }
@@ -203,26 +197,6 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         transition: transform 200ms ease;
       }
 
-      /* Terracotta Studio: flat sidebar — no gradient, no overlay */
-      :host-context([data-theme="terracotta-studio"]) .sidebar-root {
-        background: var(--sidebar-bg) !important;
-      }
-      :host-context([data-theme="terracotta-studio"]) .sidebar-overlay {
-        opacity: 0 !important;
-      }
-      :host-context([data-theme="terracotta-studio"]) .sidebar-root::before {
-        display: none !important;
-      }
-
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-root {
-        background: var(--sidebar-bg) !important;
-      }
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-overlay {
-        opacity: 0 !important;
-      }
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .sidebar-root::before {
-        display: none !important;
-      }
     `,
   ],
   template: `
