@@ -241,8 +241,10 @@ export interface CreateTaskDialogResult {
                 <p-datePicker
                   inputId="startDate"
                   formControlName="startDate"
-                  placeholder="Select date"
+                  placeholder="Select date & time"
                   [showIcon]="true"
+                  [showTime]="true"
+                  [hourFormat]="'12'"
                   dateFormat="yy-mm-dd"
                   styleClass="w-full"
                   appendTo="body"
@@ -258,8 +260,10 @@ export interface CreateTaskDialogResult {
                 <p-datePicker
                   inputId="dueDate"
                   formControlName="dueDate"
-                  placeholder="Select date"
+                  placeholder="Select date & time"
                   [showIcon]="true"
+                  [showTime]="true"
+                  [hourFormat]="'12'"
                   dateFormat="yy-mm-dd"
                   styleClass="w-full"
                   appendTo="body"
