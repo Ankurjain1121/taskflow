@@ -25,8 +25,7 @@ export interface Breadcrumb {
   template: `
     @if (breadcrumbs().length > 0) {
       <nav
-        class="flex items-center gap-1 min-w-0"
-        style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;"
+        class="flex items-center gap-1 text-xs min-w-0 uppercase tracking-wider"
         aria-label="Breadcrumb"
       >
         @for (
@@ -52,7 +51,7 @@ export interface Breadcrumb {
             >
           }
           @if (!last) {
-            <span style="color: var(--muted-foreground); opacity: 0.5">&gt;</span>
+            <span style="color: var(--border)">/</span>
           }
         }
       </nav>

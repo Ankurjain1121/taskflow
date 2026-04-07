@@ -28,16 +28,28 @@ import { Board } from '../../../core/services/project.service';
       :host { display: block; }
       .project-item {
         transition: background var(--duration-fast) var(--ease-standard);
-        height: 40px;
-        border-radius: 0.5rem;
+        position: relative;
       }
       .project-item:hover { background: var(--sidebar-surface-hover); }
-      .project-item.active {
-        background: var(--sidebar-surface-active);
-        font-weight: 600;
+      .project-item.active { background: var(--sidebar-surface-active); }
+      .project-item.active .nav-indicator { opacity: 1; }
+      .nav-indicator {
+        position: absolute; left: 0; top: 50%;
+        transform: translateY(-50%);
+        width: 3px; height: 16px;
+        border-radius: 0 3px 3px 0;
+        background: var(--primary); opacity: 0;
+        transition: opacity var(--duration-fast) var(--ease-standard);
       }
       .color-dot {
         width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      }
+      .section-label {
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--sidebar-text-muted);
+        padding: 0.25rem 0.75rem;
+        display: flex; align-items: center; justify-content: space-between;
       }
       .collapsed-dot {
         display: flex; align-items: center; justify-content: center;
@@ -82,7 +94,7 @@ import { Board } from '../../../core/services/project.service';
     `,
   ],
   template: `
-    <div class="text-label-meta mt-1 mb-1.5 sidebar-label px-3" style="color: var(--sidebar-text-muted)">
+    <div class="section-label mt-1 mb-1.5 sidebar-label uppercase tracking-wider">
       <span>Projects</span>
     </div>
 
@@ -111,7 +123,8 @@ import { Board } from '../../../core/services/project.service';
               <a [routerLink]="['/workspace', ctx.activeWorkspaceId(), 'project', project.id]"
                  routerLinkActive="active"
                  (click)="navClick.emit()"
-                 class="project-item flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm cursor-pointer">
+                 class="project-item flex items-center gap-2.5 px-3 h-10 rounded-md text-sm cursor-pointer w-full">
+                <span class="nav-indicator"></span>
                 <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
                 <span class="truncate flex-1" style="color: var(--sidebar-text-secondary)">
                   {{ project.name }}

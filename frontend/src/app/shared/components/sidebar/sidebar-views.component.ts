@@ -26,16 +26,29 @@ interface ViewItem {
       :host { display: block; }
       .view-item {
         transition: background var(--duration-fast) var(--ease-standard);
-        height: 40px;
-        border-radius: 0.5rem;
+        position: relative;
       }
       .view-item:hover { background: var(--sidebar-surface-hover); }
       .view-item.active {
         background: var(--sidebar-surface-active);
         color: var(--sidebar-text-primary);
-        font-weight: 600;
       }
+      .view-item.active .nav-indicator { opacity: 1; }
       .view-item.active .pi { color: var(--primary) !important; }
+      .nav-indicator {
+        position: absolute; left: 0; top: 50%;
+        transform: translateY(-50%);
+        width: 3px; height: 16px;
+        border-radius: 0 3px 3px 0;
+        background: var(--primary); opacity: 0;
+        transition: opacity var(--duration-fast) var(--ease-standard);
+      }
+      .section-label {
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--sidebar-text-muted);
+        padding: 0.25rem 0.75rem;
+      }
       .collapsed-icon-btn {
         display: flex; align-items: center; justify-content: center;
         width: 100%; padding: 0.5rem 0;
@@ -58,17 +71,18 @@ interface ViewItem {
     `,
   ],
   template: `
-    <div class="text-label-meta mt-1 mb-1.5 sidebar-label px-3" style="color: var(--sidebar-text-muted)">Views</div>
+    <div class="section-label mt-1 mb-1.5 sidebar-label uppercase tracking-wider">Views</div>
     <div class="space-y-0.5">
       @for (view of views(); track view.label) {
         <a [routerLink]="view.path"
            routerLinkActive="active"
            (click)="navClick.emit()"
-           class="view-item flex items-center gap-3 px-3 text-sm"
+           class="view-item flex items-center gap-3 px-3 h-10 rounded-md text-sm w-full"
            [class.justify-center]="collapsed()"
            [pTooltip]="collapsed() ? view.label : ''" tooltipPosition="right">
-          <i class="pi {{ view.icon }} flex-shrink-0"
-             style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
+          <span class="nav-indicator"></span>
+          <i class="pi {{ view.icon }} text-sm flex-shrink-0"
+             style="color: var(--sidebar-text-muted)"></i>
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">{{ view.label }}</span>
         </a>
       }
