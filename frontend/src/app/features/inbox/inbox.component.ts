@@ -104,7 +104,7 @@ interface NotificationGroup {
     <div class="max-w-3xl mx-auto px-4 py-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold" style="color: var(--foreground)">
+        <h1 class="text-2xl font-bold font-display" style="color: var(--foreground)">
           Inbox
         </h1>
         @if (notificationService.unreadCount() > 0) {
