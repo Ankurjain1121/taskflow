@@ -22,6 +22,7 @@ import {
   getDueDateColor,
   isOverdue,
   isToday,
+  formatDueDate as sharedFormatDueDate,
   type ColorByMode,
   type ColorableTask,
   resolveCardColor,
@@ -360,34 +361,15 @@ export class ListViewComponent {
   }
 
   formatDueDate(date: string): string {
-    const dueDate = new Date(date);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (isToday(date)) {
-      return 'Today';
-    }
-
-    if (
-      dueDate.getDate() === tomorrow.getDate() &&
-      dueDate.getMonth() === tomorrow.getMonth() &&
-      dueDate.getFullYear() === tomorrow.getFullYear()
-    ) {
-      return 'Tomorrow';
-    }
-
     if (isOverdue(date)) {
+      const dueDate = new Date(date);
+      const today = new Date();
       const diffDays = Math.ceil(
         (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
       );
       return `Overdue (${diffDays}d)`;
     }
-
-    return dueDate.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return sharedFormatDueDate(date);
   }
 
   formatDate(date: string): string {
