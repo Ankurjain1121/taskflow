@@ -98,7 +98,7 @@ import {
     >
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-2xl font-bold tracking-tight" style="color: var(--foreground)">
+        <h1 class="text-2xl font-bold tracking-tight font-display" style="color: var(--foreground)">
           Reports
         </h1>
         <p class="text-sm mt-1" style="color: var(--muted-foreground)">
@@ -374,7 +374,7 @@ export class ReportsComponent implements OnInit {
       case 'behind':
         return 'bg-red-500';
       default:
-        return 'bg-gray-500';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 

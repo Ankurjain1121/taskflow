@@ -66,7 +66,7 @@ import {
     >
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-2xl font-bold tracking-tight" style="color: var(--foreground)">
+        <h1 class="text-2xl font-bold tracking-tight font-display" style="color: var(--foreground)">
           Portfolio
         </h1>
         <p class="text-sm mt-1" style="color: var(--muted-foreground)">
@@ -211,7 +211,7 @@ import {
                 <!-- Progress Bar -->
                 <div class="mb-3">
                   <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-medium" style="color: var(--muted-foreground)">
+                    <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--muted-foreground)">
                       Progress
                     </span>
                     <span class="text-xs font-semibold" style="color: var(--foreground)">
@@ -271,7 +271,7 @@ import {
         <!-- Milestones Timeline Section -->
         @if (milestones().length > 0) {
           <div class="mt-2">
-            <h2 class="text-lg font-semibold mb-4" style="color: var(--foreground)">
+            <h2 class="text-lg font-semibold mb-4 font-display" style="color: var(--foreground)">
               Milestones
             </h2>
             <div
@@ -407,7 +407,7 @@ export class PortfolioDashboardComponent implements OnInit {
       case 'behind':
         return 'bg-red-500';
       default:
-        return 'bg-gray-500';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 
