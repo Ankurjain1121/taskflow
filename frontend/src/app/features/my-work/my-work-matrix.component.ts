@@ -65,7 +65,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
             [style.background]="quadrantBgColor(q.key)"
           >
             <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border)">
-              <h2 class="text-base font-semibold" style="color: var(--card-foreground)">{{ q.title }}</h2>
+              <h2 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--card-foreground)">{{ q.title }}</h2>
               <p class="text-xs mt-0.5" style="color: var(--muted-foreground)">{{ q.subtitle }}</p>
               <span class="text-xs font-medium mt-1 inline-block" style="color: var(--muted-foreground)">
                 {{ tasksByQuadrant()[q.key].length }} tasks

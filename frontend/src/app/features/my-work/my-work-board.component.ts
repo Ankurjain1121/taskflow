@@ -57,7 +57,7 @@ interface ColumnConfig {
             <!-- Column header -->
             <div class="px-4 py-3 flex items-center gap-2" style="border-bottom: 1px solid var(--border)">
               <span class="w-2 h-2 rounded-full flex-shrink-0" [style.background]="col.color"></span>
-              <h3 class="text-sm font-semibold" style="color: var(--foreground)">{{ col.title }}</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--foreground)">{{ col.title }}</h3>
               <span
                 class="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full"
                 style="background: var(--muted); color: var(--muted-foreground)"

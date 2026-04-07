@@ -67,7 +67,7 @@ interface GroupConfig {
                   >
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
-                  <h2 class="text-base font-semibold" style="color: var(--foreground)">{{ group.title }}</h2>
+                  <h2 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--foreground)">{{ group.title }}</h2>
                   <span
                     class="px-2 py-0.5 rounded-full text-xs font-medium"
                     [style.background]="group.key === 'overdue' ? 'var(--status-red-bg)' : 'var(--muted)'"
@@ -97,7 +97,7 @@ interface GroupConfig {
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 class="text-lg font-semibold mb-1" style="color: var(--foreground)">All caught up!</h3>
+          <h3 class="text-lg font-semibold font-display mb-1" style="color: var(--foreground)">All caught up!</h3>
           <p class="text-sm" style="color: var(--muted-foreground)">No tasks assigned to you right now.</p>
         </div>
       }

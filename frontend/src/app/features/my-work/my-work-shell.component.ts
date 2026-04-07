@@ -32,7 +32,7 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
             class="flex items-center gap-6 mb-5 px-4 py-3 rounded-lg"
             style="background: var(--card); border: 1px solid var(--border)"
           >
-            <h1 class="text-xl font-bold" style="color: var(--foreground)">My Work</h1>
+            <h1 class="text-xl font-bold font-display" style="color: var(--foreground)">My Work</h1>
             <div class="flex items-center gap-4 ml-auto text-sm">
               <span style="color: var(--muted-foreground)">
                 <span class="font-semibold" style="color: var(--foreground)">{{ summary()!.total_assigned }}</span> tasks

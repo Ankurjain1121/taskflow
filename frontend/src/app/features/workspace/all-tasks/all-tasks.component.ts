@@ -61,7 +61,7 @@ interface AllTasksResponse {
     <div class="p-4">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-bold" style="color: var(--foreground)">All Tasks</h1>
+        <h1 class="text-xl font-bold font-display" style="color: var(--foreground)">All Tasks</h1>
         <div class="flex items-center gap-2">
           <p-select
             [options]="statusFilterOptions"
@@ -147,7 +147,8 @@ interface AllTasksResponse {
                 </td>
                 <td>
                   <span
-                    class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium text-white"
+                    class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium"
+                    style="color: var(--primary-foreground)"
                     [style.background-color]="getPriorityBg(task.priority)"
                   >
                     {{ getPriorityText(task.priority) }}
@@ -157,7 +158,7 @@ interface AllTasksResponse {
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                     [style.background]="task.status_color || 'var(--secondary)'"
-                    [style.color]="task.status_color ? '#fff' : 'var(--secondary-foreground)'"
+                    [style.color]="task.status_color ? 'var(--primary-foreground)' : 'var(--secondary-foreground)'"
                   >
                     {{ task.status_name || '--' }}
                   </span>
