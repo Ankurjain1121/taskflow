@@ -2,6 +2,9 @@
 *.png
 .playwright-mcp/
 
+# Git worktrees
+.worktrees/
+
 # Rust
 /backend/target/
 **/*.rs.bk

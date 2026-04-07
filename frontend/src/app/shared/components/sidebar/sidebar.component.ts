@@ -157,23 +157,16 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .home-item {
         transition: background var(--duration-fast) var(--ease-standard);
         position: relative;
+        height: 40px;
+        border-radius: 0.5rem;
       }
       .home-item:hover { background: var(--sidebar-surface-hover); }
       .home-item.active {
         background: var(--sidebar-surface-active);
         color: var(--sidebar-text-primary);
+        font-weight: 600;
       }
-      .home-item.active .nav-indicator { opacity: 1; }
       .home-item.active .pi { color: var(--primary) !important; }
-      .nav-indicator {
-        position: absolute; left: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 3px; height: 16px;
-        border-radius: 0 3px 3px 0;
-        background: var(--primary); opacity: 0;
-        box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
-        transition: opacity var(--duration-fast) var(--ease-standard);
-      }
       .collapsed-home-btn {
         display: flex; align-items: center; justify-content: center;
         width: 100%; padding: 0.5rem 0;
@@ -219,12 +212,11 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
            routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }"
            (click)="onNavClick()"
-           class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2"
+           class="home-item flex items-center gap-3 px-3 text-sm mb-1"
            [class.justify-center]="collapsed()"
            [pTooltip]="collapsed() ? 'Home' : ''" tooltipPosition="right">
-          <span class="nav-indicator"></span>
-          <i class="pi pi-home text-sm flex-shrink-0"
-             style="color: var(--sidebar-text-muted)"></i>
+          <i class="pi pi-home flex-shrink-0"
+             style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Home</span>
         </a>
 
@@ -232,12 +224,11 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
            routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }"
            (click)="onNavClick()"
-           class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2"
+           class="home-item flex items-center gap-3 px-3 text-sm mb-1"
            [class.justify-center]="collapsed()"
            [pTooltip]="collapsed() ? 'Discover' : ''" tooltipPosition="right">
-          <span class="nav-indicator"></span>
-          <i class="pi pi-compass text-sm flex-shrink-0"
-             style="color: var(--sidebar-text-muted)"></i>
+          <i class="pi pi-compass flex-shrink-0"
+             style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Discover</span>
         </a>
 

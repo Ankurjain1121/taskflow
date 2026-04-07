@@ -20,25 +20,16 @@ import { TooltipModule } from 'primeng/tooltip';
         transition: background var(--duration-fast) var(--ease-standard),
                     color var(--duration-fast) var(--ease-standard);
         position: relative;
+        height: 40px;
+        border-radius: 0.5rem;
       }
       .nav-item:hover { background: var(--sidebar-surface-hover); }
       .nav-item.active {
         background: var(--sidebar-surface-active);
         color: var(--sidebar-text-primary);
+        font-weight: 600;
       }
-      .nav-item.active .nav-indicator { opacity: 1; }
       .nav-item.active .sidebar-icon-color { color: var(--primary) !important; }
-
-      .nav-indicator {
-        position: absolute;
-        left: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 3px; height: 16px;
-        border-radius: 0 3px 3px 0;
-        background: var(--primary);
-        opacity: 0;
-        transition: opacity var(--duration-fast) var(--ease-standard);
-      }
 
       .collapsed-icon-btn {
         display: flex;
@@ -63,7 +54,7 @@ import { TooltipModule } from 'primeng/tooltip';
          [routerLinkActiveOptions]="{exact: exactMatch()}"
          (click)="navClick.emit()" class="collapsed-icon-btn"
          [pTooltip]="label()" tooltipPosition="right">
-        <i class="pi {{icon()}} sidebar-icon-color text-sm"></i>
+        <i class="pi {{icon()}} sidebar-icon-color" style="font-size: 1.25rem"></i>
         @if (badge() > 0) {
           <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
         }
@@ -72,9 +63,8 @@ import { TooltipModule } from 'primeng/tooltip';
       <a [routerLink]="route()" routerLinkActive="active"
          [routerLinkActiveOptions]="{exact: exactMatch()}"
          (click)="navClick.emit()"
-         class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
-        <span class="nav-indicator"></span>
-        <i class="pi {{icon()}} text-sm flex-shrink-0 sidebar-icon-color"></i>
+         class="nav-item flex items-center gap-3 px-3 text-sm">
+        <i class="pi {{icon()}} flex-shrink-0 sidebar-icon-color" style="font-size: 1.25rem"></i>
         <span class="sidebar-text truncate flex-1 min-w-0" style="color: var(--sidebar-text-secondary)">{{label()}}</span>
         @if (badge() > 0) {
           <span class="ml-auto min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">

@@ -26,26 +26,19 @@ interface ViewItem {
       :host { display: block; }
       .view-item {
         transition: background var(--duration-fast) var(--ease-standard);
-        position: relative;
+        height: 40px;
+        border-radius: 0.5rem;
       }
       .view-item:hover { background: var(--sidebar-surface-hover); }
       .view-item.active {
         background: var(--sidebar-surface-active);
         color: var(--sidebar-text-primary);
+        font-weight: 600;
       }
-      .view-item.active .nav-indicator { opacity: 1; }
       .view-item.active .pi { color: var(--primary) !important; }
-      .nav-indicator {
-        position: absolute; left: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 3px; height: 16px;
-        border-radius: 0 3px 3px 0;
-        background: var(--primary); opacity: 0;
-        transition: opacity var(--duration-fast) var(--ease-standard);
-      }
       .section-label {
         font-size: 10px; font-weight: 600;
-        letter-spacing: 0.1em; text-transform: uppercase;
+        letter-spacing: 0.15em; text-transform: uppercase;
         color: var(--sidebar-text-muted);
         padding: 0.25rem 0.75rem;
       }
@@ -80,7 +73,6 @@ interface ViewItem {
            class="view-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
            [class.justify-center]="collapsed()"
            [pTooltip]="collapsed() ? view.label : ''" tooltipPosition="right">
-          <span class="nav-indicator"></span>
           <i class="pi {{ view.icon }} text-sm flex-shrink-0"
              style="color: var(--sidebar-text-muted)"></i>
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">{{ view.label }}</span>
