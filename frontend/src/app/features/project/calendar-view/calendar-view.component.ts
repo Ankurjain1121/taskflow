@@ -141,7 +141,7 @@ interface CalendarCell {
         <div class="grid grid-cols-7 border-b border-[var(--border)]">
           @for (day of weekDays; track day) {
             <div
-              class="py-2 text-center text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+              class="py-2 text-center text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
             >
               {{ day }}
             </div>
@@ -169,7 +169,7 @@ interface CalendarCell {
               <div class="flex items-center justify-between mb-1 px-1">
                 <span
                   class="text-xs font-medium"
-                  [class.text-gray-400]="!cell.isCurrentMonth"
+                  [class.text-[var(--muted-foreground)]]="!cell.isCurrentMonth"
                   [class.text-primary]="cell.isToday && cell.isCurrentMonth"
                   [class.text-[var(--foreground)]]="
                     !cell.isToday && cell.isCurrentMonth
@@ -178,7 +178,7 @@ interface CalendarCell {
                   {{ cell.dayNumber }}
                 </span>
                 @if (cell.tasks.length > 3) {
-                  <span class="text-[10px] text-gray-400"
+                  <span class="text-[10px] text-[var(--muted-foreground)]"
                     >+{{ cell.tasks.length - 3 }}</span
                   >
                 }

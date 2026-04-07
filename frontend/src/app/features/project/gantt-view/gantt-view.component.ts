@@ -109,8 +109,8 @@ interface DragState {
               class="h-10 border-b border-[var(--border)] flex items-center px-3"
             >
               <span
-                class="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
-                >Task</span
+                class="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                >TASK</span
               >
             </div>
             <!-- Task rows -->
@@ -131,7 +131,7 @@ interface DragState {
                 <span
                   class="text-xs text-[var(--foreground)] truncate"
                   [class.line-through]="task.is_done"
-                  [class.text-gray-400]="task.is_done"
+                  [class.text-[var(--muted-foreground)]]="task.is_done"
                   >{{ task.title }}</span
                 >
               </div>
@@ -153,7 +153,7 @@ interface DragState {
                     class="flex-shrink-0 border-r border-[var(--border)] flex items-center justify-center"
                     [style.width.px]="header.width"
                   >
-                    <span class="text-[10px] text-[var(--muted-foreground)]">{{
+                    <span class="text-[10px] font-medium text-[var(--muted-foreground)] uppercase tracking-wider">{{
                       header.label
                     }}</span>
                   </div>
@@ -178,6 +178,14 @@ interface DragState {
                     stroke-dasharray="4,4"
                     opacity="0.6"
                   />
+                  <text
+                    [attr.x]="todayX() + 4"
+                    y="12"
+                    fill="#ef4444"
+                    font-size="9"
+                    font-weight="600"
+                    style="text-transform: uppercase; letter-spacing: 0.05em;"
+                  >TODAY</text>
                 }
 
                 <!-- Row grid lines -->
@@ -187,7 +195,7 @@ interface DragState {
                     [attr.y1]="i * 40 + 40"
                     [attr.x2]="timelineWidth()"
                     [attr.y2]="i * 40 + 40"
-                    stroke="#f3f4f6"
+                    style="stroke: var(--border)"
                     stroke-width="1"
                   />
                 }
@@ -239,7 +247,7 @@ interface DragState {
                     [attr.width]="ds.width"
                     height="20"
                     fill="none"
-                    stroke="#94a3b8"
+                    style="stroke: var(--muted-foreground)"
                     stroke-width="1"
                     stroke-dasharray="4,4"
                     rx="4"
@@ -253,7 +261,7 @@ interface DragState {
                   <path
                     [attr.d]="arrow.path"
                     fill="none"
-                    stroke="#94a3b8"
+                    style="stroke: var(--muted-foreground)"
                     stroke-width="1.5"
                     marker-end="url(#arrowhead)"
                   />
@@ -269,7 +277,7 @@ interface DragState {
                     refY="3"
                     orient="auto"
                   >
-                    <polygon points="0 0, 8 3, 0 6" fill="#94a3b8" />
+                    <polygon points="0 0, 8 3, 0 6" style="fill: var(--muted-foreground)" />
                   </marker>
                 </defs>
               </svg>
