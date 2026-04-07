@@ -25,7 +25,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
       >
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold text-[var(--card-foreground)]"
+            class="text-2xl font-bold text-[var(--card-foreground)] font-display"
           >
             Favorites
           </h1>
@@ -70,7 +70,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (taskItems().length > 0) {
             <div class="mb-8">
               <h2
-                class="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
+                class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
               >
                 Tasks ({{ taskItems().length }})
               </h2>
@@ -136,7 +136,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (boardItems().length > 0) {
             <div>
               <h2
-                class="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
+                class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
               >
                 Boards ({{ boardItems().length }})
               </h2>

@@ -24,7 +24,7 @@ import { AuthService } from '../../core/services/auth.service';
       >
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold text-[var(--card-foreground)]"
+            class="text-2xl font-bold text-[var(--card-foreground)] font-display"
           >
             Archive
           </h1>
@@ -42,21 +42,21 @@ import { AuthService } from '../../core/services/auth.service';
           <button
             (click)="setFilter(null)"
             [class]="filterBtnClass(null)"
-            class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            class="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
           >
             All
           </button>
           <button
             (click)="setFilter('task')"
             [class]="filterBtnClass('task')"
-            class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            class="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
           >
             Tasks
           </button>
           <button
             (click)="setFilter('board')"
             [class]="filterBtnClass('board')"
-            class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            class="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
           >
             Boards
           </button>
