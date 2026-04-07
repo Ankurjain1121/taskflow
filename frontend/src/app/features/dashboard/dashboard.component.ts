@@ -122,7 +122,7 @@ interface WorkspaceOption {
             <a routerLink="/my-tasks" class="animate-fade-in-up stagger-1 stat-card cursor-pointer group">
               <div class="flex items-start justify-between">
                 <div>
-                  <p class="stat-card-label">Daily Load</p>
+                  <p class="stat-card-label uppercase tracking-wider text-xs font-semibold">Daily Load</p>
                   <p class="stat-card-value animate-count-up mt-2" [appCountUp]="stats()?.total_tasks || 0"></p>
                   <p class="stat-card-desc">total tasks assigned</p>
                 </div>
@@ -132,7 +132,7 @@ interface WorkspaceOption {
             <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }" class="animate-fade-in-up stagger-2 stat-card cursor-pointer group" [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0">
               <div class="flex items-start justify-between">
                 <div>
-                  <p class="stat-card-label">Overdue</p>
+                  <p class="stat-card-label uppercase tracking-wider text-xs font-semibold">Overdue</p>
                   <p class="stat-card-value animate-count-up mt-2" [style.color]="(stats()?.overdue || 0) > 0 ? 'var(--destructive)' : 'var(--foreground)'" [appCountUp]="stats()?.overdue || 0"></p>
                   <p class="stat-card-desc">{{ (stats()?.overdue || 0) === 0 ? 'none right now' : 'need attention' }}</p>
                 </div>
@@ -142,7 +142,7 @@ interface WorkspaceOption {
             <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date' }" class="animate-fade-in-up stagger-3 stat-card cursor-pointer group">
               <div class="flex items-start justify-between">
                 <div>
-                  <p class="stat-card-label">Due Today</p>
+                  <p class="stat-card-label uppercase tracking-wider text-xs font-semibold">Due Today</p>
                   <p class="stat-card-value animate-count-up mt-2" [appCountUp]="stats()?.due_today || 0"></p>
                   <p class="stat-card-desc">tasks due today</p>
                 </div>
@@ -152,7 +152,7 @@ interface WorkspaceOption {
             <div class="animate-fade-in-up stagger-4 stat-card">
               <div class="flex items-start justify-between">
                 <div>
-                  <p class="stat-card-label">This Week</p>
+                  <p class="stat-card-label uppercase tracking-wider text-xs font-semibold">This Week</p>
                   <p class="stat-card-value animate-count-up mt-2" style="color: var(--success)" [appCountUp]="stats()?.completed_this_week || 0"></p>
                   <p class="stat-card-desc">completed this week</p>
                 </div>
