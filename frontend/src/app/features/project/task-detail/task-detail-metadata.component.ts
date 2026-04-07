@@ -123,7 +123,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
                   <span>{{ assignee.display_name }}</span>
                   <button
                     (click)="unassignRequested.emit(assignee)"
-                    class="ml-1 text-gray-400 hover:text-[var(--foreground)]"
+                    class="ml-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     aria-label="Remove assignee"
                   >
                     <i class="pi pi-times text-xs"></i>
@@ -229,7 +229,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
                 </ng-template>
               </p-select>
             } @else if (!t.labels || t.labels.length === 0) {
-              <span class="text-sm text-gray-400">No labels</span>
+              <span class="text-sm text-[var(--muted-foreground)]">No labels</span>
             }
           </div>
         </div>
@@ -251,14 +251,14 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
               }}</span>
               <button
                 (click)="milestoneChanged.emit('')"
-                class="ml-auto p-1 text-gray-400 hover:text-[var(--foreground)] rounded"
+                class="ml-auto p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                 pTooltip="Remove milestone"
                 aria-label="Remove milestone"
               >
                 <i class="pi pi-times text-xs"></i>
               </button>
             } @else {
-              <span class="text-sm text-gray-400">None</span>
+              <span class="text-sm text-[var(--muted-foreground)]">None</span>
             }
           </div>
           <p-select

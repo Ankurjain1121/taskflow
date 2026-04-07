@@ -21,8 +21,8 @@ import { toDate, getDropdownSelectOptions } from './task-fields-utils';
     @if (customFields().length > 0) {
       <div class="border-t border-[var(--border)] pt-6">
         <div class="flex items-center gap-2 mb-3">
-          <i class="pi pi-clipboard text-gray-400"></i>
-          <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+          <i class="pi pi-clipboard text-[var(--muted-foreground)]"></i>
+          <h3 class="text-sm font-display font-medium text-[var(--card-foreground)]">
             Custom Fields
           </h3>
         </div>
