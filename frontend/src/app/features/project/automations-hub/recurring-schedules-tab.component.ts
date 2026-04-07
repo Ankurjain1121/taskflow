@@ -73,7 +73,7 @@ interface TimelineDay {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h2 class="text-lg font-semibold text-[var(--foreground)]">
+        <h2 class="text-lg font-semibold font-display text-[var(--foreground)]">
           Recurring Schedules
         </h2>
         <p class="text-sm text-[var(--muted-foreground)] mt-1">
@@ -215,7 +215,7 @@ interface TimelineDay {
       @if (timelineDays().length > 0) {
         <div class="mt-8">
           <h3
-            class="text-sm font-semibold text-[var(--foreground)] mb-4"
+            class="text-sm font-semibold font-display text-[var(--foreground)] mb-4"
           >
             Upcoming Schedule (30 days)
           </h3>

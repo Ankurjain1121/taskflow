@@ -21,7 +21,7 @@ import {
   template: `
     <!-- Filter bar -->
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-sm font-medium text-[var(--foreground)]">
+      <h3 class="text-sm font-semibold font-display text-[var(--foreground)]">
         Automation Activity
       </h3>
     </div>

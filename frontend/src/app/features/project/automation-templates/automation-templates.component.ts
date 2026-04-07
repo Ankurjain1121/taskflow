@@ -37,7 +37,7 @@ interface TemplateGroup {
     <div class="space-y-6">
       <!-- Header -->
       <div>
-        <h3 class="text-lg font-semibold text-[var(--card-foreground)]">
+        <h3 class="text-lg font-semibold font-display text-[var(--card-foreground)]">
           Automation Templates
         </h3>
         <p class="text-sm text-[var(--muted-foreground)] mt-1">
@@ -71,7 +71,7 @@ interface TemplateGroup {
       } @else if (groups().length === 0) {
         <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
           <svg
-            class="w-10 h-10 text-gray-400 mx-auto mb-2"
+            class="w-10 h-10 text-[var(--muted-foreground)] mx-auto mb-2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -110,7 +110,7 @@ interface TemplateGroup {
                 >
                   <div class="min-w-0 flex-1">
                     <div
-                      class="text-sm font-medium text-[var(--card-foreground)]"
+                      class="text-sm font-semibold text-[var(--card-foreground)]"
                     >
                       {{ tmpl.name }}
                     </div>
