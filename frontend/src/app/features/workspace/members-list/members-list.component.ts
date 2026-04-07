@@ -185,7 +185,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                   <div class="flex items-center gap-2">
                     <app-role-badge [role]="member.role" />
                     @if (member.is_org_admin) {
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--status-amber-bg)] text-[var(--status-amber-text)]"
                             pTooltip="Has full platform access" tooltipPosition="top">
                         <i class="pi pi-shield text-[10px]"></i> Super Admin
                       </span>

@@ -126,7 +126,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
 
             <!-- Capability toggles for new role -->
             <div>
-              <p class="text-sm font-medium text-[var(--foreground)] mb-2">
+              <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
                 Capabilities
               </p>
               <div
@@ -142,7 +142,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
                       (change)="toggleNewCapability(cap.key)"
                       class="rounded border-[var(--border)] text-primary focus:ring-ring"
                     />
-                    <span class="text-sm text-[var(--foreground)]">{{
+                    <span class="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">{{
                       cap.label
                     }}</span>
                   </label>
@@ -287,7 +287,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
               <!-- Capabilities grid -->
               <div class="px-6 py-4">
                 <p
-                  class="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
+                  class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-3"
                 >
                   Capabilities
                 </p>
@@ -312,7 +312,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
                         class="rounded border-[var(--border)] text-primary focus:ring-ring disabled:opacity-60"
                       />
                       <span
-                        class="text-sm"
+                        class="text-xs font-semibold uppercase tracking-wider"
                         [class.text-[var(--foreground)]]="
                           getCapability(role, cap.key)
                         "
