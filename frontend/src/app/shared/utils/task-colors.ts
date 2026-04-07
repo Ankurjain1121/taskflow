@@ -368,14 +368,27 @@ export function getPriorityFlagColor(priority: string): string {
   return PRIORITY_FLAG_COLORS[priority] || '#9ca3af';
 }
 
+function hasTimeComponent(date: Date): boolean {
+  return date.getHours() !== 0 || date.getMinutes() !== 0;
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export function formatDueDate(date: string): string {
   const dueDate = new Date(date);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
+  const showTime = hasTimeComponent(dueDate);
 
   if (isToday(date)) {
-    return 'Today';
+    return showTime ? `Today, ${formatTime(dueDate)}` : 'Today';
   }
 
   if (
@@ -383,17 +396,18 @@ export function formatDueDate(date: string): string {
     dueDate.getMonth() === tomorrow.getMonth() &&
     dueDate.getFullYear() === tomorrow.getFullYear()
   ) {
-    return 'Tomorrow';
+    return showTime ? `Tomorrow, ${formatTime(dueDate)}` : 'Tomorrow';
   }
 
   if (isOverdue(date)) {
-    return 'Overdue';
+    return showTime ? `Overdue, ${formatTime(dueDate)}` : 'Overdue';
   }
 
-  return dueDate.toLocaleDateString('en-US', {
+  const dateStr = dueDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
+  return showTime ? `${dateStr}, ${formatTime(dueDate)}` : dateStr;
 }
 
 export function getAvatarGradient(index: number): string {
