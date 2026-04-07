@@ -24,11 +24,11 @@ import {
     <div>
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <i class="pi pi-link text-gray-400"></i>
-          <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+          <i class="pi pi-link text-[var(--muted-foreground)]"></i>
+          <h3 class="text-sm font-display font-medium text-[var(--card-foreground)]">
             Dependencies
           </h3>
-          <span class="text-xs text-gray-400"
+          <span class="text-xs text-[var(--muted-foreground)]"
             >({{ dependencies().length }})</span
           >
         </div>
@@ -77,7 +77,7 @@ import {
                     [class.bg-blue-500]="t.priority === 'low'"
                   ></span>
                   <span class="truncate">{{ t.title }}</span>
-                  <span class="text-xs text-gray-400 ml-auto flex-shrink-0">{{
+                  <span class="text-xs text-[var(--muted-foreground)] ml-auto flex-shrink-0">{{
                     t.column_name
                   }}</span>
                 </button>
@@ -90,13 +90,14 @@ import {
       <!-- Blocking -->
       @if (blockingDeps().length > 0) {
         <div class="mb-2">
-          <span class="text-xs font-medium text-red-600 uppercase tracking-wide"
+          <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--status-red-text)"
             >Blocking</span
           >
           <div class="mt-1 space-y-1">
             @for (dep of blockingDeps(); track dep.id) {
               <div
-                class="flex items-center justify-between px-2 py-1.5 bg-red-50 rounded text-sm group"
+                class="flex items-center justify-between px-2 py-1.5 rounded text-sm group"
+                style="background: var(--status-red-bg)"
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
@@ -108,16 +109,17 @@ import {
                     "
                     [class.bg-blue-500]="dep.related_task_priority === 'low'"
                   ></span>
-                  <span class="truncate text-red-800">{{
+                  <span class="truncate" style="color: var(--status-red-text)">{{
                     dep.related_task_title
                   }}</span>
-                  <span class="text-xs text-red-400 flex-shrink-0">{{
+                  <span class="text-xs flex-shrink-0" style="color: var(--status-red-text); opacity: 0.7">{{
                     dep.related_task_column_name
                   }}</span>
                 </div>
                 <button
                   (click)="dependencyRemoved.emit(dep.id)"
-                  class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-0.5"
+                  class="opacity-0 group-hover:opacity-100 p-0.5"
+                  style="color: var(--status-red-text)"
                   aria-label="Remove dependency"
                 >
                   <i class="pi pi-times text-xs"></i>

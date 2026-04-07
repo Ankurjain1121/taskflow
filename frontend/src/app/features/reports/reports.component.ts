@@ -98,7 +98,7 @@ import {
     >
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-2xl font-bold tracking-tight" style="color: var(--foreground)">
+        <h1 class="text-2xl font-display font-bold tracking-tight" style="color: var(--foreground)">
           Reports
         </h1>
         <p class="text-sm mt-1" style="color: var(--muted-foreground)">
@@ -260,7 +260,7 @@ import {
               <div class="col-span-2 text-xs" style="color: var(--muted-foreground)">
                 <span>{{ project.total_tasks }} tasks</span>
                 @if (project.overdue_tasks > 0) {
-                  <span class="text-red-500 ml-1">
+                  <span class="text-[var(--destructive)] ml-1">
                     ({{ project.overdue_tasks }} overdue)
                   </span>
                 }
@@ -320,9 +320,9 @@ export class ReportsComponent implements OnInit {
 
   scoreColor = computed(() => {
     const score = this.healthScore();
-    if (score >= 70) return '#22c55e';
-    if (score >= 40) return '#f59e0b';
-    return '#ef4444';
+    if (score >= 70) return 'var(--success)';
+    if (score >= 40) return 'var(--warning)';
+    return 'var(--destructive)';
   });
 
   scoreRotation = computed(() => {
@@ -374,7 +374,7 @@ export class ReportsComponent implements OnInit {
       case 'behind':
         return 'bg-red-500';
       default:
-        return 'bg-gray-500';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 
@@ -392,9 +392,9 @@ export class ReportsComponent implements OnInit {
   }
 
   getProgressColor(pct: number): string {
-    if (pct >= 75) return '#22c55e';
-    if (pct >= 40) return '#3b82f6';
-    if (pct >= 10) return '#f59e0b';
-    return '#94a3b8';
+    if (pct >= 75) return 'var(--success)';
+    if (pct >= 40) return 'var(--info)';
+    if (pct >= 10) return 'var(--warning)';
+    return 'var(--muted-foreground)';
   }
 }

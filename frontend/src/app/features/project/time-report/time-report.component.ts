@@ -61,7 +61,7 @@ interface UserOption {
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
+              <h2 class="text-lg font-display font-semibold text-[var(--card-foreground)]">
                 Time Report
               </h2>
             </div>
@@ -207,7 +207,7 @@ interface UserOption {
           } @else {
             <!-- Bar Chart (hidden in print — table below is the fallback) -->
             <div class="px-6 py-4 border-b border-[var(--border)] print-hide">
-              <h3 class="text-sm font-medium text-[var(--foreground)] mb-4">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)] mb-4">
                 Time per Task
               </h3>
               <div class="space-y-3">

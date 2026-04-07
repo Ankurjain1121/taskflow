@@ -217,7 +217,7 @@ export interface UseTemplateDialogResult {
           Create a new project using the "{{ dialogTemplateName() }}" template.
         </p>
         <div class="flex flex-col gap-2">
-          <label for="dialogBoardName" class="text-sm font-medium"
+          <label for="dialogBoardName" class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Project Name</label
           >
           <input
@@ -228,7 +228,7 @@ export interface UseTemplateDialogResult {
           />
         </div>
         <div class="flex flex-col gap-2">
-          <label for="dialogWorkspace" class="text-sm font-medium"
+          <label for="dialogWorkspace" class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Workspace</label
           >
           <p-select

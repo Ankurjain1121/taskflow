@@ -32,7 +32,7 @@ interface ShortcutGroup {
       >
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold font-display text-[var(--card-foreground)] dark:text-white"
+            class="text-2xl font-bold font-display text-[var(--card-foreground)]"
           >
             Help
           </h1>
@@ -48,7 +48,7 @@ interface ShortcutGroup {
         <!-- Getting Started -->
         <section>
           <h2
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-4"
+            class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
           >
             Getting Started
           </h2>
@@ -63,12 +63,12 @@ interface ShortcutGroup {
               </div>
               <div>
                 <h3
-                  class="font-medium text-[var(--card-foreground)] dark:text-white"
+                  class="font-medium text-[var(--card-foreground)]"
                 >
                   Create a Workspace
                 </h3>
                 <p
-                  class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+                  class="text-sm text-[var(--muted-foreground)] mt-1"
                 >
                   Workspaces organize your projects. Start by creating one from
                   the sidebar.
@@ -83,12 +83,12 @@ interface ShortcutGroup {
               </div>
               <div>
                 <h3
-                  class="font-medium text-[var(--card-foreground)] dark:text-white"
+                  class="font-medium text-[var(--card-foreground)]"
                 >
                   Add a Project
                 </h3>
                 <p
-                  class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+                  class="text-sm text-[var(--muted-foreground)] mt-1"
                 >
                   Projects contain your tasks organized in columns. Use Kanban,
                   Scrum, or custom layouts.
@@ -103,12 +103,12 @@ interface ShortcutGroup {
               </div>
               <div>
                 <h3
-                  class="font-medium text-[var(--card-foreground)] dark:text-white"
+                  class="font-medium text-[var(--card-foreground)]"
                 >
                   Create Tasks
                 </h3>
                 <p
-                  class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+                  class="text-sm text-[var(--muted-foreground)] mt-1"
                 >
                   Add tasks to your project, set priorities, due dates, and assign
                   team members.
@@ -123,12 +123,12 @@ interface ShortcutGroup {
               </div>
               <div>
                 <h3
-                  class="font-medium text-[var(--card-foreground)] dark:text-white"
+                  class="font-medium text-[var(--card-foreground)]"
                 >
                   Invite Your Team
                 </h3>
                 <p
-                  class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+                  class="text-sm text-[var(--muted-foreground)] mt-1"
                 >
                   Go to Admin > Users to invite team members via email.
                 </p>
@@ -149,12 +149,12 @@ interface ShortcutGroup {
 
             <div class="pt-4 mt-4 border-t border-[var(--border)]">
               <h3
-                class="font-medium text-[var(--card-foreground)] dark:text-white mb-2"
+                class="font-medium text-[var(--card-foreground)] mb-2"
               >
                 Product Tour
               </h3>
               <p
-                class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mb-3"
+                class="text-sm text-[var(--muted-foreground)] mb-3"
               >
                 Replay the guided tour that highlights key features when you
                 first open a project.
@@ -173,7 +173,7 @@ interface ShortcutGroup {
         <!-- Features Overview -->
         <section>
           <h2
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-4"
+            class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
           >
             Features
           </h2>
@@ -186,12 +186,12 @@ interface ShortcutGroup {
                   <span class="text-xl">{{ feature.icon }}</span>
                   <div>
                     <h3
-                      class="font-medium text-[var(--card-foreground)] dark:text-white"
+                      class="font-medium text-[var(--card-foreground)]"
                     >
                       {{ feature.title }}
                     </h3>
                     <p
-                      class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+                      class="text-sm text-[var(--muted-foreground)] mt-1"
                     >
                       {{ feature.description }}
                     </p>
@@ -206,7 +206,7 @@ interface ShortcutGroup {
         <section>
           <div class="flex items-center justify-between mb-4">
             <h2
-              class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white"
+              class="text-lg font-semibold text-[var(--card-foreground)]"
             >
               Keyboard Shortcuts
             </h2>
@@ -223,7 +223,7 @@ interface ShortcutGroup {
           </div>
           @if (shortcutGroups().length === 0) {
             <div
-              class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
+              class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 text-sm text-[var(--muted-foreground)]"
             >
               <p>
                 Keyboard shortcuts are registered as you navigate the app. Open
@@ -245,7 +245,7 @@ interface ShortcutGroup {
                   class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5"
                 >
                   <h3
-                    class="text-sm font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider mb-3"
+                    class="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
                   >
                     {{ group.category }}
                   </h3>
@@ -256,11 +256,11 @@ interface ShortcutGroup {
                     ) {
                       <div class="flex items-center justify-between py-1">
                         <span
-                          class="text-sm text-[var(--foreground)] dark:text-gray-300"
+                          class="text-sm text-[var(--foreground)]"
                           >{{ shortcut.description }}</span
                         >
                         <kbd
-                          class="px-2 py-1 bg-[var(--secondary)] rounded text-xs font-mono text-[var(--muted-foreground)] dark:text-gray-300 min-w-[2rem] text-center"
+                          class="px-2 py-1 bg-[var(--secondary)] rounded text-xs font-mono text-[var(--muted-foreground)] min-w-[2rem] text-center"
                         >
                           {{ formatShortcut(shortcut) }}
                         </kbd>
@@ -276,7 +276,7 @@ interface ShortcutGroup {
         <!-- FAQ -->
         <section>
           <h2
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-4"
+            class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
           >
             FAQ
           </h2>
@@ -286,11 +286,11 @@ interface ShortcutGroup {
             @for (faq of faqs; track faq.q) {
               <details class="p-5 group">
                 <summary
-                  class="font-medium text-[var(--card-foreground)] dark:text-white cursor-pointer list-none flex items-center justify-between"
+                  class="font-medium text-[var(--card-foreground)] cursor-pointer list-none flex items-center justify-between"
                 >
                   {{ faq.q }}
                   <svg
-                    class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"
+                    class="w-4 h-4 text-[var(--muted-foreground)] group-open:rotate-180 transition-transform"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -304,7 +304,7 @@ interface ShortcutGroup {
                   </svg>
                 </summary>
                 <p
-                  class="mt-3 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
+                  class="mt-3 text-sm text-[var(--muted-foreground)]"
                 >
                   {{ faq.a }}
                 </p>
@@ -316,7 +316,7 @@ interface ShortcutGroup {
         <!-- Feedback -->
         <section class="pb-8">
           <h2
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-4"
+            class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
           >
             Feedback
           </h2>
@@ -324,7 +324,7 @@ interface ShortcutGroup {
             class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 text-center"
           >
             <p
-              class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mb-4"
+              class="text-sm text-[var(--muted-foreground)] mb-4"
             >
               Have a suggestion or found an issue? We'd love to hear from you.
             </p>

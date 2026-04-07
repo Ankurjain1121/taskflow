@@ -72,7 +72,7 @@ import {
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label
-                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                   >Due Date</label
                 >
                 <input
@@ -83,7 +83,7 @@ import {
               </div>
               <div>
                 <label
-                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                   >Color</label
                 >
                 <div class="flex flex-wrap gap-1.5 mt-1">
@@ -92,7 +92,7 @@ import {
                       (click)="newColor = color"
                       class="w-6 h-6 rounded-full border-2 transition-transform"
                       [style.background-color]="color"
-                      [class.border-gray-800]="newColor === color"
+                      [class.border-[var(--foreground)]]="newColor === color"
                       [class.border-transparent]="newColor !== color"
                       [class.scale-110]="newColor === color"
                     ></button>
@@ -178,7 +178,7 @@ import {
                   <div class="grid grid-cols-2 gap-3">
                     <div>
                       <label
-                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                         >Due Date</label
                       >
                       <input
@@ -189,7 +189,7 @@ import {
                     </div>
                     <div>
                       <label
-                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        class="block text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1"
                         >Color</label
                       >
                       <div class="flex flex-wrap gap-1.5 mt-1">
@@ -198,7 +198,7 @@ import {
                             (click)="editColor = color"
                             class="w-6 h-6 rounded-full border-2 transition-transform"
                             [style.background-color]="color"
-                            [class.border-gray-800]="editColor === color"
+                            [class.border-[var(--foreground)]]="editColor === color"
                             [class.border-transparent]="editColor !== color"
                             [class.scale-110]="editColor === color"
                           ></button>
@@ -235,7 +235,7 @@ import {
                     <div class="flex items-center gap-1">
                       <button
                         (click)="startEdit(milestone)"
-                        class="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        class="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                         title="Edit"
                       >
                         <svg
@@ -254,7 +254,7 @@ import {
                       </button>
                       <button
                         (click)="confirmDelete(milestone)"
-                        class="p-1 text-gray-400 hover:text-red-600 rounded"
+                        class="p-1 text-[var(--muted-foreground)] hover:text-[var(--destructive)] rounded"
                         title="Delete"
                       >
                         <svg
@@ -494,9 +494,9 @@ export class MilestoneListComponent implements OnInit, OnChanges {
       (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    if (diffDays < 0) return 'text-red-600';
-    if (diffDays <= 3) return 'text-orange-500';
-    return 'text-gray-500';
+    if (diffDays < 0) return 'text-[var(--destructive)]';
+    if (diffDays <= 3) return 'text-[var(--accent-warm)]';
+    return 'text-[var(--muted-foreground)]';
   }
 
   formatDate(dateString: string): string {
