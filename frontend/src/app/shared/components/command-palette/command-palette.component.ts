@@ -61,7 +61,7 @@ export type { CommandAction } from './command-palette.types';
         (keydown)="onKeydown($event)"
       >
         <div
-          class="w-full max-w-2xl bg-[var(--card)] rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden"
+          class="w-full max-w-2xl bg-[var(--card)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden"
           role="dialog"
           aria-label="Command Palette"
           (click)="$event.stopPropagation()"
@@ -95,7 +95,7 @@ export type { CommandAction } from './command-palette.types';
               </button>
             }
             <kbd
-              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)] rounded"
+              class="kbd-hint hidden sm:inline-flex"
             >
               ESC
             </kbd>

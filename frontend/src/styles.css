@@ -412,6 +412,23 @@ html.dark .glass-subtle {
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+/* Keyboard shortcut hint badges (ESC, Cmd+Enter, etc.) */
+.kbd-hint {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 /* Card hover micro-interaction */
 .card-hover-lift {
   transition:
@@ -1219,7 +1236,6 @@ html.dark .glass-subtle {
 }
 .p-dialog .p-dialog-header {
   padding: 1.25rem 1.5rem;
-  border-radius: 1rem 1rem 0 0;
 }
 .p-dialog .p-dialog-header-actions button {
   color: var(--muted-foreground);
@@ -1391,12 +1407,27 @@ html.dark {
   background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
 
-/* Auth-page-depth dialog shadow */
+/* Modal backdrop: blurred, semi-transparent */
+.p-dialog-mask {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Auth-page-depth dialog shadow + 16px radius */
 .p-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
   box-shadow:
     0 32px 64px -16px rgba(0, 0, 0, 0.14),
     0 16px 32px -8px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+}
+.p-dialog .p-dialog-header {
+  border-radius: 16px 16px 0 0;
+}
+.p-dialog .p-dialog-footer {
+  border-radius: 0 0 16px 16px;
 }
 
 /* ============================================

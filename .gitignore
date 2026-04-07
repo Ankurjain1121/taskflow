@@ -52,3 +52,7 @@ coverage/
 .aider*
 .gstack/
 repomix-output.txt
+stitch-designs/
+stitch_artisan_project_tracker*
+stitch-analysis/
+.gstack/
