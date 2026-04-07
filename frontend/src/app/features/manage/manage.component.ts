@@ -89,7 +89,7 @@ const ALL_TABS: TabDef[] = [
 
         <!-- Hero Section: People-forward -->
         <div class="rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--accent-50)] to-transparent dark:from-[var(--accent-950)] dark:to-transparent p-6 mb-6 shadow-sm">
-          <h1 class="text-2xl font-bold text-[var(--foreground)] mb-3">Your Team</h1>
+          <h1 class="font-display text-2xl font-bold text-[var(--foreground)] mb-3">Your Team</h1>
 
           @if (loading()) {
             <!-- Skeleton: avatar pills -->
@@ -110,13 +110,13 @@ const ALL_TABS: TabDef[] = [
                       [alt]="member.name"
                       [pTooltip]="member.name"
                       tooltipPosition="top"
-                      class="w-9 h-9 rounded-full ring-2 ring-white dark:ring-gray-900 object-cover"
+                      class="w-9 h-9 rounded-full ring-2 ring-[var(--background)] object-cover"
                     />
                   } @else {
                     <div
                       [pTooltip]="member.name"
                       tooltipPosition="top"
-                      class="w-9 h-9 rounded-full ring-2 ring-white dark:ring-gray-900 bg-[var(--accent-100)] dark:bg-[var(--accent-900)] flex items-center justify-center text-xs font-semibold text-[var(--accent-700)] dark:text-[var(--accent-300)]">
+                      class="w-9 h-9 rounded-full ring-2 ring-[var(--background)] bg-[var(--accent-100)] dark:bg-[var(--accent-900)] flex items-center justify-center text-xs font-semibold text-[var(--accent-700)] dark:text-[var(--accent-300)]">
                       {{ getInitials(member.name) }}
                     </div>
                   }
