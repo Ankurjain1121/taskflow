@@ -20,8 +20,6 @@ import { DatePicker } from 'primeng/datepicker';
         [(ngModel)]="selectedDate"
         [inline]="true"
         [showButtonBar]="false"
-        [showTime]="true"
-        [hourFormat]="'12'"
         styleClass="w-full"
       />
       <div class="mt-3 flex gap-2">

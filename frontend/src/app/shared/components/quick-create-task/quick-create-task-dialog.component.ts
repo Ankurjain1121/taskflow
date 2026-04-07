@@ -144,11 +144,8 @@ import { PRIORITY_COLORS } from '../../constants/priority-colors';
               formControlName="dueDate"
               placeholder="Optional"
               [showIcon]="true"
-              [showTime]="true"
-              [hourFormat]="'12'"
               dateFormat="yy-mm-dd"
               styleClass="w-full"
-              appendTo="body"
             />
           </div>
         </div>
