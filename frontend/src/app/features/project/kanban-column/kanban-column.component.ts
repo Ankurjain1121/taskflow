@@ -92,19 +92,6 @@ export interface TaskMoveEvent {
         <div class="px-3 py-3 border-b border-[var(--border)] group">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 min-w-0">
-              <!-- Drag Handle -->
-              <div
-                cdkDragHandle
-                class="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex-shrink-0"
-                title="Drag to reorder"
-              >
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
-                  />
-                </svg>
-              </div>
-
               <!-- Column Icon -->
               @if (column().icon) {
                 <span class="text-base leading-none flex-shrink-0">{{
@@ -125,6 +112,17 @@ export interface TaskMoveEvent {
               >
                 {{ tasks().length }}
               </span>
+
+              <!-- Plus Button -->
+              <button
+                (click)="startQuickAdd()"
+                class="p-1 hover:bg-[var(--secondary)] rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                title="Quick add task"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
 
               <!-- WIP Limit Indicator -->
               @if (column().wip_limit) {
@@ -150,6 +148,19 @@ export interface TaskMoveEvent {
             </div>
 
             <div class="flex items-center gap-1">
+              <!-- Drag Handle -->
+              <div
+                cdkDragHandle
+                class="p-1 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                title="Drag to reorder"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+                  />
+                </svg>
+              </div>
+
               <!-- Collapse Button -->
               <button
                 (click)="collapseToggled.emit(column().id)"
