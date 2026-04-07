@@ -267,6 +267,43 @@ export interface CreateTaskDialogResult {
               </div>
             </div>
 
+            <!-- Time toggle + time inputs -->
+            <button
+              type="button"
+              (click)="toggleTime()"
+              class="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline -mt-2"
+            >
+              <i class="pi pi-clock text-xs"></i>
+              {{ showTimeInputs() ? 'Remove time' : 'Add time' }}
+            </button>
+
+            @if (showTimeInputs()) {
+              <div class="grid grid-cols-2 gap-4 -mt-2">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs text-[var(--muted-foreground)]">Start Time</label>
+                  <p-datePicker
+                    formControlName="startTime"
+                    [timeOnly]="true"
+                    [hourFormat]="'12'"
+                    placeholder="HH:MM"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs text-[var(--muted-foreground)]">Due Time</label>
+                  <p-datePicker
+                    formControlName="dueTime"
+                    [timeOnly]="true"
+                    [hourFormat]="'12'"
+                    placeholder="HH:MM"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+              </div>
+            }
+
             <!-- Recurring Task -->
             <div class="flex items-center gap-3">
               <p-checkbox
@@ -433,6 +470,7 @@ export class CreateTaskDialogComponent {
   created = output<CreateTaskDialogResult>();
 
   saving = signal(false);
+  showTimeInputs = signal(false);
 
   private taskTemplateService = inject(TaskTemplateService);
   useTemplate = false;
@@ -460,6 +498,8 @@ export class CreateTaskDialogComponent {
     priority: ['medium' as TaskPriority],
     startDate: [null as Date | null],
     dueDate: [null as Date | null],
+    startTime: [null as Date | null],
+    dueTime: [null as Date | null],
     estimatedHours: [
       null as number | null,
       [Validators.min(0), Validators.max(9999)],
@@ -483,6 +523,8 @@ export class CreateTaskDialogComponent {
       priority: 'medium',
       startDate: null,
       dueDate: null,
+      startTime: null,
+      dueTime: null,
       estimatedHours: null,
       assigneeIds: [],
       isRecurring: false,
@@ -490,6 +532,7 @@ export class CreateTaskDialogComponent {
       watcherIds: [],
       reportingPersonId: '',
     });
+    this.showTimeInputs.set(false);
     this.useTemplate = false;
     this.selectedTemplateId = '';
   }
@@ -512,12 +555,14 @@ export class CreateTaskDialogComponent {
       result.description = values.description.trim();
     }
 
-    if (values.startDate) {
-      result.start_date = values.startDate.toISOString();
+    const startMerged = this.mergeDateAndTime(values.startDate, values.startTime);
+    if (startMerged) {
+      result.start_date = startMerged.toISOString();
     }
 
-    if (values.dueDate) {
-      result.due_date = values.dueDate.toISOString();
+    const dueMerged = this.mergeDateAndTime(values.dueDate, values.dueTime);
+    if (dueMerged) {
+      result.due_date = dueMerged.toISOString();
     }
 
     if (values.estimatedHours != null && values.estimatedHours > 0) {
@@ -544,6 +589,22 @@ export class CreateTaskDialogComponent {
     this.visible.set(false);
     this.created.emit(result);
     this.saving.set(false);
+  }
+
+  toggleTime(): void {
+    const next = !this.showTimeInputs();
+    this.showTimeInputs.set(next);
+    if (!next) {
+      this.form.patchValue({ startTime: null, dueTime: null });
+    }
+  }
+
+  private mergeDateAndTime(date: Date | null, time: Date | null): Date | null {
+    if (!date) return null;
+    if (!time) return date;
+    const merged = new Date(date);
+    merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    return merged;
   }
 
   onTemplateToggle(): void {
