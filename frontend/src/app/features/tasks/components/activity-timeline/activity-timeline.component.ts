@@ -40,7 +40,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             [style]="{ width: '32px', height: '32px' }"
             strokeWidth="4"
           />
-          <span class="ml-3 text-gray-500">Loading activity...</span>
+          <span class="ml-3 text-[var(--muted-foreground)]">Loading activity...</span>
         </div>
       } @else if (activities().length === 0) {
         <app-empty-state variant="activity" size="compact" />
@@ -49,7 +49,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         <div class="relative">
           <!-- Vertical line -->
           <div
-            class="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"
+            class="absolute left-5 top-0 bottom-0 w-0.5 bg-[var(--border)]"
             aria-hidden="true"
           ></div>
 
@@ -82,14 +82,14 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                 <!-- Content -->
                 <div class="flex-1 min-w-0 pt-1.5">
                   <div class="text-sm">
-                    <span class="font-medium text-gray-900">
+                    <span class="font-medium text-[var(--foreground)]">
                       {{ activity.actor.display_name }}
                     </span>
-                    <span class="text-gray-600">
+                    <span class="text-[var(--muted-foreground)]">
                       {{ getActionDescription(activity) }}
                     </span>
                   </div>
-                  <div class="mt-0.5 text-xs text-gray-400">
+                  <div class="mt-0.5 text-xs text-[var(--muted-foreground)]">
                     {{ formatTimestamp(activity.created_at) }}
                   </div>
                 </div>

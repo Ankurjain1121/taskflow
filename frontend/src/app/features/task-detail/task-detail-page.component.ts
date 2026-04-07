@@ -263,12 +263,12 @@ import { Toast } from 'primeng/toast';
               <p-tabs value="0">
                 <p-tablist>
                   <p-tab value="0">
-                    <i class="pi pi-comments mr-1.5"></i>
-                    Comments
+                    <span class="uppercase tracking-wider text-xs font-semibold"><i class="pi pi-comments mr-1.5"></i>
+                    Comments</span>
                   </p-tab>
                   <p-tab value="1">
-                    <i class="pi pi-history mr-1.5"></i>
-                    Activity
+                    <span class="uppercase tracking-wider text-xs font-semibold"><i class="pi pi-history mr-1.5"></i>
+                    Activity</span>
                   </p-tab>
                 </p-tablist>
                 <p-tabpanels>

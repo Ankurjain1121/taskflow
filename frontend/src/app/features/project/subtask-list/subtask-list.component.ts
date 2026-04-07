@@ -72,7 +72,7 @@ import { Toast } from 'primeng/toast';
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
             />
           </svg>
-          <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--card-foreground)]">
             Subtasks
           </h3>
         </div>

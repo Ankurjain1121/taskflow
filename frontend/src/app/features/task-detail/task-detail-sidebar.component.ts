@@ -85,7 +85,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         display: inline-flex;
         align-items: center;
         padding: 0.25rem 0.625rem;
-        border-radius: 0.375rem;
+        border-radius: 9999px;
         font-size: 0.75rem;
         font-weight: 500;
       }

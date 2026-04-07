@@ -133,11 +133,11 @@ interface CommentCreatedPayload {
                     >
                       {{ comment.author.display_name }}
                     </span>
-                    <span class="text-xs text-gray-400">
+                    <span class="text-xs text-[var(--muted-foreground)]">
                       {{ formatTimestamp(comment.created_at) }}
                     </span>
                     @if (comment.updated_at !== comment.created_at) {
-                      <span class="text-xs text-gray-400 italic">(edited)</span>
+                      <span class="text-xs text-[var(--muted-foreground)] italic">(edited)</span>
                     }
                   </div>
 
