@@ -52,7 +52,7 @@ export interface Breadcrumb {
             >
           }
           @if (!last) {
-            <span style="color: var(--border)">/</span>
+            <span style="color: var(--muted-foreground); opacity: 0.5">&gt;</span>
           }
         }
       </nav>

@@ -21,18 +21,15 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .footer-item {
         transition: background var(--duration-fast) var(--ease-standard);
         position: relative;
+        height: 40px;
+        border-radius: 0.5rem;
       }
       .footer-item:hover { background: var(--sidebar-surface-hover); }
-      .footer-item.active { background: var(--sidebar-surface-active); }
-      .footer-item.active .nav-indicator { opacity: 1; }
-      .nav-indicator {
-        position: absolute; left: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 3px; height: 16px;
-        border-radius: 0 3px 3px 0;
-        background: var(--primary); opacity: 0;
-        transition: opacity var(--duration-fast) var(--ease-standard);
+      .footer-item.active {
+        background: var(--sidebar-surface-active);
+        font-weight: 600;
       }
+      .footer-item.active .pi { color: var(--primary) !important; }
       .collapsed-icon-btn {
         display: flex; align-items: center; justify-content: center;
         width: 100%; padding: 0.5rem 0;
@@ -60,20 +57,18 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
 
       <!-- Manage -->
       <a [routerLink]="manageRoute()" routerLinkActive="active"
-         class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+         class="footer-item flex items-center gap-3 px-3 text-sm"
          [class.justify-center]="collapsed()"
          [pTooltip]="collapsed() ? 'Manage' : ''" tooltipPosition="right">
-        <span class="nav-indicator"></span>
-        <i class="pi pi-cog text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
+        <i class="pi pi-cog flex-shrink-0" style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
         <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Manage</span>
       </a>
       <!-- Help -->
       <a routerLink="/help" routerLinkActive="active"
-         class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+         class="footer-item flex items-center gap-3 px-3 text-sm"
          [class.justify-center]="collapsed()"
          [pTooltip]="collapsed() ? 'Help' : ''" tooltipPosition="right">
-        <span class="nav-indicator"></span>
-        <i class="pi pi-question-circle text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
+        <i class="pi pi-question-circle flex-shrink-0" style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
         <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Help</span>
       </a>
     </div>

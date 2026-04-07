@@ -46,7 +46,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           color-mix(in srgb, var(--topbar-bg) 85%, transparent) 100%);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-bottom: 2px solid var(--primary);
+        border-bottom: 1px solid var(--border);
         z-index: 50;
       }
 
@@ -83,13 +83,14 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       }
 
       .search-pill {
-        background: var(--muted);
+        background: transparent;
+        border: 1px solid var(--border);
         color: var(--muted-foreground);
-        transition: background-color 0.15s ease;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
         cursor: pointer;
       }
       .search-pill:hover {
-        background: var(--border);
+        background: var(--muted);
       }
 
       :host ::ng-deep button:focus-visible,
@@ -99,29 +100,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         border-radius: 0.375rem;
       }
 
-      /* Terracotta Studio: subtle topbar border */
-      :host-context([data-theme="terracotta-studio"]) .top-nav {
-        border-bottom: 1px solid var(--border);
-      }
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .top-nav {
-        border-bottom: 1px solid var(--border);
-      }
-
-      /* Terracotta Studio: ghost-bordered search pill */
-      :host-context([data-theme="terracotta-studio"]) .search-pill {
-        background: transparent;
-        border: 1px solid var(--border);
-      }
-      :host-context([data-theme="terracotta-studio"]) .search-pill:hover {
-        background: var(--muted);
-      }
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .search-pill {
-        background: transparent;
-        border: 1px solid var(--border);
-      }
-      :host-context(html.dark[data-dark-theme="terracotta-studio-dark"]) .search-pill:hover {
-        background: var(--muted);
-      }
+      /* Subtle border and ghost search pill are now global defaults */
     `,
   ],
   template: `

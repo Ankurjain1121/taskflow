@@ -11,8 +11,10 @@
         [workspaceId]="workspaceId"
         [boardId]="boardId"
         [menuItems]="columnDialogs()?.moreMenuItems ?? []"
+        [viewMode]="viewMode()"
         (createTask)="onCreateTask()"
         (createGroup)="onCreateGroup()"
+        (viewModeChanged)="onViewModeChanged($event)"
       />
 
       <!-- Sample Board Banner -->
