@@ -8,7 +8,7 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2
-            class="text-xl font-semibold"
+            class="text-xl font-semibold font-display"
             style="color: var(--foreground)"
           >
             Two-Factor Authentication
@@ -64,7 +64,7 @@
             </div>
             <div>
               <label
-                class="text-xs font-medium block mb-1"
+                class="text-xs font-semibold uppercase tracking-wider block mb-1"
                 style="color: var(--muted-foreground)"
                 >Secret Key (manual entry)</label
               >
@@ -81,8 +81,8 @@
             <div class="flex flex-col gap-2 max-w-xs">
               <label
                 for="setupCode"
-                class="text-sm font-medium"
-                style="color: var(--foreground)"
+                class="text-xs font-semibold uppercase tracking-wider"
+                style="color: var(--muted-foreground)"
                 >Enter the 6-digit code from your app</label
               >
               <input
@@ -186,8 +186,8 @@
           <div class="flex flex-col gap-2">
             <label
               for="disableCode"
-              class="text-sm font-medium"
-              style="color: var(--foreground)"
+              class="text-xs font-semibold uppercase tracking-wider"
+              style="color: var(--muted-foreground)"
               >Authenticator Code</label
             >
             <input
@@ -207,8 +207,8 @@
           <div class="flex flex-col gap-2">
             <label
               for="disableRecovery"
-              class="text-sm font-medium"
-              style="color: var(--foreground)"
+              class="text-xs font-semibold uppercase tracking-wider"
+              style="color: var(--muted-foreground)"
               >Recovery Code</label
             >
             <input
@@ -263,7 +263,7 @@
       class="rounded-lg border shadow-sm p-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-4" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-4 font-display" style="color: var(--foreground)">
         Change Password
       </h2>
 
@@ -276,8 +276,8 @@
         <div class="flex flex-col gap-2">
           <label
             for="secCurrentPassword"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Current Password</label
           >
           <div class="p-inputgroup">
@@ -309,8 +309,8 @@
         <div class="flex flex-col gap-2">
           <label
             for="secNewPassword"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >New Password</label
           >
           <div class="p-inputgroup">
@@ -341,7 +341,7 @@
             (newPasswordInput.dirty || newPasswordInput.touched)
           ) {
             @if (newPasswordInput.errors?.['minlength']) {
-              <small class="text-red-500"
+              <small style="color: var(--destructive)"
                 >Password must be at least 8 characters</small
               >
             }
@@ -352,8 +352,8 @@
         <div class="flex flex-col gap-2">
           <label
             for="secConfirmPassword"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Confirm New Password</label
           >
           <div class="p-inputgroup">
@@ -383,7 +383,7 @@
           @if (
             confirmPasswordInput.touched && newPassword !== confirmPassword
           ) {
-            <small class="text-red-500">Passwords do not match</small>
+            <small style="color: var(--destructive)">Passwords do not match</small>
           }
         </div>
 
@@ -409,7 +409,7 @@
       style="background: var(--card); border-color: var(--border)"
     >
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold" style="color: var(--foreground)">
+        <h2 class="text-xl font-semibold font-display" style="color: var(--foreground)">
           Active Sessions
         </h2>
         @if (sessions().length > 1) {

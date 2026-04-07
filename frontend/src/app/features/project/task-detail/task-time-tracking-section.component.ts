@@ -29,12 +29,12 @@ import { formatDuration, formatDate } from './task-fields-utils';
     <div class="border-t border-[var(--border)] pt-6">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <i class="pi pi-clock text-gray-400"></i>
-          <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+          <i class="pi pi-clock text-[var(--muted-foreground)]"></i>
+          <h3 class="text-sm font-display font-medium text-[var(--card-foreground)]">
             Time Tracking
           </h3>
           @if (timeEntryTotalMinutes() > 0) {
-            <span class="text-xs text-gray-400"
+            <span class="text-xs text-[var(--muted-foreground)]"
               >({{ formatDuration(timeEntryTotalMinutes()) }})</span
             >
           }
@@ -51,9 +51,9 @@ import { formatDuration, formatDate } from './task-fields-utils';
       <!-- Timer Control -->
       <div class="mb-3">
         @if (runningTimer()) {
-          <div class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md">
+          <div class="flex items-center gap-3 px-3 py-2 bg-[var(--status-red-bg)] rounded-md">
             <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-            <span class="text-sm font-mono text-red-700 flex-1">{{
+            <span class="text-sm font-mono tabular-nums text-[var(--status-red-text)] flex-1">{{
               elapsedTime()
             }}</span>
             <p-button

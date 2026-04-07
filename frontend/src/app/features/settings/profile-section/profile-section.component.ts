@@ -40,7 +40,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
       class="rounded-lg border shadow-sm p-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2 class="text-xl font-semibold mb-4" style="color: var(--foreground)">
+      <h2 class="text-xl font-semibold mb-4 font-display" style="color: var(--foreground)">
         Profile
       </h2>
 
@@ -113,8 +113,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profileName"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Name</label
           >
           <div class="p-inputgroup">
@@ -133,7 +133,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
           </div>
           @if (nameInput.invalid && (nameInput.dirty || nameInput.touched)) {
             @if (nameInput.errors?.['required']) {
-              <small class="text-red-500">Name is required</small>
+              <small style="color: var(--destructive)">Name is required</small>
             }
           }
         </div>
@@ -142,8 +142,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profileEmail"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Email</label
           >
           <div class="p-inputgroup">
@@ -169,8 +169,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profilePhone"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Phone Number</label
           >
           <div class="p-inputgroup">
@@ -187,7 +187,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             />
           </div>
           @if (phoneNumber && !isPhoneValid()) {
-            <small class="text-red-500"
+            <small style="color: var(--destructive)"
               >Use E.164 format (e.g. +1234567890)</small
             >
           }
@@ -200,8 +200,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profileJobTitle"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Job Title</label
           >
           <div class="p-inputgroup">
@@ -225,8 +225,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profileDepartment"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Department</label
           >
           <div class="p-inputgroup">
@@ -250,8 +250,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
         <div class="flex flex-col gap-2">
           <label
             for="profileBio"
-            class="text-sm font-medium"
-            style="color: var(--foreground)"
+            class="text-xs font-semibold uppercase tracking-wider"
+            style="color: var(--muted-foreground)"
             >Bio</label
           >
           <textarea
@@ -291,7 +291,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
       class="rounded-lg border-2 shadow-sm p-6 mt-6"
       style="background: var(--card); border-color: var(--destructive)"
     >
-      <h2 class="text-xl font-semibold mb-1" style="color: var(--destructive)">Danger Zone</h2>
+      <h2 class="text-xl font-semibold mb-1 font-display" style="color: var(--destructive)">Danger Zone</h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
         Permanently delete your account and all associated data. This action
         cannot be undone.

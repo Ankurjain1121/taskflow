@@ -88,7 +88,7 @@ import {
           <!-- Label + count -->
           <div class="min-w-0 flex-1">
             <p
-              class="text-xs font-medium text-[var(--foreground)] truncate leading-tight"
+              class="text-xs font-semibold text-[var(--foreground)] uppercase tracking-wider truncate leading-tight"
             >
               {{ swimlaneGroup().label }}
             </p>

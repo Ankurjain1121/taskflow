@@ -45,7 +45,7 @@ import {
     <div>
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-xl font-bold text-[var(--foreground)]">
+          <h2 class="text-xl font-bold font-display text-[var(--foreground)]">
             Task Templates
           </h2>
           <p class="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -180,7 +180,7 @@ import {
                     pTooltip="Delete"
                     aria-label="Delete"
                   >
-                    <i class="pi pi-trash text-sm text-red-500"></i>
+                    <i class="pi pi-trash text-sm" style="color: var(--destructive)"></i>
                   </button>
                 </div>
               }
@@ -199,7 +199,7 @@ import {
     >
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
+          <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Template Name</label
           >
           <input
@@ -210,7 +210,7 @@ import {
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
+          <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Scope</label
           >
           <p-select
@@ -223,7 +223,7 @@ import {
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
+          <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Task Title</label
           >
           <input
@@ -234,7 +234,7 @@ import {
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
+          <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Task Description</label
           >
           <textarea
@@ -246,7 +246,7 @@ import {
           ></textarea>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
+          <label class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
             >Priority</label
           >
           <p-select
