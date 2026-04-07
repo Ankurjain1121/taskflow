@@ -81,7 +81,7 @@ import { PRIORITY_COLORS } from '../../constants/priority-colors';
             pInputText
             id="qcTitle"
             formControlName="title"
-            placeholder="What needs to be done?"
+            placeholder="What needs doing?"
             class="w-full"
             (keydown.enter)="onSave()"
           />
@@ -152,20 +152,28 @@ import { PRIORITY_COLORS } from '../../constants/priority-colors';
       </form>
 
       <ng-template #footer>
-        <div class="flex justify-end gap-2">
-          <p-button
-            label="Cancel"
-            [text]="true"
-            severity="secondary"
-            (onClick)="visible.set(false)"
-          />
-          <p-button
-            label="Create Task"
-            icon="pi pi-plus"
-            (onClick)="onSave()"
-            [disabled]="form.invalid || saving()"
-            [loading]="saving()"
-          />
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+            <kbd class="kbd-hint">ESC</kbd>
+            <span>close</span>
+            <kbd class="kbd-hint ml-2">&#8984;&#9166;</kbd>
+            <span>create</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <p-button
+              label="Cancel"
+              [text]="true"
+              severity="secondary"
+              (onClick)="visible.set(false)"
+            />
+            <p-button
+              label="Create Task"
+              icon="pi pi-plus"
+              (onClick)="onSave()"
+              [disabled]="form.invalid || saving()"
+              [loading]="saving()"
+            />
+          </div>
         </div>
       </ng-template>
     </p-dialog>
