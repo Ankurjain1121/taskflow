@@ -121,8 +121,8 @@ export const routes: Routes = [
       },
       {
         path: 'help',
-        loadComponent: () =>
-          import('./features/help/help.component').then((m) => m.HelpComponent),
+        loadChildren: () =>
+          import('./features/help/help.routes').then((m) => m.helpRoutes),
       },
       {
         path: 'manage',

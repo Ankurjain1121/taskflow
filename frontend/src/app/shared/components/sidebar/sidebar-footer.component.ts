@@ -64,7 +64,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Manage</span>
       </a>
       <!-- Help -->
-      <a routerLink="/help" routerLinkActive="active"
+      <a [routerLink]="helpRoute()" routerLinkActive="active"
          class="footer-item flex items-center gap-3 px-3 text-sm"
          [class.justify-center]="collapsed()"
          [pTooltip]="collapsed() ? 'Help' : ''" tooltipPosition="right">
@@ -83,5 +83,10 @@ export class SidebarFooterComponent {
   readonly manageRoute = computed(() => {
     const wsId = this.wsContext.activeWorkspaceId();
     return wsId ? `/workspace/${wsId}/manage` : '/manage';
+  });
+
+  readonly helpRoute = computed(() => {
+    const wsId = this.wsContext.activeWorkspaceId();
+    return wsId ? `/workspace/${wsId}/help` : '/help';
   });
 }

@@ -188,12 +188,10 @@ interface CalendarCell {
               @for (task of cell.tasks.slice(0, 3); track task.id) {
                 <div
                   class="text-[11px] leading-tight px-1.5 py-0.5 rounded mb-0.5 cursor-pointer truncate border-l-2 transition-colors hover:opacity-80"
-                  [style.border-left-color]="getTaskBorderColor(task.priority)"
-                  [class.bg-[var(--success)]/10]="task.is_done"
-                  [class.text-[var(--success)]]="task.is_done"
                   [class.line-through]="task.is_done"
-                  [class.bg-[var(--secondary)]]="!task.is_done"
-                  [class.text-[var(--foreground)]]="!task.is_done"
+                  [style.border-left-color]="getTaskBorderColor(task.priority)"
+                  [style.background-color]="task.is_done ? 'color-mix(in srgb, var(--success) 10%, transparent)' : 'var(--secondary)'"
+                  [style.color]="task.is_done ? 'var(--success)' : 'var(--foreground)'"
                   draggable="true"
                   (dragstart)="onDragStart($event, task)"
                   (click)="onTaskClick(task)"
@@ -225,14 +223,12 @@ interface CalendarCell {
             @for (task of dayTasks(); track task.id) {
               <div
                 class="absolute left-16 right-4 px-2 py-1 rounded cursor-pointer border-l-2 transition-colors hover:opacity-80"
+                [class.line-through]="task.is_done"
                 [style.top.px]="getDayTaskTop(task)"
                 [style.height.px]="40"
                 [style.border-left-color]="getTaskBorderColor(task.priority)"
-                [class.bg-[var(--success)]/10]="task.is_done"
-                [class.text-[var(--success)]]="task.is_done"
-                [class.line-through]="task.is_done"
-                [class.bg-[var(--secondary)]]="!task.is_done"
-                [class.text-[var(--foreground)]]="!task.is_done"
+                [style.background-color]="task.is_done ? 'color-mix(in srgb, var(--success) 10%, transparent)' : 'var(--secondary)'"
+                [style.color]="task.is_done ? 'var(--success)' : 'var(--foreground)'"
                 draggable="true"
                 (dragstart)="onDragStart($event, task)"
                 (click)="onTaskClick(task)"
