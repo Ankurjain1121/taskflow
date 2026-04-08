@@ -6,6 +6,7 @@ export const FEATURES_ARTICLES: readonly HelpArticle[] = [
     categorySlug: 'features',
     title: 'Kanban Boards',
     summary: 'Drag-and-drop task management with customizable columns and status mappings.',
+    videoUrl: '/videos/02-kanban-board.mp4',
     content: `
 ## Overview
 
