@@ -203,15 +203,11 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-lg flex items-center justify-center"
-                  [class.bg-[var(--destructive)]/10]="(workload()?.overdue_tasks || 0) > 0"
-                  [class.bg-[var(--muted)]]="(workload()?.overdue_tasks || 0) === 0"
+                  [style.background-color]="(workload()?.overdue_tasks || 0) > 0 ? 'color-mix(in srgb, var(--destructive) 10%, transparent)' : 'var(--muted)'"
                 >
                   <svg
                     class="w-5 h-5"
-                    [class.text-[var(--destructive)]]="(workload()?.overdue_tasks || 0) > 0"
-                    [class.text-[var(--muted-foreground)]]="
-                      (workload()?.overdue_tasks || 0) === 0
-                    "
+                    [style.color]="(workload()?.overdue_tasks || 0) > 0 ? 'var(--destructive)' : 'var(--muted-foreground)'"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -227,10 +223,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div>
                   <p
                     class="text-2xl font-bold"
-                    [class.text-[var(--destructive)]]="(workload()?.overdue_tasks || 0) > 0"
-                    [class.text-[var(--foreground)]]="
-                      (workload()?.overdue_tasks || 0) === 0
-                    "
+                    [style.color]="(workload()?.overdue_tasks || 0) > 0 ? 'var(--destructive)' : 'var(--foreground)'"
                   >
                     {{ workload()?.overdue_tasks || 0 }}
                   </p>
@@ -243,13 +236,11 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-lg flex items-center justify-center"
-                  [class.bg-amber-100]="(workload()?.due_today || 0) > 0"
-                  [class.bg-[var(--muted)]]="(workload()?.due_today || 0) === 0"
+                  [style.background-color]="(workload()?.due_today || 0) > 0 ? '#fef3c7' : 'var(--muted)'"
                 >
                   <svg
                     class="w-5 h-5"
-                    [class.text-amber-600]="(workload()?.due_today || 0) > 0"
-                    [class.text-[var(--muted-foreground)]]="(workload()?.due_today || 0) === 0"
+                    [style.color]="(workload()?.due_today || 0) > 0 ? '#d97706' : 'var(--muted-foreground)'"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -265,10 +256,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div>
                   <p
                     class="text-2xl font-bold"
-                    [class.text-amber-600]="(workload()?.due_today || 0) > 0"
-                    [class.text-[var(--foreground)]]="
-                      (workload()?.due_today || 0) === 0
-                    "
+                    [style.color]="(workload()?.due_today || 0) > 0 ? '#d97706' : 'var(--foreground)'"
                   >
                     {{ workload()?.due_today || 0 }}
                   </p>
@@ -351,15 +339,11 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                       <div class="px-6 py-3 flex items-center gap-3">
                         <span
                           class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          [class.bg-[var(--destructive)]]="
-                            task.priority === 'urgent' ||
-                            task.priority === 'critical'
-                          "
-                          [class.bg-orange-500]="task.priority === 'high'"
-                          [class.bg-yellow-500]="task.priority === 'medium'"
-                          [class.bg-[var(--primary)]]="task.priority === 'low'"
-                          [class.bg-[var(--muted)]]="
-                            task.priority === 'none' || !task.priority
+                          [style.background-color]="
+                            (task.priority === 'urgent' || task.priority === 'critical') ? 'var(--destructive)' :
+                            task.priority === 'high' ? '#f97316' :
+                            task.priority === 'medium' ? '#eab308' :
+                            task.priority === 'low' ? 'var(--primary)' : 'var(--muted)'
                           "
                           [title]="task.priority || 'none'"
                         ></span>
@@ -379,14 +363,8 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                         @if (task.due_date) {
                           <span
                             class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
-                            [class.bg-[var(--destructive)]/10]="isOverdue(task.due_date)"
-                            [class.text-[var(--destructive)]]="isOverdue(task.due_date)"
-                            [class.bg-[var(--secondary)]]="
-                              !isOverdue(task.due_date)
-                            "
-                            [class.text-[var(--muted-foreground)]]="
-                              !isOverdue(task.due_date)
-                            "
+                            [style.background-color]="isOverdue(task.due_date) ? 'color-mix(in srgb, var(--destructive) 10%, transparent)' : 'var(--secondary)'"
+                            [style.color]="isOverdue(task.due_date) ? 'var(--destructive)' : 'var(--muted-foreground)'"
                           >
                             {{ formatDate(task.due_date) }}
                           </span>
