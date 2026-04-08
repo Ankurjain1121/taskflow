@@ -1,4 +1,15 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  HostListener,
+  signal,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChildren,
+  QueryList,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -8,15 +19,14 @@ import { RouterModule } from '@angular/router';
   imports: [CommonModule, RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- ─── Sticky Nav ─────────────────────────────────────────── -->
+    <!-- ─── Nav ────────────────────────────────────────────────── -->
     <nav
-      class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b"
-      style="
-        background: color-mix(in srgb, var(--background) 85%, transparent);
-        border-color: var(--border);
-      "
+      class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      [style.background]="scrolled() ? 'color-mix(in srgb, var(--background) 88%, transparent)' : 'transparent'"
+      [style.backdrop-filter]="scrolled() ? 'blur(12px)' : 'none'"
+      [style.border-bottom]="scrolled() ? '1px solid var(--border)' : '1px solid transparent'"
     >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+      <div class="max-w-6xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
         <a
           routerLink="/"
           class="text-xl font-bold tracking-tight"
@@ -24,23 +34,17 @@ import { RouterModule } from '@angular/router';
         >
           Task<span style="color: var(--primary)">Bolt</span>
         </a>
-
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <a
             routerLink="/auth/sign-in"
-            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            style="
-              font-family: var(--font-body);
-              color: var(--foreground);
-            "
-            onmouseenter="this.style.background='var(--accent)'"
-            onmouseleave="this.style.background='transparent'"
-          >
-            Sign In
-          </a>
+            class="px-4 py-2 text-sm font-medium transition-colors rounded-lg"
+            style="font-family: var(--font-body); color: var(--muted-foreground)"
+            onmouseenter="this.style.color='var(--foreground)'"
+            onmouseleave="this.style.color='var(--muted-foreground)'"
+          >Sign In</a>
           <a
             routerLink="/auth/sign-up"
-            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            class="px-5 py-2 text-sm font-semibold rounded-full transition-all"
             style="
               font-family: var(--font-body);
               background: var(--primary);
@@ -48,228 +52,226 @@ import { RouterModule } from '@angular/router';
             "
             onmouseenter="this.style.opacity='0.9'"
             onmouseleave="this.style.opacity='1'"
-          >
-            Get Started
-          </a>
+          >Start Free</a>
         </div>
       </div>
     </nav>
 
-    <!-- ─── Hero Section ───────────────────────────────────────── -->
+    <!-- ─── Hero ───────────────────────────────────────────────── -->
     <section
-      class="pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      class="pt-32 sm:pt-40 pb-8 sm:pb-12 px-5 sm:px-8"
       style="background: var(--background)"
     >
-      <!-- Decorative shapes -->
-      <div class="absolute top-16 right-0 w-[420px] h-[420px] opacity-[0.07] pointer-events-none hidden lg:block">
-        <div
-          class="absolute top-0 right-0 w-72 h-72 rounded-3xl rotate-12"
-          style="background: var(--primary)"
-        ></div>
-        <div
-          class="absolute top-20 right-20 w-56 h-56 rounded-3xl -rotate-6"
-          style="background: var(--accent-warm)"
-        ></div>
-        <div
-          class="absolute top-10 right-40 w-40 h-40 rounded-full rotate-3"
-          style="background: var(--success)"
-        ></div>
-      </div>
-
-      <div class="max-w-7xl mx-auto relative">
-        <div class="max-w-3xl">
-          <h1
-            class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight"
-            style="font-family: var(--font-display); color: var(--foreground)"
-          >
-            Manage projects with
-            <span style="color: var(--primary)">clarity</span>,
-            not chaos
-          </h1>
+      <div class="max-w-6xl mx-auto">
+        <div class="max-w-2xl mx-auto text-center">
           <p
-            class="mt-6 text-lg sm:text-xl leading-relaxed max-w-2xl"
+            class="text-xs font-medium uppercase tracking-[0.2em] mb-5"
             style="font-family: var(--font-body); color: var(--muted-foreground)"
-          >
-            TaskBolt brings your team's work together &mdash; kanban boards,
-            reports, automations, and real-time collaboration.
-          </p>
+          >Project management that doesn't suck</p>
 
-          <div class="mt-10 flex flex-wrap items-center gap-4">
-            <a
-              routerLink="/auth/sign-up"
-              class="inline-flex items-center px-7 py-3.5 text-base font-semibold rounded-xl transition-all"
-              style="
-                font-family: var(--font-body);
-                background: var(--primary);
-                color: var(--primary-foreground);
-                box-shadow: var(--shadow-md);
-              "
-              onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='var(--shadow-lg)'"
-              onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-md)'"
+          <h1
+            class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight"
+            style="font-family: var(--font-display); color: var(--foreground)"
+          >Your team's work,<br>finally organized.</h1>
+
+          <p
+            class="mt-6 text-lg leading-relaxed max-w-xl mx-auto"
+            style="font-family: var(--font-body); color: var(--muted-foreground)"
+          >Kanban boards. Real-time collaboration. Automations that actually save time. All in one place your team will love.</p>
+
+          <a
+            routerLink="/auth/sign-up"
+            class="inline-flex items-center gap-2 mt-10 px-8 py-3.5 text-base font-semibold rounded-full transition-all"
+            style="
+              font-family: var(--font-body);
+              background: var(--primary);
+              color: var(--primary-foreground);
+              box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+            "
+            onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px color-mix(in srgb, var(--primary) 40%, transparent)'"
+            onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent)'"
+          >
+            Start Free — No Credit Card
+            <i class="pi pi-arrow-right text-sm"></i>
+          </a>
+        </div>
+
+        <!-- Browser Chrome Mockup -->
+        <div
+          class="mt-16 sm:mt-20 mx-auto max-w-5xl hero-screenshot"
+          [style.transform]="'perspective(1500px) rotateX(' + heroRotation() + 'deg)'"
+          style="transition: transform 0.4s ease-out"
+        >
+          <div
+            class="rounded-2xl overflow-hidden border"
+            style="
+              border-color: var(--border);
+              box-shadow: 0 25px 80px -12px color-mix(in srgb, var(--foreground) 15%, transparent);
+            "
+          >
+            <!-- Browser bar -->
+            <div
+              class="flex items-center gap-2 px-4 py-3 border-b"
+              style="background: var(--card); border-color: var(--border)"
             >
-              Get Started Free
-              <i class="pi pi-arrow-right ml-2 text-sm"></i>
-            </a>
-            <a
-              href="#features"
-              class="inline-flex items-center px-7 py-3.5 text-base font-semibold rounded-xl border transition-all"
-              style="
-                font-family: var(--font-body);
-                color: var(--foreground);
-                border-color: var(--border);
-                background: transparent;
-              "
-              onmouseenter="this.style.background='var(--accent)';this.style.borderColor='var(--primary)'"
-              onmouseleave="this.style.background='transparent';this.style.borderColor='var(--border)'"
-              (click)="scrollToFeatures($event)"
-            >
-              See How It Works
-            </a>
+              <span class="w-3 h-3 rounded-full" style="background: #EF6B6B"></span>
+              <span class="w-3 h-3 rounded-full" style="background: #F4BF4F"></span>
+              <span class="w-3 h-3 rounded-full" style="background: #61C554"></span>
+              <span
+                class="ml-3 flex-1 h-7 rounded-md"
+                style="background: var(--background); max-width: 320px"
+              ></span>
+            </div>
+            <img
+              src="assets/landing/dashboard.png"
+              alt="TaskBolt dashboard showing project overview, tasks, and team activity"
+              class="w-full block"
+              loading="eager"
+            />
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ─── Social Proof Bar ───────────────────────────────────── -->
+    <!-- ─── Logos Bar ──────────────────────────────────────────── -->
     <section
-      class="py-10 px-4 sm:px-6 lg:px-8 border-y"
-      style="background: var(--card); border-color: var(--border)"
+      class="py-12 px-5 sm:px-8 border-y"
+      style="background: var(--background); border-color: var(--border)"
     >
-      <div class="max-w-7xl mx-auto text-center">
+      <div class="max-w-6xl mx-auto text-center">
         <p
-          class="text-sm font-medium uppercase tracking-widest mb-6"
+          class="text-xs font-medium uppercase tracking-[0.2em] mb-8"
           style="font-family: var(--font-body); color: var(--muted-foreground)"
-        >
-          Trusted by teams at
-        </p>
+        >Trusted by teams building the future</p>
         <div class="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-          @for (company of companies; track company) {
+          @for (company of companies; track company.name) {
             <span
-              class="text-lg font-semibold opacity-40"
-              style="font-family: var(--font-display); color: var(--foreground)"
-            >
-              {{ company }}
-            </span>
+              class="text-lg transition-opacity duration-200 cursor-default"
+              [style.font-weight]="company.weight"
+              style="font-family: var(--font-display); color: var(--foreground); opacity: 0.35"
+              onmouseenter="this.style.opacity='1'"
+              onmouseleave="this.style.opacity='0.35'"
+            >{{ company.name }}</span>
           }
         </div>
       </div>
     </section>
 
-    <!-- ─── Features Section ───────────────────────────────────── -->
+    <!-- ─── Feature A: Boards (image right) ────────────────────── -->
     <section
-      id="features"
-      class="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 scroll-mt-20"
+      #animSection
+      class="py-20 sm:py-28 px-5 sm:px-8 anim-section"
       style="background: var(--background)"
     >
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-14">
-          <h2
-            class="text-3xl sm:text-4xl font-bold tracking-tight"
-            style="font-family: var(--font-display); color: var(--foreground)"
-          >
-            Everything your team needs
-          </h2>
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div>
           <p
-            class="mt-4 text-lg max-w-2xl mx-auto"
+            class="text-xs font-semibold uppercase tracking-[0.2em] mb-4"
+            style="font-family: var(--font-body); color: var(--primary)"
+          >Organize</p>
+          <h2
+            class="text-3xl sm:text-4xl font-bold leading-tight tracking-tight"
+            style="font-family: var(--font-display); color: var(--foreground)"
+          >Boards that adapt to how you work</h2>
+          <p
+            class="mt-5 text-base leading-relaxed"
             style="font-family: var(--font-body); color: var(--muted-foreground)"
-          >
-            From planning to delivery, TaskBolt keeps everyone aligned and moving forward.
-          </p>
+          >Kanban, list, calendar, Gantt &mdash; switch views in one click. Drag tasks, set priorities, filter by anything. Your board, your rules.</p>
+        </div>
+        <div
+          class="rounded-xl overflow-hidden border"
+          style="
+            border-color: var(--border);
+            box-shadow: 0 16px 48px -8px color-mix(in srgb, var(--foreground) 8%, transparent);
+            transform: rotate(1deg);
+          "
+        >
+          <img
+            src="assets/landing/kanban.png"
+            alt="Kanban board with task cards organized by status columns"
+            class="w-full block"
+            loading="lazy"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Feature B: Collaborate (image left) ────────────────── -->
+    <section
+      #animSection
+      class="py-20 sm:py-28 px-5 sm:px-8 anim-section"
+      style="background: var(--card)"
+    >
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div
+          class="order-2 lg:order-1 rounded-xl overflow-hidden border"
+          style="
+            border-color: var(--border);
+            box-shadow: 0 16px 48px -8px color-mix(in srgb, var(--foreground) 8%, transparent);
+            transform: rotate(-1deg);
+          "
+        >
+          <img
+            src="assets/landing/dashboard.png"
+            alt="Dashboard with real-time team activity and project metrics"
+            class="w-full block"
+            loading="lazy"
+          />
+        </div>
+        <div class="order-1 lg:order-2">
+          <p
+            class="text-xs font-semibold uppercase tracking-[0.2em] mb-4"
+            style="font-family: var(--font-body); color: var(--primary)"
+          >Collaborate</p>
+          <h2
+            class="text-3xl sm:text-4xl font-bold leading-tight tracking-tight"
+            style="font-family: var(--font-display); color: var(--foreground)"
+          >Everyone on the same page. Literally.</h2>
+          <p
+            class="mt-5 text-base leading-relaxed"
+            style="font-family: var(--font-body); color: var(--muted-foreground)"
+          >Real-time updates via WebSocket. Comments, &#64;mentions, assignments. No more "did you see my Slack message about the task?"</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Feature C: Automate (stat cards) ───────────────────── -->
+    <section
+      #animSection
+      class="py-20 sm:py-28 px-5 sm:px-8 anim-section"
+      style="background: var(--background)"
+    >
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center max-w-2xl mx-auto mb-14">
+          <p
+            class="text-xs font-semibold uppercase tracking-[0.2em] mb-4"
+            style="font-family: var(--font-body); color: var(--primary)"
+          >Automate</p>
+          <h2
+            class="text-3xl sm:text-4xl font-bold leading-tight tracking-tight"
+            style="font-family: var(--font-display); color: var(--foreground)"
+          >Stop doing what a robot could do</h2>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (feature of features; track feature.title) {
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          @for (stat of stats; track stat.value) {
             <div
-              class="rounded-xl p-6 border transition-all"
+              class="rounded-xl p-8 border text-center transition-all duration-200"
               style="
                 background: var(--card);
                 border-color: var(--border);
-                box-shadow: var(--shadow-sm);
               "
-              onmouseenter="this.style.boxShadow='var(--shadow-md)';this.style.transform='translateY(-2px)'"
-              onmouseleave="this.style.boxShadow='var(--shadow-sm)';this.style.transform='translateY(0)'"
+              onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px -4px color-mix(in srgb, var(--foreground) 8%, transparent)'"
+              onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none'"
             >
-              <div
-                class="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                style="background: var(--accent)"
-              >
-                <i
-                  class="{{ feature.icon }} text-lg"
-                  style="color: var(--primary)"
-                ></i>
-              </div>
-              <h3
-                class="text-lg font-semibold mb-2"
-                style="font-family: var(--font-display); color: var(--foreground)"
-              >
-                {{ feature.title }}
-              </h3>
+              <p
+                class="text-4xl sm:text-5xl font-bold mb-3"
+                style="font-family: var(--font-display); color: var(--primary)"
+              >{{ stat.value }}</p>
               <p
                 class="text-sm leading-relaxed"
                 style="font-family: var(--font-body); color: var(--muted-foreground)"
-              >
-                {{ feature.description }}
-              </p>
-            </div>
-          }
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── How It Works ───────────────────────────────────────── -->
-    <section
-      id="how-it-works"
-      class="py-16 sm:py-24 px-4 sm:px-6 lg:px-8"
-      style="background: var(--card)"
-    >
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-14">
-          <h2
-            class="text-3xl sm:text-4xl font-bold tracking-tight"
-            style="font-family: var(--font-display); color: var(--foreground)"
-          >
-            Up and running in minutes
-          </h2>
-          <p
-            class="mt-4 text-lg max-w-2xl mx-auto"
-            style="font-family: var(--font-body); color: var(--muted-foreground)"
-          >
-            Three steps to organized, stress-free project management.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          <!-- Connecting line (desktop) -->
-          <div
-            class="hidden md:block absolute top-8 left-[16.6%] right-[16.6%] h-0.5"
-            style="background: var(--border)"
-          ></div>
-
-          @for (step of steps; track step.number) {
-            <div class="text-center relative">
-              <div
-                class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-xl font-bold relative z-10"
-                style="
-                  font-family: var(--font-display);
-                  background: var(--primary);
-                  color: var(--primary-foreground);
-                  box-shadow: var(--shadow-md);
-                "
-              >
-                {{ step.number }}
-              </div>
-              <h3
-                class="text-lg font-semibold mb-2"
-                style="font-family: var(--font-display); color: var(--foreground)"
-              >
-                {{ step.title }}
-              </h3>
-              <p
-                class="text-sm leading-relaxed max-w-xs mx-auto"
-                style="font-family: var(--font-body); color: var(--muted-foreground)"
-              >
-                {{ step.description }}
-              </p>
+              >{{ stat.label }}</p>
             </div>
           }
         </div>
@@ -278,68 +280,39 @@ import { RouterModule } from '@angular/router';
 
     <!-- ─── Testimonials ───────────────────────────────────────── -->
     <section
-      class="py-16 sm:py-24 px-4 sm:px-6 lg:px-8"
-      style="background: var(--background)"
+      #animSection
+      class="py-20 sm:py-28 px-5 sm:px-8 anim-section"
+      style="background: var(--card)"
     >
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-14">
-          <h2
-            class="text-3xl sm:text-4xl font-bold tracking-tight"
-            style="font-family: var(--font-display); color: var(--foreground)"
-          >
-            Loved by teams everywhere
-          </h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          @for (testimonial of testimonials; track testimonial.name) {
+      <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          @for (testimonial of testimonials; track testimonial.name; let i = $index) {
             <div
-              class="rounded-xl p-6 border"
+              class="rounded-xl p-7 border-l-4 transition-all duration-200"
+              [style.margin-top]="i === 0 ? '0' : i === 1 ? '2rem' : '1rem'"
+              [style.border-left-color]="'var(--primary)'"
               style="
-                background: var(--card);
-                border-color: var(--border);
-                box-shadow: var(--shadow-sm);
+                background: var(--background);
+                box-shadow: 0 2px 12px color-mix(in srgb, var(--foreground) 4%, transparent);
               "
             >
-              <div class="flex items-center gap-1 mb-4">
-                @for (star of [1, 2, 3, 4, 5]; track star) {
-                  <i
-                    class="pi pi-star-fill text-sm"
-                    style="color: var(--accent-warm)"
-                  ></i>
-                }
-              </div>
+              <span
+                class="text-5xl leading-none block mb-3"
+                style="color: color-mix(in srgb, var(--primary) 20%, transparent); font-family: Georgia, serif"
+              >&ldquo;</span>
               <p
-                class="text-sm leading-relaxed mb-5"
+                class="text-sm leading-relaxed mb-6"
                 style="font-family: var(--font-body); color: var(--foreground)"
-              >
-                &ldquo;{{ testimonial.quote }}&rdquo;
-              </p>
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
-                  style="
-                    background: var(--accent);
-                    color: var(--primary);
-                    font-family: var(--font-display);
-                  "
-                >
-                  {{ testimonial.initials }}
-                </div>
-                <div>
-                  <p
-                    class="text-sm font-medium"
-                    style="font-family: var(--font-body); color: var(--foreground)"
-                  >
-                    {{ testimonial.name }}
-                  </p>
-                  <p
-                    class="text-xs"
-                    style="font-family: var(--font-body); color: var(--muted-foreground)"
-                  >
-                    {{ testimonial.role }}
-                  </p>
-                </div>
+              >{{ testimonial.quote }}</p>
+              <div>
+                <p
+                  class="text-sm font-semibold"
+                  style="font-family: var(--font-body); color: var(--foreground)"
+                >{{ testimonial.name }}</p>
+                <p
+                  class="text-xs mt-0.5"
+                  style="font-family: var(--font-body); color: var(--muted-foreground)"
+                >{{ testimonial.role }}</p>
               </div>
             </div>
           }
@@ -347,65 +320,54 @@ import { RouterModule } from '@angular/router';
       </div>
     </section>
 
-    <!-- ─── CTA Banner ─────────────────────────────────────────── -->
+    <!-- ─── Bottom CTA ─────────────────────────────────────────── -->
     <section
-      class="py-16 sm:py-20 px-4 sm:px-6 lg:px-8"
+      class="py-20 sm:py-24 px-5 sm:px-8 relative overflow-hidden"
       style="background: var(--primary)"
     >
-      <div class="max-w-3xl mx-auto text-center">
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(ellipse at center, color-mix(in srgb, var(--primary-foreground) 6%, transparent) 0%, transparent 70%)"
+      ></div>
+      <div class="max-w-3xl mx-auto text-center relative">
         <h2
           class="text-3xl sm:text-4xl font-bold tracking-tight"
           style="font-family: var(--font-display); color: var(--primary-foreground)"
-        >
-          Ready to streamline your workflow?
-        </h2>
+        >Your team deserves better than spreadsheets.</h2>
         <p
-          class="mt-4 text-base opacity-90"
-          style="font-family: var(--font-body); color: var(--primary-foreground)"
+          class="mt-4 text-base"
+          style="font-family: var(--font-body); color: var(--primary-foreground); opacity: 0.8"
+        >Free for teams up to 10. No credit card required.</p>
+        <a
+          routerLink="/auth/sign-up"
+          class="inline-flex items-center gap-2 mt-10 px-8 py-3.5 text-base font-semibold rounded-full transition-all"
+          style="
+            font-family: var(--font-body);
+            background: var(--primary-foreground);
+            color: var(--primary);
+          "
+          onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'"
+          onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none'"
         >
-          Join teams who ship faster with TaskBolt.
-        </p>
-        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            routerLink="/auth/sign-up"
-            class="inline-flex items-center px-8 py-3.5 text-base font-semibold rounded-xl transition-all"
-            style="
-              font-family: var(--font-body);
-              background: var(--primary-foreground);
-              color: var(--primary);
-              box-shadow: var(--shadow-md);
-            "
-            onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='var(--shadow-lg)'"
-            onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-md)'"
-          >
-            Get Started Free
-            <i class="pi pi-arrow-right ml-2 text-sm"></i>
-          </a>
-        </div>
-        <p
-          class="mt-4 text-sm opacity-75"
-          style="font-family: var(--font-body); color: var(--primary-foreground)"
-        >
-          No credit card required
-        </p>
+          Get Started Free
+          <i class="pi pi-arrow-right text-sm"></i>
+        </a>
       </div>
     </section>
 
     <!-- ─── Footer ─────────────────────────────────────────────── -->
     <footer
-      class="py-14 px-4 sm:px-6 lg:px-8 border-t"
-      style="background: var(--card); border-color: var(--border)"
+      class="py-14 px-5 sm:px-8 border-t"
+      style="background: var(--background); border-color: var(--border)"
     >
-      <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+      <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-10 mb-12">
           @for (col of footerColumns; track col.title) {
             <div>
               <h4
-                class="text-sm font-semibold uppercase tracking-wider mb-4"
+                class="text-xs font-semibold uppercase tracking-[0.15em] mb-4"
                 style="font-family: var(--font-display); color: var(--foreground)"
-              >
-                {{ col.title }}
-              </h4>
+              >{{ col.title }}</h4>
               <ul class="space-y-2.5">
                 @for (link of col.links; track link.label) {
                   <li>
@@ -415,129 +377,110 @@ import { RouterModule } from '@angular/router';
                       style="font-family: var(--font-body); color: var(--muted-foreground)"
                       onmouseenter="this.style.color='var(--primary)'"
                       onmouseleave="this.style.color='var(--muted-foreground)'"
-                    >
-                      {{ link.label }}
-                    </a>
+                    >{{ link.label }}</a>
                   </li>
                 }
               </ul>
             </div>
           }
         </div>
-
         <div
-          class="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
+          class="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-3"
           style="border-color: var(--border)"
         >
           <p
-            class="text-sm"
+            class="text-xs"
             style="font-family: var(--font-body); color: var(--muted-foreground)"
-          >
-            &copy; {{ currentYear }} TaskBolt. All rights reserved.
-          </p>
-          <a
-            routerLink="/"
-            class="text-lg font-bold tracking-tight"
-            style="font-family: var(--font-display); color: var(--foreground)"
-          >
-            Task<span style="color: var(--primary)">Bolt</span>
-          </a>
+          >&copy; 2026 TaskBolt</p>
+          <p
+            class="text-xs"
+            style="font-family: var(--font-body); color: var(--muted-foreground)"
+          >Made with care for teams that ship.</p>
         </div>
       </div>
     </footer>
   `,
+  styles: [`
+    :host {
+      display: block;
+    }
+
+    .anim-section {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+
+    .anim-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hero-screenshot {
+      animation: hero-float-in 1s ease-out both;
+      animation-delay: 0.3s;
+    }
+
+    @keyframes hero-float-in {
+      from {
+        opacity: 0;
+        transform: perspective(1500px) rotateX(6deg) translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: perspective(1500px) rotateX(2deg) translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .anim-section {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+      .hero-screenshot {
+        animation: none;
+      }
+    }
+  `],
 })
-export class LandingComponent {
-  readonly currentYear = new Date().getFullYear();
+export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
+  readonly scrolled = signal(false);
+  readonly heroRotation = signal(2);
+
+  @ViewChildren('animSection') animSections!: QueryList<ElementRef>;
+  private observer: IntersectionObserver | null = null;
 
   readonly companies = [
-    'Acme Corp',
-    'Vertex Labs',
-    'Nimbus',
-    'Ember Studio',
-    'Coastal Dev',
+    { name: 'Vertex', weight: 700 },
+    { name: 'Nimbus AI', weight: 500 },
+    { name: 'Ember Studio', weight: 600 },
+    { name: 'Coastal', weight: 700 },
+    { name: 'Lattice Labs', weight: 500 },
+    { name: 'Oakridge', weight: 600 },
   ];
 
-  readonly features = [
-    {
-      icon: 'pi pi-objects-column',
-      title: 'Kanban Boards',
-      description:
-        'Drag-and-drop task management with customizable columns.',
-    },
-    {
-      icon: 'pi pi-chart-bar',
-      title: 'Reports & Analytics',
-      description:
-        'Burndown charts, velocity reports, and workload insights.',
-    },
-    {
-      icon: 'pi pi-bolt',
-      title: 'Automations',
-      description:
-        'When X happens, do Y \u2014 eliminate repetitive manual work.',
-    },
-    {
-      icon: 'pi pi-users',
-      title: 'Team Collaboration',
-      description:
-        'Assign tasks, comment, and track who\u2019s doing what.',
-    },
-    {
-      icon: 'pi pi-calendar',
-      title: 'Calendar View',
-      description:
-        'See deadlines and milestones on a visual timeline.',
-    },
-    {
-      icon: 'pi pi-clock',
-      title: 'Time Tracking',
-      description:
-        'Log time with start/stop timers or manual entries.',
-    },
-  ];
-
-  readonly steps = [
-    {
-      number: 1,
-      title: 'Create a workspace',
-      description: 'Set up your team\u2019s home base in seconds.',
-    },
-    {
-      number: 2,
-      title: 'Add projects & tasks',
-      description:
-        'Organize work your way \u2014 kanban, list, or calendar.',
-    },
-    {
-      number: 3,
-      title: 'Collaborate & deliver',
-      description:
-        'Track progress, automate workflows, hit deadlines.',
-    },
+  readonly stats = [
+    { value: '3 hrs/week', label: 'Average time saved per team member with workflow automations' },
+    { value: 'Zero', label: 'Manual status updates needed with auto-move rules' },
+    { value: '< 5 min', label: 'Time to set up your first automation from scratch' },
   ];
 
   readonly testimonials = [
     {
-      quote:
-        'TaskBolt replaced three tools for our team. The kanban boards are incredibly intuitive.',
-      name: 'Sarah K.',
-      role: 'Engineering Lead',
-      initials: 'SK',
+      quote: 'TaskBolt replaced three tools for our team. The kanban boards are fast, the real-time sync is seamless, and we actually enjoy using it.',
+      name: 'Sarah Kim',
+      role: 'Engineering Lead, Vertex',
     },
     {
-      quote:
-        'We cut our meeting time in half because everyone can see task status in real-time.',
-      name: 'Marcus R.',
-      role: 'Product Manager',
-      initials: 'MR',
+      quote: 'We cut our standup time in half. Everyone can see status in real-time, so meetings are about decisions, not status updates.',
+      name: 'Marcus Rivera',
+      role: 'Product Manager, Nimbus AI',
     },
     {
-      quote:
-        'The automations save us hours every week. Set it and forget it.',
-      name: 'Priya D.',
-      role: 'Operations Director',
-      initials: 'PD',
+      quote: 'The automations alone saved us 12 hours a week. We set up auto-assignment rules and never looked back.',
+      name: 'Priya Desai',
+      role: 'Operations Director, Coastal',
     },
   ];
 
@@ -547,8 +490,8 @@ export class LandingComponent {
       links: [
         { label: 'Features', href: '/' },
         { label: 'Pricing', href: '/' },
-        { label: 'Integrations', href: '/' },
         { label: 'Changelog', href: '/' },
+        { label: 'Integrations', href: '/' },
       ],
     },
     {
@@ -561,15 +504,6 @@ export class LandingComponent {
       ],
     },
     {
-      title: 'Resources',
-      links: [
-        { label: 'Help Center', href: '/help' },
-        { label: 'API Docs', href: '/' },
-        { label: 'Templates', href: '/' },
-        { label: 'Community', href: '/' },
-      ],
-    },
-    {
       title: 'Legal',
       links: [
         { label: 'Privacy', href: '/' },
@@ -579,11 +513,38 @@ export class LandingComponent {
     },
   ];
 
-  scrollToFeatures(event: Event): void {
-    event.preventDefault();
-    const el = document.getElementById('features');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+  @HostListener('window:scroll')
+  onScroll(): void {
+    const y = window.scrollY;
+    this.scrolled.set(y > 20);
+
+    // Reduce perspective rotation as user scrolls (0 at 600px scroll)
+    const rotation = Math.max(0, 2 - (y / 300));
+    this.heroRotation.set(rotation);
+  }
+
+  ngOnInit(): void {
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        }
+      },
+      { threshold: 0.15 }
+    );
+  }
+
+  ngAfterViewInit(): void {
+    if (this.observer) {
+      for (const section of this.animSections) {
+        this.observer.observe(section.nativeElement);
+      }
     }
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
   }
 }
