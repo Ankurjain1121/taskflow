@@ -119,12 +119,12 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         const url = event.url;
-        const isAuthPage =
-          url.startsWith('/auth') || url.startsWith('/onboarding');
-        this.showSidebar.set(!isAuthPage);
+        const isPublicPage =
+          url.startsWith('/auth') || url.startsWith('/onboarding') || url === '/';
+        this.showSidebar.set(!isPublicPage);
 
         // Initialize workspace context on authenticated pages only
-        if (!isAuthPage) {
+        if (!isPublicPage) {
           if (this.wsContext.workspaces().length === 0) {
             this.wsContext.init(this.extractWorkspaceId(url) ?? undefined);
           }

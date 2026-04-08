@@ -44,7 +44,7 @@ export const authInterceptor: HttpInterceptorFn = (
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      const isOnAuthPage = router.url.startsWith('/auth') || router.url.startsWith('/onboarding');
+      const isOnAuthPage = router.url.startsWith('/auth') || router.url.startsWith('/onboarding') || router.url === '/';
       // Retry only on 401 (expired JWT) — 403 is a genuine permission denial
       const shouldRetry =
         error.status === 401 &&
