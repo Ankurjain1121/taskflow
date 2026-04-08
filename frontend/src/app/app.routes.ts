@@ -311,6 +311,13 @@ export const routes: Routes = [
       ),
     canActivate: [authGuard],
   },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' },
+  {
+    path: '',
+    pathMatch: 'full' as const,
+    loadComponent: () =>
+      import('./features/landing/landing.component').then(m => m.LandingComponent),
+    canActivate: [publicOnlyGuard],
+    data: { hideSidebar: true },
+  },
+  { path: '**', redirectTo: '' },
 ];
