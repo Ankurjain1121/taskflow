@@ -6,6 +6,7 @@ export const GETTING_STARTED_ARTICLES: readonly HelpArticle[] = [
     categorySlug: 'getting-started',
     title: 'Create a Workspace',
     summary: 'Workspaces organize your projects and team. Start by creating one from the sidebar.',
+    videoUrl: '/videos/01-dashboard-overview.mp4',
     content: `
 ## What is a Workspace?
 
@@ -89,6 +90,7 @@ Speed up project creation with templates:
     categorySlug: 'getting-started',
     title: 'Create Tasks',
     summary: 'Add tasks to your project, set priorities, due dates, and assign team members.',
+    videoUrl: '/videos/03-create-task.mp4',
     content: `
 ## Adding a Task
 
