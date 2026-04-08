@@ -353,7 +353,7 @@ interface UserOption {
                   >
                     Billable Hours
                   </div>
-                  <div class="text-2xl font-bold text-green-600">
+                  <div class="text-2xl font-bold text-[var(--success)]">
                     {{
                       formatTotalTime(
                         timesheetData()!.summary.billable_minutes
@@ -474,7 +474,7 @@ interface UserOption {
                         <td class="px-4 py-3 text-center">
                           @if (entry.is_billable) {
                             <span
-                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--success)]/10 text-[var(--success)]"
                             >
                               Billable
                             </span>
@@ -490,7 +490,7 @@ interface UserOption {
                           class="px-4 py-3 text-sm text-right font-mono"
                           [class]="
                             entry.is_billable
-                              ? 'text-green-600'
+                              ? 'text-[var(--success)]'
                               : 'text-[var(--muted-foreground)]'
                           "
                         >

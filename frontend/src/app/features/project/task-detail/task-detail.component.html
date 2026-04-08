@@ -7,7 +7,7 @@
     >
       <ng-template #header>
         <div class="flex items-center gap-2 w-full">
-          <span class="text-sm text-gray-500">Task Detail</span>
+          <span class="text-sm text-[var(--muted-foreground)]">Task Detail</span>
           @if (task()) {
             <button
               (click)="showSaveTemplateDialog.set(true)"
@@ -130,7 +130,7 @@
             </p-tabs>
 
             <!-- Footer: delete -->
-            <div class="border-t border-gray-200 pt-4">
+            <div class="border-t border-[var(--border)] pt-4">
               <div class="flex items-center justify-end">
                 <p-button
                   label="Delete"

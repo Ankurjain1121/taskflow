@@ -44,7 +44,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
             type="button"
             (click)="deleteBoard()"
             [disabled]="isDeleting()"
-            class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium disabled:opacity-50"
+            class="text-sm text-[var(--destructive)] hover:text-[var(--destructive)] dark:text-red-400 dark:hover:text-red-300 font-medium disabled:opacity-50"
           >
             @if (isDeleting()) {
               Deleting...

@@ -35,10 +35,10 @@ export interface BulkPreviewData {
         <div class="space-y-4">
           <div class="flex items-start gap-3">
             <div
-              class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"
+              class="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center"
             >
               <i
-                class="pi pi-info-circle text-blue-600 text-lg"
+                class="pi pi-info-circle text-[var(--primary)] text-lg"
               ></i>
             </div>
             <div>

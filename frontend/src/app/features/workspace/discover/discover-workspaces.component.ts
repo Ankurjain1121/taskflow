@@ -50,14 +50,14 @@ import {
           </div>
         } @else if (error()) {
           <div
-            class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700"
+            class="bg-[var(--destructive)]/10 border border-[var(--destructive)]/20 rounded-lg p-4 text-sm text-[var(--destructive)]"
           >
             {{ error() }}
           </div>
         } @else if (workspaces().length === 0) {
           <div class="text-center py-16">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-[var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

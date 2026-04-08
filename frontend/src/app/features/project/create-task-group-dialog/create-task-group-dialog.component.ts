@@ -35,7 +35,7 @@ export interface CreateTaskGroupDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="groupName"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Group Name</label
           >
           <input
@@ -51,7 +51,7 @@ export interface CreateTaskGroupDialogResult {
         <!-- Color selection -->
         <div>
           <div
-            class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            class="text-sm font-medium text-[var(--foreground)] mb-2"
           >
             Color
           </div>

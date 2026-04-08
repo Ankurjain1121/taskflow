@@ -90,7 +90,7 @@ import {
                 >
                   <span>{{ member.active_tasks }} active</span>
                   @if (member.overdue_tasks > 0) {
-                    <span class="text-red-500 font-medium"
+                    <span class="text-[var(--destructive)] font-medium"
                       >{{ member.overdue_tasks }} overdue</span
                     >
                   }
@@ -140,7 +140,7 @@ export class TeamWorkloadComponent implements OnInit {
   }
 
   getBarColor(member: MemberWorkload): string {
-    if (member.is_overloaded) return 'bg-red-500';
+    if (member.is_overloaded) return 'bg-[var(--destructive)]';
     if (member.overdue_tasks > 0) return 'bg-amber-500';
     return 'bg-emerald-500';
   }

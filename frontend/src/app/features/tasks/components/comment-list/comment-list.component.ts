@@ -129,7 +129,7 @@ interface CommentCreatedPayload {
                   <!-- Author name and timestamp -->
                   <div class="flex items-center gap-2 mb-1">
                     <span
-                      class="font-medium text-[var(--card-foreground)] dark:text-gray-100"
+                      class="font-medium text-[var(--card-foreground)]"
                     >
                       {{ comment.author.display_name }}
                     </span>
@@ -143,7 +143,7 @@ interface CommentCreatedPayload {
 
                   <!-- Comment content with rendered mentions -->
                   <div
-                    class="text-[var(--foreground)] dark:text-gray-300 text-sm whitespace-pre-wrap break-words"
+                    class="text-[var(--foreground)] text-sm whitespace-pre-wrap break-words"
                     [innerHTML]="comment.content | renderMentions"
                   ></div>
 

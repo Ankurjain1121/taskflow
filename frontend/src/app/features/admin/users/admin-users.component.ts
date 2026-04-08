@@ -64,8 +64,8 @@ import { MenuItem } from 'primeng/api';
               }}</span>
               users
               <span class="mx-2 text-[var(--border)]">|</span>
-              <span class="text-purple-600">{{ adminCount() }} admins</span>,
-              <span class="text-blue-600">{{ managerCount() }} managers</span>,
+              <span class="text-[var(--primary)]">{{ adminCount() }} admins</span>,
+              <span class="text-[var(--primary)]">{{ managerCount() }} managers</span>,
               <span class="text-[var(--muted-foreground)]"
                 >{{ memberCount() }} members</span
               >
@@ -511,7 +511,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       {
         label: 'Remove User',
         icon: 'pi pi-trash',
-        styleClass: 'text-red-600',
+        styleClass: 'text-[var(--destructive)]',
         command: () => this.onRemoveUser(user),
       },
     ];
@@ -602,9 +602,9 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const roleColors: Record<string, string> = {
-      SuperAdmin: 'bg-amber-100 text-amber-800',
-      Admin: 'bg-purple-100 text-purple-800',
-      Manager: 'bg-blue-100 text-blue-800',
+      SuperAdmin: 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]',
+      Admin: 'bg-[var(--primary)]/10 text-[var(--primary)]',
+      Manager: 'bg-[var(--primary)]/10 text-[var(--primary)]',
       Member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
     };
 

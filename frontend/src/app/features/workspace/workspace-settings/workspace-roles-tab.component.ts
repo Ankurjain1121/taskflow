@@ -254,7 +254,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
                       <button
                         (click)="deleteRole(role)"
                         [disabled]="deletingRoleId() === role.id"
-                        class="text-sm text-[var(--status-red-text)] hover:text-red-700 disabled:opacity-50"
+                        class="text-sm text-[var(--status-red-text)] hover:text-[var(--destructive)] disabled:opacity-50"
                       >
                         {{
                           deletingRoleId() === role.id

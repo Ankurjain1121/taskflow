@@ -143,27 +143,27 @@ export class UpcomingDeadlinesComponent implements OnInit {
   }
 
   getUrgencyColor(days: number): string {
-    if (days === 0) return 'bg-red-500';
-    if (days <= 2) return 'bg-orange-500';
-    if (days <= 7) return 'bg-yellow-500';
-    return 'bg-blue-500';
+    if (days === 0) return 'bg-[var(--destructive)]';
+    if (days <= 2) return 'bg-[var(--accent-warm)]';
+    if (days <= 7) return 'bg-amber-500';
+    return 'bg-[var(--primary)]';
   }
 
   getUrgencyTextColor(days: number): string {
-    if (days === 0) return 'text-red-600 dark:text-red-400';
-    if (days <= 2) return 'text-orange-600 dark:text-orange-400';
-    if (days <= 7) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-blue-600 dark:text-blue-400';
+    if (days === 0) return 'text-[var(--destructive)]';
+    if (days <= 2) return 'text-[var(--accent-warm)]';
+    if (days <= 7) return 'text-amber-600';
+    return 'text-[var(--primary)]';
   }
 
   getPriorityClass(priority: string): string {
     switch (priority.toLowerCase()) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-[var(--destructive)]/10 text-[var(--destructive)]';
       case 'high':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+        return 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]';
       case 'medium':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-[var(--primary)]/10 text-[var(--primary)]';
       case 'low':
         return 'bg-[var(--muted)] text-[var(--foreground)]';
       default:

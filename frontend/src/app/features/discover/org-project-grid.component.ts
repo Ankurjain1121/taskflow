@@ -45,7 +45,7 @@ import { PortfolioProject } from '../../core/services/portfolio.service';
                   <span>{{ project.total_tasks }} tasks</span>
                 </div>
                 @if (project.overdue_tasks > 0) {
-                  <div class="text-[11px] text-red-500 mt-1">
+                  <div class="text-[11px] text-[var(--destructive)] mt-1">
                     {{ project.overdue_tasks }} overdue
                   </div>
                 }

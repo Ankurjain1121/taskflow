@@ -216,21 +216,21 @@ import { MessageService } from 'primeng/api';
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-                      [class.bg-blue-100]="field.field_type === 'text'"
-                      [class.bg-purple-100]="field.field_type === 'number'"
-                      [class.bg-green-100]="field.field_type === 'date'"
-                      [class.bg-orange-100]="field.field_type === 'dropdown'"
-                      [class.bg-pink-100]="field.field_type === 'checkbox'"
+                      [class.bg-[var(--primary)]/10]="field.field_type === 'text'"
+                      [class.bg-[var(--muted)]]="field.field_type === 'number'"
+                      [class.bg-[var(--success)]/10]="field.field_type === 'date'"
+                      [class.bg-[var(--accent-warm)]/10]="field.field_type === 'dropdown'"
+                      [class.bg-[var(--destructive)]/10]="field.field_type === 'checkbox'"
                     >
                       <span
                         class="text-xs font-bold"
-                        [class.text-blue-600]="field.field_type === 'text'"
-                        [class.text-purple-600]="field.field_type === 'number'"
-                        [class.text-green-600]="field.field_type === 'date'"
-                        [class.text-orange-600]="
+                        [class.text-[var(--primary)]]="field.field_type === 'text'"
+                        [class.text-[var(--muted-foreground)]]="field.field_type === 'number'"
+                        [class.text-[var(--success)]]="field.field_type === 'date'"
+                        [class.text-[var(--accent-warm)]]="
                           field.field_type === 'dropdown'
                         "
-                        [class.text-pink-600]="field.field_type === 'checkbox'"
+                        [class.text-[var(--destructive)]]="field.field_type === 'checkbox'"
                         >{{ getFieldTypeIcon(field.field_type) }}</span
                       >
                     </div>

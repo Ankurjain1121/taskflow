@@ -33,10 +33,10 @@ export class PriorityBadgeComponent {
     const p = this.priority().toLowerCase() as TaskPriority;
     return (
       PRIORITY_COLORS[p] || {
-        bg: 'bg-gray-400',
+        bg: 'bg-[var(--muted-foreground)]',
         text: 'text-white',
-        border: 'border-gray-500',
-        dot: 'bg-gray-300',
+        border: 'border-[var(--muted-foreground)]',
+        dot: 'bg-[var(--muted-foreground)]/60',
       }
     );
   });

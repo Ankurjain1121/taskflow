@@ -68,7 +68,7 @@ const AVAILABLE_EVENTS = [
     <p-toast />
     <div class="p-6 max-w-3xl mx-auto">
       <h2 class="text-xl font-semibold mb-4">Webhooks</h2>
-      <p class="text-gray-600 mb-6">
+      <p class="text-[var(--muted-foreground)] mb-6">
         Send HTTP POST requests to external services when events occur on this
         board.
       </p>
@@ -162,7 +162,7 @@ const AVAILABLE_EVENTS = [
           />
         </div>
       } @else if (webhooks().length === 0) {
-        <div class="text-center text-gray-500 py-8">
+        <div class="text-center text-[var(--muted-foreground)] py-8">
           No webhooks configured yet.
         </div>
       } @else {
@@ -173,11 +173,11 @@ const AVAILABLE_EVENTS = [
                 <div class="flex items-center gap-2 flex-1">
                   <span
                     class="w-2 h-2 rounded-full"
-                    [class.bg-green-500]="webhook.is_active"
-                    [class.bg-gray-400]="!webhook.is_active"
+                    [class.bg-[var(--success)]]="webhook.is_active"
+                    [class.bg-[var(--muted-foreground)]]="!webhook.is_active"
                   ></span>
                   <span class="truncate max-w-xs">{{ webhook.url }}</span>
-                  <span class="text-xs text-gray-500 ml-auto mr-4"
+                  <span class="text-xs text-[var(--muted-foreground)] ml-auto mr-4"
                     >{{ webhook.events.length }} events</span
                   >
                 </div>
@@ -186,7 +186,7 @@ const AVAILABLE_EVENTS = [
                 <div class="space-y-3 pt-2">
                   <!-- Events -->
                   <div>
-                    <span class="text-sm font-medium text-gray-600"
+                    <span class="text-sm font-medium text-[var(--muted-foreground)]"
                       >Events:</span
                     >
                     <div class="flex flex-wrap gap-1 mt-1">
@@ -229,7 +229,7 @@ const AVAILABLE_EVENTS = [
                         Recent Deliveries
                       </h4>
                       @if (deliveriesMap()[webhook.id]!.length === 0) {
-                        <p class="text-sm text-gray-500">No deliveries yet.</p>
+                        <p class="text-sm text-[var(--muted-foreground)]">No deliveries yet.</p>
                       } @else {
                         <div class="space-y-1">
                           @for (d of deliveriesMap()[webhook.id]!; track d.id) {
@@ -238,20 +238,20 @@ const AVAILABLE_EVENTS = [
                             >
                               <span
                                 class="w-2 h-2 rounded-full"
-                                [class.bg-green-500]="d.success"
-                                [class.bg-red-500]="!d.success"
+                                [class.bg-[var(--success)]]="d.success"
+                                [class.bg-[var(--destructive)]]="!d.success"
                               ></span>
                               <span class="font-mono">{{ d.event_type }}</span>
-                              <span class="text-gray-400">{{
+                              <span class="text-[var(--muted-foreground)]">{{
                                 d.delivered_at | date: 'short'
                               }}</span>
                               @if (d.response_status) {
                                 <span
                                   class="ml-auto"
-                                  [class.text-green-600]="
+                                  [class.text-[var(--success)]]="
                                     d.response_status < 400
                                   "
-                                  [class.text-red-600]="
+                                  [class.text-[var(--destructive)]]="
                                     d.response_status >= 400
                                   "
                                 >

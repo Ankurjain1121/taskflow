@@ -92,12 +92,12 @@ export interface BoardTemplate {
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
           ) {
-            <small class="text-red-500">Project name is required</small>
+            <small class="text-[var(--destructive)]">Project name is required</small>
           }
           @if (
             form.get('name')?.hasError('minlength') && form.get('name')?.touched
           ) {
-            <small class="text-red-500"
+            <small class="text-[var(--destructive)]"
               >Project name must be at least 2 characters</small
             >
           }

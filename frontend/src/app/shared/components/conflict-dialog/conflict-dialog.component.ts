@@ -48,7 +48,7 @@ export interface ConflictResolution {
             <div class="grid grid-cols-2 divide-x divide-[var(--border)]">
               <!-- Your changes -->
               <div class="p-3">
-                <div class="text-xs font-medium text-blue-600 mb-1">
+                <div class="text-xs font-medium text-[var(--primary)] mb-1">
                   Your changes
                 </div>
                 @if (field.name === 'description' && field.diffHtml) {

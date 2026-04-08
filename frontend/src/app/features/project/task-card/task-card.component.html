@@ -428,7 +428,7 @@
                     [class.text-emerald-600]="
                       subtaskProgress()!.completed === subtaskProgress()!.total
                     "
-                    [class.text-gray-400]="
+                    [class.text-[var(--muted-foreground)]]="
                       subtaskProgress()!.completed !== subtaskProgress()!.total
                     "
                   >
@@ -542,11 +542,11 @@
                   [class.bg-amber-400]="
                     daysInColumn() >= 4 && daysInColumn() < 8
                   "
-                  [class.bg-red-500]="daysInColumn() >= 8"
+                  [class.bg-[var(--destructive)]]="daysInColumn() >= 8"
                 ></span>
               }
               @if (daysInColumn() >= 8) {
-                <span class="text-[10px] text-red-400 ml-0.5"
+                <span class="text-[10px] text-[var(--destructive)] ml-0.5"
                   >{{ daysInColumn() }}d</span
                 >
               }
@@ -735,7 +735,7 @@
                     [class.text-emerald-600]="
                       subtaskProgress()!.completed === subtaskProgress()!.total
                     "
-                    [class.text-gray-400]="
+                    [class.text-[var(--muted-foreground)]]="
                       subtaskProgress()!.completed !== subtaskProgress()!.total
                     "
                   >
@@ -857,11 +857,11 @@
                   [class.bg-amber-400]="
                     daysInColumn() >= 4 && daysInColumn() < 8
                   "
-                  [class.bg-red-500]="daysInColumn() >= 8"
+                  [class.bg-[var(--destructive)]]="daysInColumn() >= 8"
                 ></span>
               }
               @if (daysInColumn() >= 8) {
-                <span class="text-[10px] text-red-400 ml-0.5"
+                <span class="text-[10px] text-[var(--destructive)] ml-0.5"
                   >{{ daysInColumn() }}d</span
                 >
               }

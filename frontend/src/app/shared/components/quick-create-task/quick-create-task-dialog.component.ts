@@ -66,7 +66,7 @@ import { PRIORITY_COLORS } from '../../constants/priority-colors';
             form.controls.projectId.hasError('required') &&
             form.controls.projectId.touched
           ) {
-            <small class="text-red-500">Project is required</small>
+            <small class="text-[var(--destructive)]">Project is required</small>
           }
         </div>
 
@@ -89,7 +89,7 @@ import { PRIORITY_COLORS } from '../../constants/priority-colors';
             form.controls.title.hasError('required') &&
             form.controls.title.touched
           ) {
-            <small class="text-red-500">Title is required</small>
+            <small class="text-[var(--destructive)]">Title is required</small>
           }
         </div>
 

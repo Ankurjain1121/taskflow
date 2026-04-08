@@ -147,7 +147,7 @@ import { PositionListComponent } from '../positions/position-list.component';
                   >
                     <button
                       (click)="onRemoveMember(member)"
-                      class="text-red-600 hover:text-red-900"
+                      class="text-[var(--destructive)] hover:text-[var(--destructive)]"
                     >
                       Remove
                     </button>

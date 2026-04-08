@@ -11,13 +11,13 @@ interface EventTypeConfig {
 }
 
 const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
-  task_assigned: { icon: 'pi pi-user', color: 'text-blue-500' },
-  task_due_soon: { icon: 'pi pi-clock', color: 'text-orange-500' },
-  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-red-500' },
-  task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
+  task_assigned: { icon: 'pi pi-user', color: 'text-[var(--primary)]' },
+  task_due_soon: { icon: 'pi pi-clock', color: 'text-[var(--accent-warm)]' },
+  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-[var(--destructive)]' },
+  task_commented: { icon: 'pi pi-comment', color: 'text-[var(--success)]' },
   task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
-  mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
-  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-indigo-500' },
+  mention_in_comment: { icon: 'pi pi-at', color: 'text-[var(--primary)]' },
+  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-[var(--muted-foreground)]' },
   task_reminder: { icon: 'pi pi-bell', color: 'text-amber-500' },
 };
 

@@ -54,8 +54,8 @@ const CAPABILITY_ITEMS: CapabilityItem[] = [
         }
       </div>
     } @else if (errorMessage()) {
-      <div class="rounded-xl border border-red-200 dark:border-red-800 p-6 text-center">
-        <i class="pi pi-exclamation-triangle text-2xl text-red-500 mb-2"></i>
+      <div class="rounded-xl border border-[var(--destructive)]/20 p-6 text-center">
+        <i class="pi pi-exclamation-triangle text-2xl text-[var(--destructive)] mb-2"></i>
         <p class="text-sm text-[var(--muted-foreground)] mb-3">{{ errorMessage() }}</p>
         <button
           class="text-sm font-semibold text-[var(--primary)] hover:underline"

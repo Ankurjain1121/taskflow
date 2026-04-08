@@ -142,10 +142,10 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
             <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center"
                 >
                   <svg
-                    class="w-5 h-5 text-blue-600"
+                    class="w-5 h-5 text-[var(--primary)]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -172,10 +172,10 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
             <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-[var(--success)]/10 flex items-center justify-center"
                 >
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-5 h-5 text-[var(--success)]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -203,12 +203,12 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-lg flex items-center justify-center"
-                  [class.bg-red-100]="(workload()?.overdue_tasks || 0) > 0"
+                  [class.bg-[var(--destructive)]/10]="(workload()?.overdue_tasks || 0) > 0"
                   [class.bg-[var(--muted)]]="(workload()?.overdue_tasks || 0) === 0"
                 >
                   <svg
                     class="w-5 h-5"
-                    [class.text-red-600]="(workload()?.overdue_tasks || 0) > 0"
+                    [class.text-[var(--destructive)]]="(workload()?.overdue_tasks || 0) > 0"
                     [class.text-[var(--muted-foreground)]]="
                       (workload()?.overdue_tasks || 0) === 0
                     "
@@ -227,7 +227,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div>
                   <p
                     class="text-2xl font-bold"
-                    [class.text-red-600]="(workload()?.overdue_tasks || 0) > 0"
+                    [class.text-[var(--destructive)]]="(workload()?.overdue_tasks || 0) > 0"
                     [class.text-[var(--foreground)]]="
                       (workload()?.overdue_tasks || 0) === 0
                     "
@@ -282,10 +282,10 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
             <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center"
                 >
                   <svg
-                    class="w-5 h-5 text-blue-600"
+                    class="w-5 h-5 text-[var(--primary)]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -299,7 +299,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   </svg>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-blue-600">
+                  <p class="text-2xl font-bold text-[var(--primary)]">
                     {{ workload()?.due_this_week || 0 }}
                   </p>
                   <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
@@ -351,13 +351,13 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                       <div class="px-6 py-3 flex items-center gap-3">
                         <span
                           class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          [class.bg-red-500]="
+                          [class.bg-[var(--destructive)]]="
                             task.priority === 'urgent' ||
                             task.priority === 'critical'
                           "
                           [class.bg-orange-500]="task.priority === 'high'"
                           [class.bg-yellow-500]="task.priority === 'medium'"
-                          [class.bg-blue-400]="task.priority === 'low'"
+                          [class.bg-[var(--primary)]]="task.priority === 'low'"
                           [class.bg-[var(--muted)]]="
                             task.priority === 'none' || !task.priority
                           "
@@ -379,8 +379,8 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                         @if (task.due_date) {
                           <span
                             class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
-                            [class.bg-red-100]="isOverdue(task.due_date)"
-                            [class.text-red-700]="isOverdue(task.due_date)"
+                            [class.bg-[var(--destructive)]/10]="isOverdue(task.due_date)"
+                            [class.text-[var(--destructive)]]="isOverdue(task.due_date)"
                             [class.bg-[var(--secondary)]]="
                               !isOverdue(task.due_date)
                             "
@@ -430,19 +430,19 @@ export class MemberDetailComponent implements OnInit {
         label: 'Overdue',
         status: 'overdue',
         tasks: [],
-        colorClass: 'text-red-600',
+        colorClass: 'text-[var(--destructive)]',
       },
       {
         label: 'Due Today',
         status: 'due_today',
         tasks: [],
-        colorClass: 'text-amber-600',
+        colorClass: 'text-[var(--accent-warm)]',
       },
       {
         label: 'Due This Week',
         status: 'due_this_week',
         tasks: [],
-        colorClass: 'text-blue-600',
+        colorClass: 'text-[var(--primary)]',
       },
       {
         label: 'Upcoming',
@@ -504,11 +504,11 @@ export class MemberDetailComponent implements OnInit {
 
   getRoleBadgeClass(role: string): string {
     const classes: Record<string, string> = {
-      owner: 'bg-purple-100 text-purple-800',
-      admin: 'bg-blue-100 text-blue-800',
+      owner: 'bg-[var(--primary)]/10 text-[var(--primary)]',
+      admin: 'bg-[var(--primary)]/10 text-[var(--primary)]',
       manager: 'bg-primary/10 text-primary',
       member: 'bg-[var(--muted)] text-[var(--muted-foreground)]',
-      viewer: 'bg-orange-100 text-orange-800',
+      viewer: 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]',
     };
     return classes[role] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }

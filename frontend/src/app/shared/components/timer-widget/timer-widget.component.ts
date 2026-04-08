@@ -44,10 +44,10 @@ import {
         <!-- Pulsing dot -->
         <span class="relative flex h-2.5 w-2.5">
           <span
-            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"
+            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--destructive)] opacity-75"
           ></span>
           <span
-            class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"
+            class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--destructive)]"
           ></span>
         </span>
 
@@ -69,7 +69,7 @@ import {
         <button
           (click)="stopTimer()"
           [disabled]="stopping()"
-          class="ml-1 flex items-center justify-center w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
+          class="ml-1 flex items-center justify-center w-8 h-8 rounded-full bg-[var(--destructive)] hover:bg-[var(--destructive)] text-white transition-colors disabled:opacity-50"
           title="Stop timer"
         >
           @if (stopping()) {

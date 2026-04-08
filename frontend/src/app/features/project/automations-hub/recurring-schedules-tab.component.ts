@@ -276,7 +276,7 @@ interface TimelineDay {
           <!-- Title -->
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium text-[var(--foreground)]"
-              >Title <span class="text-red-400">*</span></label
+              >Title <span class="text-[var(--destructive)]">*</span></label
             >
             <input
               pInputText

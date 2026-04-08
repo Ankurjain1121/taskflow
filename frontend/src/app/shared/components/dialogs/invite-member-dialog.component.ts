@@ -71,7 +71,7 @@ interface EmailValidation {
       (onShow)="onDialogShow()"
     >
       @if (effectiveWorkspaceName()) {
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p class="text-sm text-[var(--muted-foreground)] mb-4">
           Invite new members to {{ effectiveWorkspaceName() }}
         </p>
       }
@@ -81,7 +81,7 @@ interface EmailValidation {
           <div class="flex flex-col gap-1 mb-4">
             <label
               for="workspace"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Workspace</label
             >
             <p-select
@@ -101,7 +101,7 @@ interface EmailValidation {
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="emailsText"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Email Addresses</label
           >
           <textarea
@@ -113,14 +113,14 @@ interface EmailValidation {
             class="w-full"
             (blur)="validateEmails()"
           ></textarea>
-          <small class="text-gray-500 dark:text-gray-400"
+          <small class="text-[var(--muted-foreground)]"
             >Enter one email per line or separate with commas</small
           >
           @if (
             form.get('emailsText')?.hasError('required') &&
             form.get('emailsText')?.touched
           ) {
-            <small class="text-red-500">At least one email is required</small>
+            <small class="text-[var(--destructive)]">At least one email is required</small>
           }
         </div>
 
@@ -128,14 +128,14 @@ interface EmailValidation {
         @if (parsedEmails().length > 0) {
           <div class="mb-4">
             <div
-              class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2"
+              class="text-xs font-medium text-[var(--muted-foreground)] mb-2"
             >
               {{ validEmailCount() }} valid email{{
                 validEmailCount() !== 1 ? 's' : ''
               }}
               found
               @if (invalidEmailCount() > 0) {
-                <span class="text-red-500 ml-1">
+                <span class="text-[var(--destructive)] ml-1">
                   ({{ invalidEmailCount() }} invalid)
                 </span>
               }
@@ -160,7 +160,7 @@ interface EmailValidation {
                   {{ item.email }}
                   @if (!item.valid) {
                     <svg
-                      class="w-3 h-3 text-red-500"
+                      class="w-3 h-3 text-[var(--destructive)]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -181,7 +181,7 @@ interface EmailValidation {
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="role"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Role</label
           >
           <p-select
@@ -198,7 +198,7 @@ interface EmailValidation {
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="jobTitle"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Job Title (optional)</label
           >
           <input
@@ -208,7 +208,7 @@ interface EmailValidation {
             placeholder="e.g. Product Designer, Backend Engineer"
             class="w-full"
           />
-          <small class="text-gray-500 dark:text-gray-400"
+          <small class="text-[var(--muted-foreground)]"
             >Pre-fill a job title for the invitee(s)</small
           >
         </div>
@@ -217,15 +217,15 @@ interface EmailValidation {
         @if (effectiveBoards().length > 0) {
           <div class="mb-4">
             <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              class="block text-sm font-medium text-[var(--foreground)] mb-2"
             >
               Board Access
             </label>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">
               Select which boards the invited members should have access to
             </p>
             <div
-              class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1"
+              class="border border-[var(--border)] rounded-lg p-3 max-h-48 overflow-y-auto space-y-1"
             >
               <div class="mb-2 flex items-center gap-2">
                 <p-checkbox
@@ -237,7 +237,7 @@ interface EmailValidation {
                 />
                 <label
                   for="selectAll"
-                  class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+                  class="text-sm font-medium text-[var(--foreground)] cursor-pointer"
                   >Select All</label
                 >
               </div>
@@ -256,14 +256,14 @@ interface EmailValidation {
                   />
                   <label
                     [for]="'board-' + i"
-                    class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                    class="text-sm text-[var(--foreground)] cursor-pointer"
                     >{{ board.name }}</label
                   >
                 </div>
               }
             </div>
             @if (selectedBoardIds().length > 0) {
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p class="text-xs text-[var(--muted-foreground)] mt-1">
                 {{ selectedBoardIds().length }} board{{
                   selectedBoardIds().length !== 1 ? 's' : ''
                 }}
@@ -277,7 +277,7 @@ interface EmailValidation {
         <div class="flex flex-col gap-1">
           <label
             for="message"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Welcome Message (optional)</label
           >
           <textarea
@@ -288,7 +288,7 @@ interface EmailValidation {
             rows="3"
             class="w-full"
           ></textarea>
-          <small class="text-gray-500 dark:text-gray-400"
+          <small class="text-[var(--muted-foreground)]"
             >This message will be included in the invitation email</small
           >
         </div>

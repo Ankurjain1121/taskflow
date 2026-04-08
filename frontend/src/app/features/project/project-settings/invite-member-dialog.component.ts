@@ -44,7 +44,7 @@ export interface InviteMemberDialogResult {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-[var(--muted-foreground)] mb-4">
         Add a new member to "{{ boardName() }}"
       </p>
       <form [formGroup]="form" class="flex flex-col gap-4">
@@ -52,7 +52,7 @@ export interface InviteMemberDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="email"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Email address</label
           >
           <input
@@ -67,13 +67,13 @@ export interface InviteMemberDialogResult {
             form.controls['email'].hasError('required') &&
             form.controls['email'].touched
           ) {
-            <small class="text-red-500">Email is required</small>
+            <small class="text-[var(--destructive)]">Email is required</small>
           }
           @if (
             form.controls['email'].hasError('email') &&
             form.controls['email'].touched
           ) {
-            <small class="text-red-500">Please enter a valid email</small>
+            <small class="text-[var(--destructive)]">Please enter a valid email</small>
           }
         </div>
 
@@ -81,7 +81,7 @@ export interface InviteMemberDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="role"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Role</label
           >
           <p-select

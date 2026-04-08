@@ -89,7 +89,7 @@ import {
                 </td>
                 <td>
                   <span
-                    class="text-sm font-semibold text-red-600 dark:text-red-400 font-display"
+                    class="text-sm font-semibold text-[var(--destructive)] font-display"
                   >
                     {{ task.days_overdue }}d
                   </span>
@@ -115,7 +115,7 @@ import {
           style="color: var(--muted-foreground)"
         >
           <div class="text-center">
-            <i class="pi pi-check-circle text-3xl text-green-400 mb-2"></i>
+            <i class="pi pi-check-circle text-3xl text-[var(--success)] mb-2"></i>
             <p class="text-sm">No overdue tasks!</p>
           </div>
         </div>
@@ -164,11 +164,11 @@ export class OverdueTasksTableComponent implements OnInit {
   getPriorityClass(priority: string): string {
     switch (priority.toLowerCase()) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-[var(--destructive)]/10 text-[var(--destructive)]';
       case 'high':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
       case 'medium':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-[var(--primary)]/10 text-[var(--primary)]';
       case 'low':
         return 'bg-[var(--muted)] text-[var(--foreground)]';
       default:

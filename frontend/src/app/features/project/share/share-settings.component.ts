@@ -43,7 +43,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
     <p-toast />
     <div class="p-6 max-w-3xl mx-auto">
       <h2 class="text-xl font-semibold mb-4">Share Settings</h2>
-      <p class="text-gray-600 mb-6">
+      <p class="text-[var(--muted-foreground)] mb-6">
         Create shareable links to give external users read-only access to this
         board.
       </p>
@@ -107,7 +107,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
           />
         </div>
       } @else if (shares().length === 0) {
-        <div class="text-center text-gray-500 py-8">
+        <div class="text-center text-[var(--muted-foreground)] py-8">
           No share links created yet.
         </div>
       } @else {
@@ -123,18 +123,18 @@ import { Clipboard } from '@angular/cdk/clipboard';
                       }}</span>
                       @if (!share.is_active) {
                         <span
-                          class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded"
+                          class="text-xs bg-[var(--muted)] text-[var(--muted-foreground)] px-2 py-0.5 rounded"
                           >Inactive</span
                         >
                       }
                       @if (share.expires_at) {
-                        <span class="text-xs text-gray-500"
+                        <span class="text-xs text-[var(--muted-foreground)]"
                           >Expires: {{ share.expires_at | date: 'short' }}</span
                         >
                       }
                     </div>
                     <div
-                      class="text-sm text-gray-500 font-mono truncate max-w-md"
+                      class="text-sm text-[var(--muted-foreground)] font-mono truncate max-w-md"
                     >
                       {{ getShareUrl(share) }}
                     </div>

@@ -314,8 +314,8 @@ import { RuleBuilderComponent } from './rule-builder.component';
                           <div class="flex items-center gap-2">
                             <span
                               class="w-1.5 h-1.5 rounded-full"
-                              [class.bg-green-500]="log.status === 'success'"
-                              [class.bg-red-500]="log.status === 'error'"
+                              [class.bg-[var(--success)]]="log.status === 'success'"
+                              [class.bg-[var(--destructive)]]="log.status === 'error'"
                               [class.bg-yellow-500]="
                                 log.status !== 'success' &&
                                 log.status !== 'error'
@@ -404,36 +404,36 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
 
   getTriggerBgClass(trigger: AutomationTrigger): string {
     const map: Record<AutomationTrigger, string> = {
-      task_moved: 'bg-purple-100',
-      task_created: 'bg-green-100',
-      task_assigned: 'bg-blue-100',
-      task_priority_changed: 'bg-orange-100',
-      task_due_date_passed: 'bg-red-100',
+      task_moved: 'bg-[var(--primary)]/10',
+      task_created: 'bg-[var(--success)]/10',
+      task_assigned: 'bg-[var(--primary)]/10',
+      task_priority_changed: 'bg-[var(--accent-warm)]/10',
+      task_due_date_passed: 'bg-[var(--destructive)]/10',
       task_completed: 'bg-emerald-100',
       subtask_completed: 'bg-teal-100',
       comment_added: 'bg-cyan-100',
-      custom_field_changed: 'bg-indigo-100',
-      label_changed: 'bg-yellow-100',
+      custom_field_changed: 'bg-[var(--muted)]',
+      label_changed: 'bg-amber-100',
       due_date_approaching: 'bg-amber-100',
-      member_joined: 'bg-pink-100',
+      member_joined: 'bg-rose-100',
     };
     return map[trigger] || 'bg-[var(--muted)]';
   }
 
   getTriggerIconClass(trigger: AutomationTrigger): string {
     const map: Record<AutomationTrigger, string> = {
-      task_moved: 'text-purple-600',
-      task_created: 'text-green-600',
-      task_assigned: 'text-blue-600',
-      task_priority_changed: 'text-orange-600',
-      task_due_date_passed: 'text-red-600',
+      task_moved: 'text-[var(--primary)]',
+      task_created: 'text-[var(--success)]',
+      task_assigned: 'text-[var(--primary)]',
+      task_priority_changed: 'text-[var(--accent-warm)]',
+      task_due_date_passed: 'text-[var(--destructive)]',
       task_completed: 'text-emerald-600',
       subtask_completed: 'text-teal-600',
       comment_added: 'text-cyan-600',
-      custom_field_changed: 'text-indigo-600',
-      label_changed: 'text-yellow-600',
+      custom_field_changed: 'text-[var(--muted-foreground)]',
+      label_changed: 'text-amber-600',
       due_date_approaching: 'text-amber-600',
-      member_joined: 'text-pink-600',
+      member_joined: 'text-rose-600',
     };
     return map[trigger] || 'text-[var(--muted-foreground)]';
   }

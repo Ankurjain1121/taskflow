@@ -33,7 +33,7 @@ import { formatDate, getPatternLabel } from './task-fields-utils';
     <div class="border-t border-[var(--border)] pt-6">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <i class="pi pi-replay text-gray-400"></i>
+          <i class="pi pi-replay text-[var(--muted-foreground)]"></i>
           <h3 class="text-sm font-medium text-[var(--card-foreground)]">
             Recurring
           </h3>
@@ -74,7 +74,7 @@ import { formatDate, getPatternLabel } from './task-fields-utils';
               </button>
               <button
                 (click)="recurringRemoved.emit()"
-                class="p-1 text-red-400 hover:text-red-600 rounded"
+                class="p-1 text-red-400 hover:text-[var(--destructive)] rounded"
                 pTooltip="Remove"
                 aria-label="Remove"
               >
@@ -234,7 +234,7 @@ import { formatDate, getPatternLabel } from './task-fields-utils';
       }
 
       @if (!recurringConfig() && !showRecurringForm()) {
-        <div class="text-sm text-gray-400">Not recurring</div>
+        <div class="text-sm text-[var(--muted-foreground)]">Not recurring</div>
       }
     </div>
   `,
