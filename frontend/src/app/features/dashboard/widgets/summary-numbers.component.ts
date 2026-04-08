@@ -80,9 +80,9 @@ export interface SummaryStats {
                 card.trend > 0
                   ? card.trendPositive
                     ? 'text-emerald-600'
-                    : 'text-red-500'
+                    : 'text-[var(--destructive)]'
                   : card.trendPositive
-                    ? 'text-red-500'
+                    ? 'text-[var(--destructive)]'
                     : 'text-emerald-600'
               "
             >

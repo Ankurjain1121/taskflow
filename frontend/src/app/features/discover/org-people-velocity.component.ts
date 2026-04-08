@@ -35,7 +35,7 @@ import { VelocityPoint } from '../../core/services/dashboard.service';
                   </div>
                 </div>
                 <span class="text-xs font-medium shrink-0"
-                      [class.text-red-500]="member.active_tasks >= 10"
+                      [class.text-[var(--destructive)]]="member.active_tasks >= 10"
                       [style.color]="member.active_tasks < 10 ? 'var(--muted-foreground)' : undefined">
                   {{ member.active_tasks }}
                   @if (member.active_tasks >= 10) { <span class="text-[10px]">!</span> }
@@ -44,7 +44,7 @@ import { VelocityPoint } from '../../core/services/dashboard.service';
             }
           </div>
           @if (overloadedCount() > 0) {
-            <p class="text-[11px] text-red-500 mt-3">
+            <p class="text-[11px] text-[var(--destructive)] mt-3">
               {{ overloadedCount() }} {{ overloadedCount() === 1 ? 'member' : 'members' }} overloaded
             </p>
           }
@@ -82,7 +82,7 @@ import { VelocityPoint } from '../../core/services/dashboard.service';
                 On-time: {{ onTimePct() }}%
               </div>
               @if (velocityTrend() !== 0) {
-                <div class="text-xs" [class.text-green-500]="velocityTrend() > 0" [class.text-red-500]="velocityTrend() < 0">
+                <div class="text-xs" [class.text-[var(--success)]]="velocityTrend() > 0" [class.text-[var(--destructive)]]="velocityTrend() < 0">
                   {{ velocityTrend() > 0 ? '\u2191' : '\u2193' }} {{ Math.abs(velocityTrend()) }}% vs last month
                 </div>
               }

@@ -190,7 +190,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
                   >
                   <button
                     (click)="confirmSkip()"
-                    class="font-medium text-red-500 hover:text-red-600"
+                    class="font-medium text-[var(--destructive)] hover:text-[var(--destructive)]"
                   >
                     Yes
                   </button>

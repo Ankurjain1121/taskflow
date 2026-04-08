@@ -28,17 +28,17 @@ const UNDO_WINDOW_SECONDS = 60;
   template: `
     @if (activeUndo()) {
       <div
-        class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white rounded-lg shadow-2xl px-5 py-3 flex items-center gap-4 animate-slide-up"
+        class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-[var(--foreground)] text-white rounded-lg shadow-2xl px-5 py-3 flex items-center gap-4 animate-slide-up"
       >
         <span class="text-sm">{{ activeUndo()!.description }}</span>
         <button
-          class="px-3 py-1 text-sm font-medium bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+          class="px-3 py-1 text-sm font-medium bg-[var(--primary)] hover:bg-[var(--primary)] rounded transition-colors"
           (click)="onUndo()"
         >
           Undo ({{ activeUndo()!.remainingSeconds }}s)
         </button>
         <button
-          class="text-gray-400 hover:text-white transition-colors"
+          class="text-[var(--muted-foreground)] hover:text-white transition-colors"
           (click)="dismiss()"
           aria-label="Dismiss"
         >

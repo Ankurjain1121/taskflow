@@ -312,17 +312,17 @@ export class AttachmentListComponent implements OnInit, OnDestroy {
 
   getFileIconBgClass(mimeType: string): string {
     if (mimeType.startsWith('image/')) return 'bg-pink-500';
-    if (mimeType.startsWith('video/')) return 'bg-purple-500';
+    if (mimeType.startsWith('video/')) return 'bg-[var(--primary)]';
     if (mimeType.startsWith('audio/')) return 'bg-orange-500';
-    if (mimeType === 'application/pdf') return 'bg-red-500';
+    if (mimeType === 'application/pdf') return 'bg-[var(--destructive)]';
     if (mimeType.includes('spreadsheet') || mimeType.includes('excel'))
-      return 'bg-green-500';
+      return 'bg-[var(--success)]';
     if (mimeType.includes('presentation') || mimeType.includes('powerpoint'))
       return 'bg-yellow-500';
     if (mimeType.includes('word') || mimeType.includes('document'))
-      return 'bg-blue-500';
+      return 'bg-[var(--primary)]';
     if (mimeType.includes('zip') || mimeType.includes('archive'))
-      return 'bg-gray-500';
+      return 'bg-[var(--muted-foreground)]';
     return 'bg-primary';
   }
 

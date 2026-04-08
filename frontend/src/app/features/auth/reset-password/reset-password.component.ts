@@ -47,7 +47,7 @@ import { AuthService } from '../../../core/services/auth.service';
           @if (!token) {
             <div class="text-center">
               <i
-                class="pi pi-exclamation-circle text-red-500 mb-4"
+                class="pi pi-exclamation-circle text-[var(--destructive)] mb-4"
                 style="font-size: 48px;"
               ></i>
               <h3 class="text-lg font-semibold mb-2">Invalid Reset Link</h3>
@@ -61,7 +61,7 @@ import { AuthService } from '../../../core/services/auth.service';
           } @else if (resetSuccess) {
             <div class="text-center">
               <i
-                class="pi pi-check-circle text-green-500 mb-4"
+                class="pi pi-check-circle text-[var(--success)] mb-4"
                 style="font-size: 48px;"
               ></i>
               <h3 class="text-lg font-semibold mb-2">

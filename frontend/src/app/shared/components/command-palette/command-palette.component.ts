@@ -70,7 +70,7 @@ export type { CommandAction } from './command-palette.types';
           <div
             class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]"
           >
-            <i class="pi pi-search text-gray-400 shrink-0"></i>
+            <i class="pi pi-search text-[var(--muted-foreground)] shrink-0"></i>
             <input
               #searchInput
               type="text"
@@ -81,7 +81,7 @@ export type { CommandAction } from './command-palette.types';
                   ? 'Type a command...'
                   : 'Search tasks, projects... (> for commands)'
               "
-              class="flex-1 bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] text-lg text-[var(--card-foreground)] placeholder-gray-400"
+              class="flex-1 bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] text-lg text-[var(--card-foreground)] placeholder-[var(--muted-foreground)]"
               autocomplete="off"
               (keydown)="onInputKeydown($event)"
             />
@@ -91,7 +91,7 @@ export type { CommandAction } from './command-palette.types';
                 class="p-1 hover:bg-[var(--secondary)] rounded"
                 aria-label="Clear search"
               >
-                <i class="pi pi-times text-gray-400 text-sm"></i>
+                <i class="pi pi-times text-[var(--muted-foreground)] text-sm"></i>
               </button>
             }
             <kbd
@@ -129,7 +129,7 @@ export type { CommandAction } from './command-palette.types';
                       [class]="
                         'pi pi-' +
                         action.icon +
-                        ' w-5 h-5 text-gray-400 shrink-0'
+                        ' w-5 h-5 text-[var(--muted-foreground)] shrink-0'
                       "
                     ></i>
                     <span
@@ -247,7 +247,7 @@ export type { CommandAction } from './command-palette.types';
                   >
                     <i
                       [class]="
-                        'pi pi-' + action.icon + ' text-gray-400 shrink-0'
+                        'pi pi-' + action.icon + ' text-[var(--muted-foreground)] shrink-0'
                       "
                     ></i>
                     <span
@@ -411,7 +411,7 @@ export type { CommandAction } from './command-palette.types';
 
           <!-- Footer -->
           <div
-            class="flex items-center justify-between px-4 py-2 border-t border-[var(--border)] text-xs text-gray-400"
+            class="flex items-center justify-between px-4 py-2 border-t border-[var(--border)] text-xs text-[var(--muted-foreground)]"
           >
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1">

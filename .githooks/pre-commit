@@ -287,3 +287,19 @@ else
     echo ""
     exit 0
 fi
+
+# =============================================================================
+# Check 8: Hardcoded Tailwind colors in frontend (WARNING)
+# =============================================================================
+# Theme system uses CSS variables. Hardcoded colors break across themes.
+FRONTEND_STAGED=$(echo "$STAGED_FILES" | grep -E 'frontend/src/.*\.(ts|html)$' | grep -v '.spec.')
+if [ -n "$FRONTEND_STAGED" ]; then
+    HARDCODED=$(echo "$FRONTEND_STAGED" | xargs grep -n 'text-gray-\|bg-gray-\|border-gray-\|text-red-[0-9]\|text-blue-[0-9]\|text-green-[0-9]\|text-orange-[0-9]\|text-purple-[0-9]\|dark:text-\|dark:bg-\|dark:border-' 2>/dev/null | grep -v 'task-colors.ts' | head -10)
+    if [ -n "$HARDCODED" ]; then
+        echo ""
+        echo "${YELLOW}  ⚠ HARDCODED COLORS DETECTED${NC}"
+        echo "${YELLOW}  Use CSS variables instead (var(--foreground), var(--muted-foreground), etc.)${NC}"
+        echo "$HARDCODED" | head -5
+        WARNINGS=$((WARNINGS + 1))
+    fi
+fi

@@ -41,7 +41,7 @@ export interface CreateWorkspaceDialogResult {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
         Workspaces help you organize your projects and collaborate with your
         team.
       </p>
@@ -50,7 +50,7 @@ export interface CreateWorkspaceDialogResult {
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="wsName"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Workspace Name</label
           >
           <input
@@ -64,12 +64,12 @@ export interface CreateWorkspaceDialogResult {
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
           ) {
-            <small class="text-red-500">Workspace name is required</small>
+            <small class="text-[var(--destructive)]">Workspace name is required</small>
           }
           @if (
             form.get('name')?.hasError('minlength') && form.get('name')?.touched
           ) {
-            <small class="text-red-500"
+            <small class="text-[var(--destructive)]"
               >Workspace name must be at least 2 characters</small
             >
           }
@@ -79,7 +79,7 @@ export interface CreateWorkspaceDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="wsDescription"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Description (optional)</label
           >
           <textarea

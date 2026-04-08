@@ -134,7 +134,7 @@ import { RoleBadgeComponent } from '../../../shared/components/role-badge/role-b
                     (member()!.display_name || member()!.email) +
                     ' from workspace'
                   "
-                  class="text-sm text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                  class="text-sm text-[var(--destructive)] hover:text-[var(--destructive)] transition-colors disabled:opacity-50"
                 >
                   Remove from Workspace
                 </button>

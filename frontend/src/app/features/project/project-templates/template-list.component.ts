@@ -152,7 +152,7 @@ export interface UseTemplateDialogResult {
                       </span>
                       @if (template.is_public) {
                         <span
-                          class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-500"
+                          class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--success)]/10 text-[var(--success)]"
                         >
                           Public
                         </span>
@@ -179,7 +179,7 @@ export interface UseTemplateDialogResult {
                         onDeleteTemplate(template); $event.stopPropagation()
                       "
                     >
-                      <i class="pi pi-trash text-red-500"></i>
+                      <i class="pi pi-trash text-[var(--destructive)]"></i>
                     </button>
                   }
                   <button

@@ -129,13 +129,13 @@ export class ActivityLogTabComponent implements OnInit {
 
   getStatusClass(status: string): string {
     if (status === 'success') return 'bg-emerald-500/10 text-emerald-600';
-    if (status === 'error') return 'bg-red-500/10 text-red-600';
+    if (status === 'error') return 'bg-red-500/10 text-[var(--destructive)]';
     return 'bg-amber-500/10 text-amber-600';
   }
 
   getStatusDotClass(status: string): string {
     if (status === 'success') return 'bg-emerald-500';
-    if (status === 'error') return 'bg-red-500';
+    if (status === 'error') return 'bg-[var(--destructive)]';
     return 'bg-amber-500';
   }
 

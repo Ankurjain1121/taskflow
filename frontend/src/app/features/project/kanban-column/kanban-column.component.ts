@@ -479,7 +479,7 @@ export class KanbanColumnComponent {
     {
       label: 'Delete Column',
       icon: 'pi pi-trash',
-      styleClass: 'text-red-500',
+      styleClass: 'text-[var(--destructive)]',
       command: () => this.columnDeleteRequested.emit(this.column().id),
     },
   ]);
@@ -528,7 +528,7 @@ export class KanbanColumnComponent {
     const limit = this.column().wip_limit;
     if (!limit) return 'text-[var(--muted-foreground)]';
     const count = this.tasks().length;
-    if (count > limit) return 'text-red-500 font-bold';
+    if (count > limit) return 'text-[var(--destructive)] font-bold';
     if (count === limit) return 'text-amber-500 font-semibold';
     return 'text-[var(--muted-foreground)]';
   });

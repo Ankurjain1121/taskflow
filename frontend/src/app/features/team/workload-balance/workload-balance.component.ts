@@ -37,12 +37,12 @@ import {
 
         @if (error()) {
           <div
-            class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between"
+            class="mb-4 p-3 rounded-lg bg-[var(--destructive)]/10 border border-[var(--destructive)]/20 text-[var(--destructive)] text-sm flex items-center justify-between"
           >
             <span>{{ error() }}</span>
             <button
               (click)="error.set(null)"
-              class="text-red-500 hover:text-red-700 ml-2"
+              class="text-[var(--destructive)] hover:text-[var(--destructive)] ml-2"
             >
               &times;
             </button>
@@ -99,7 +99,7 @@ import {
                         <p class="text-xs text-[var(--muted-foreground)]">
                           {{ member.active_tasks }} active
                           @if (member.overdue_tasks > 0) {
-                            <span class="text-red-500">
+                            <span class="text-[var(--destructive)]">
                               / {{ member.overdue_tasks }} overdue
                             </span>
                           }
@@ -107,7 +107,7 @@ import {
                       </div>
                       @if (member.is_overloaded) {
                         <span
-                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-red-100 text-red-700"
+                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-[var(--destructive)]/10 text-[var(--destructive)]"
                         >
                           Overloaded
                         </span>
@@ -243,7 +243,7 @@ import {
                           @if (task.due_date) {
                             <span
                               class="text-xs text-[var(--muted-foreground)] flex-shrink-0"
-                              [class.text-red-500]="isOverdue(task.due_date)"
+                              [class.text-[var(--destructive)]]="isOverdue(task.due_date)"
                             >
                               Due {{ formatDate(task.due_date) }}
                             </span>
@@ -440,10 +440,10 @@ export class WorkloadBalanceComponent implements OnInit {
 
   getPriorityClass(priority: string): string {
     const classes: Record<string, string> = {
-      urgent: 'bg-red-100 text-red-700',
-      high: 'bg-orange-100 text-orange-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      low: 'bg-blue-100 text-blue-700',
+      urgent: 'bg-[var(--destructive)]/10 text-[var(--destructive)]',
+      high: 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]',
+      medium: 'bg-amber-100 text-amber-700',
+      low: 'bg-[var(--primary)]/10 text-[var(--primary)]',
     };
     return classes[priority.toLowerCase()] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }

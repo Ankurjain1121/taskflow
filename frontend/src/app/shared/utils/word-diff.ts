@@ -33,9 +33,9 @@ export function renderDiffHtml(segments: DiffSegment[]): string {
     .map((seg) => {
       switch (seg.type) {
         case 'added':
-          return `<span class="bg-green-100 text-green-800 px-0.5 rounded">${escapeHtml(seg.text)}</span>`;
+          return `<span class="bg-green-100 text-[var(--success)] px-0.5 rounded">${escapeHtml(seg.text)}</span>`;
         case 'removed':
-          return `<span class="bg-red-100 text-red-800 line-through px-0.5 rounded">${escapeHtml(seg.text)}</span>`;
+          return `<span class="bg-[var(--destructive)]/10 text-[var(--destructive)]ed-800 line-through px-0.5 rounded">${escapeHtml(seg.text)}</span>`;
         case 'unchanged':
           return escapeHtml(seg.text);
       }

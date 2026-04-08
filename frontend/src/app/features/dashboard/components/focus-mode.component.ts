@@ -190,13 +190,13 @@ export class FocusModeComponent {
   getPriorityClass(priority: string): string {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-500';
+        return 'bg-[var(--destructive)]';
       case 'high':
         return 'bg-orange-500';
       case 'medium':
-        return 'bg-blue-500';
+        return 'bg-[var(--primary)]';
       default:
-        return 'bg-gray-400';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 

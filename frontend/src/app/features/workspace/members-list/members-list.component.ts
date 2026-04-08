@@ -209,7 +209,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                       <button
                         (click)="onRemoveMember(member)"
                         [disabled]="updatingMember() === member.user_id"
-                        class="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        class="text-[var(--destructive)] hover:text-[var(--destructive)] disabled:opacity-50"
                       >
                         Remove
                       </button>
@@ -365,7 +365,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                           <button
                             (click)="onCancelInvitation(invitation)"
                             [disabled]="actionInProgress() === invitation.id"
-                            class="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            class="text-[var(--destructive)] hover:text-[var(--destructive)] disabled:opacity-50"
                           >
                             Cancel
                           </button>

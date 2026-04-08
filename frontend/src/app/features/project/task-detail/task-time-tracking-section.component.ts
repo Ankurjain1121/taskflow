@@ -52,7 +52,7 @@ import { formatDuration, formatDate } from './task-fields-utils';
       <div class="mb-3">
         @if (runningTimer()) {
           <div class="flex items-center gap-3 px-3 py-2 bg-[var(--status-red-bg)] rounded-md">
-            <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+            <div class="w-2 h-2 rounded-full bg-[var(--destructive)] animate-pulse"></div>
             <span class="text-sm font-mono tabular-nums text-[var(--status-red-text)] flex-1">{{
               elapsedTime()
             }}</span>

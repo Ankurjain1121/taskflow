@@ -54,7 +54,7 @@ import {
       <div
         class="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border)]"
       >
-        <div class="text-xs text-gray-400">
+        <div class="text-xs text-[var(--muted-foreground)]">
           Press &#64; to mention teammates
         </div>
         <p-button

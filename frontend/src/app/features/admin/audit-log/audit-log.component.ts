@@ -647,10 +647,10 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const actionColors: Record<string, string> = {
-      created: 'bg-green-100 text-green-800',
-      updated: 'bg-blue-100 text-blue-800',
-      deleted: 'bg-red-100 text-red-800',
-      restored: 'bg-purple-100 text-purple-800',
+      created: 'bg-green-100 text-[var(--success)]',
+      updated: 'bg-blue-100 text-[var(--primary)]',
+      deleted: 'bg-[var(--destructive)]/10 text-[var(--destructive)]ed-800',
+      restored: 'bg-[var(--primary)]/10 text-[var(--primary)]',
       moved: 'bg-yellow-100 text-yellow-800',
       assigned: 'bg-primary/10 text-primary',
       unassigned: 'bg-[var(--secondary)] text-[var(--muted-foreground)]',
@@ -667,9 +667,9 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
 
     const typeColors: Record<string, string> = {
-      task: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
-      board: 'bg-purple-50 text-purple-700 ring-1 ring-purple-600/20',
-      workspace: 'bg-green-50 text-green-700 ring-1 ring-green-600/20',
+      task: 'bg-blue-50 text-[var(--primary)] ring-1 ring-blue-600/20',
+      board: 'bg-[var(--primary)]/10 text-[var(--primary)] ring-1 ring-[var(--primary)]/20',
+      workspace: 'bg-green-50 text-[var(--success)] ring-1 ring-green-600/20',
       user: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
       comment: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/20',
     };

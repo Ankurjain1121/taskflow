@@ -60,7 +60,7 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
                 form.controls['name'].invalid &&
                 form.controls['name'].touched
               ) {
-                <p class="mt-1 text-sm text-red-600">
+                <p class="mt-1 text-sm text-[var(--destructive)]">
                   Name is required
                 </p>
               }

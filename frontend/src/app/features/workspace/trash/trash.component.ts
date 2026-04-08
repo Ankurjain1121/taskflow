@@ -88,15 +88,15 @@ interface TrashItem {
                   class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   [class]="
                     item.entity_type === 'board'
-                      ? 'bg-blue-500/10'
-                      : 'bg-green-500/10'
+                      ? 'bg-[var(--primary)]/10'
+                      : 'bg-[var(--success)]/10'
                   "
                 >
                   <i
                     [class]="
                       item.entity_type === 'board'
-                        ? 'pi pi-objects-column text-blue-500'
-                        : 'pi pi-check-square text-green-500'
+                        ? 'pi pi-objects-column text-[var(--primary)]'
+                        : 'pi pi-check-square text-[var(--success)]'
                     "
                     style="font-size: 0.875rem"
                   ></i>
@@ -124,7 +124,7 @@ interface TrashItem {
                 <button
                   (click)="deleteItem(item)"
                   [disabled]="deleting()"
-                  class="px-3 py-1.5 text-xs font-medium text-red-500 border border-red-500/30 rounded-md hover:bg-red-500/10 disabled:opacity-50"
+                  class="px-3 py-1.5 text-xs font-medium text-[var(--destructive)] border border-red-500/30 rounded-md hover:bg-red-500/10 disabled:opacity-50"
                 >
                   Delete
                 </button>

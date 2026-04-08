@@ -405,7 +405,7 @@ export class PortfolioDashboardComponent implements OnInit {
       case 'at_risk':
         return 'bg-amber-500';
       case 'behind':
-        return 'bg-red-500';
+        return 'bg-[var(--destructive)]';
       default:
         return 'bg-[var(--muted-foreground)]';
     }

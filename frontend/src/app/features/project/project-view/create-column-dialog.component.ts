@@ -47,7 +47,7 @@ export interface CreateColumnDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="colName"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Column Name</label
           >
           <input
@@ -61,10 +61,10 @@ export interface CreateColumnDialogResult {
             form.controls.name.hasError('required') &&
             form.controls.name.touched
           ) {
-            <small class="text-red-500">Column name is required</small>
+            <small class="text-[var(--destructive)]">Column name is required</small>
           }
           @if (form.controls.name.hasError('maxlength')) {
-            <small class="text-red-500"
+            <small class="text-[var(--destructive)]"
               >Name must be less than 50 characters</small
             >
           }
@@ -73,7 +73,7 @@ export interface CreateColumnDialogResult {
         <!-- Color Picker -->
         <div>
           <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            class="block text-sm font-medium text-[var(--foreground)] mb-2"
           >
             Column Color
           </label>
@@ -101,7 +101,7 @@ export interface CreateColumnDialogResult {
           />
           <label for="isDoneCol" class="text-sm cursor-pointer">
             Mark as "Done" column
-            <span class="text-gray-500 dark:text-gray-400 ml-1">
+            <span class="text-[var(--muted-foreground)] ml-1">
               (Tasks moved here are considered completed)
             </span>
           </label>

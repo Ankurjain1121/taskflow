@@ -86,7 +86,7 @@ import {
                 >
                   <span>{{ task.board_name }}</span>
                   @if (isOverdue(task)) {
-                    <span class="text-red-500 font-medium">Overdue</span>
+                    <span class="text-[var(--destructive)] font-medium">Overdue</span>
                   } @else if (isDueToday(task)) {
                     <span class="text-orange-500 font-medium">Due today</span>
                   } @else if (isDueTomorrow(task)) {
@@ -159,15 +159,15 @@ export class MyTasksTodayComponent implements OnInit {
   getPriorityDotClass(priority: string): string {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-500';
+        return 'bg-[var(--destructive)]';
       case 'high':
         return 'bg-orange-500';
       case 'medium':
-        return 'bg-blue-500';
+        return 'bg-[var(--primary)]';
       case 'low':
-        return 'bg-gray-400';
+        return 'bg-[var(--muted-foreground)]';
       default:
-        return 'bg-gray-400';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 

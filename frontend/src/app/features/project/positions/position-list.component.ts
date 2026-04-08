@@ -104,12 +104,12 @@ import { ProjectMember } from '../../../core/services/project.service';
       @if (error()) {
         <div class="px-6 py-4">
           <div
-            class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3 text-sm text-red-800 dark:text-red-200"
+            class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3 text-sm text-[var(--destructive)] dark:text-red-200"
           >
             {{ error() }}
             <button
               (click)="loadPositions()"
-              class="underline ml-2 hover:text-red-600"
+              class="underline ml-2 hover:text-[var(--destructive)]"
             >
               Try again
             </button>
@@ -270,7 +270,7 @@ import { ProjectMember } from '../../../core/services/project.service';
                   </button>
                   <button
                     (click)="onDeletePosition(pos)"
-                    class="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 rounded transition-colors"
+                    class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)] rounded transition-colors"
                     pTooltip="Delete"
                     aria-label="Delete"
                   >
@@ -400,7 +400,7 @@ import { ProjectMember } from '../../../core/services/project.service';
                   </div>
                   <button
                     (click)="onRemoveHolder(holder.user_id)"
-                    class="text-xs text-red-500 hover:text-red-700"
+                    class="text-xs text-[var(--destructive)] hover:text-[var(--destructive)]"
                   >
                     Remove
                   </button>

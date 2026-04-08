@@ -112,10 +112,10 @@ export class SignUpComponent {
 
   get passwordStrengthTextClass(): string {
     const strength = this.passwordStrength;
-    if (strength < 40) return 'text-red-600 dark:text-red-400';
+    if (strength < 40) return 'text-[var(--destructive)]';
     if (strength < 70) return 'text-yellow-600 dark:text-yellow-400';
-    if (strength < 90) return 'text-blue-600 dark:text-blue-400';
-    return 'text-green-600 dark:text-green-400';
+    if (strength < 90) return 'text-[var(--primary)]';
+    return 'text-[var(--success)]';
   }
 
   passwordMatchValidator(control: AbstractControl): ValidationErrors | null {

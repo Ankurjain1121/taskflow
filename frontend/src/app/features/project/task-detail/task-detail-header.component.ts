@@ -58,7 +58,7 @@ import { Column } from '../../../core/services/project.service';
           <div class="flex items-center gap-2">
             @if (column(); as col) {
               <span
-                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-[var(--muted)] text-[var(--foreground)]"
               >
                 <span
                   class="w-2 h-2 rounded-full"
@@ -68,7 +68,7 @@ import { Column } from '../../../core/services/project.service';
               </span>
             }
           </div>
-          <div class="text-xs text-gray-400">
+          <div class="text-xs text-[var(--muted-foreground)]">
             Created {{ formatDate(t.created_at) }}
           </div>
         </div>

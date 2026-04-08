@@ -408,7 +408,7 @@ export class SubtaskRowComponent {
     const diffTime = dateOnly.getTime() - today.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'text-red-600 dark:text-red-400 font-medium';
+    if (diffDays < 0) return 'text-[var(--destructive)] font-medium';
     if (diffDays === 0) return 'text-amber-600 dark:text-amber-400 font-medium';
     return 'text-[var(--muted-foreground)]';
   }

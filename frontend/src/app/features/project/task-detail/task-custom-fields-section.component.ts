@@ -32,7 +32,7 @@ import { toDate, getDropdownSelectOptions } from './task-fields-utils';
               <label class="text-xs font-medium text-[var(--muted-foreground)]">
                 {{ cf.field_name }}
                 @if (cf.is_required) {
-                  <span class="text-red-500">*</span>
+                  <span class="text-[var(--destructive)]">*</span>
                 }
               </label>
               @switch (cf.field_type) {

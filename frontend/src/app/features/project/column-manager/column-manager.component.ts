@@ -207,7 +207,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 <button
                   (click)="onDelete(column)"
                   [disabled]="deleting() === column.id"
-                  class="p-1 hover:text-red-600 transition-colors disabled:opacity-50"
+                  class="p-1 hover:text-[var(--destructive)] transition-colors disabled:opacity-50"
                   style="color: var(--muted-foreground)"
                   title="Delete column"
                 >

@@ -47,15 +47,15 @@ export class RoleBadgeComponent {
       superadmin:
         'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
       admin:
-        'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+        'bg-blue-100 text-[var(--primary)] dark:bg-blue-900/30 dark:text-blue-300',
       manager:
-        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+        'bg-green-100 text-[var(--success)] dark:bg-green-900/30 dark:text-green-300',
       member:
         'bg-[var(--muted)] text-[var(--muted-foreground)]',
       viewer:
         'bg-[var(--muted)] text-[var(--muted-foreground)]',
       owner:
-        'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+        'bg-[var(--primary)]/10 text-[var(--primary)]',
     };
 
     const colors =

@@ -595,9 +595,9 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
     const baseClasses = 'w-8 h-8 rounded flex items-center justify-center';
 
     const typeColors: Record<string, string> = {
-      task: 'bg-blue-100 text-blue-600',
-      board: 'bg-purple-100 text-purple-600',
-      workspace: 'bg-green-100 text-green-600',
+      task: 'bg-[var(--primary)]/10 text-[var(--primary)]',
+      board: 'bg-[var(--primary)]/10 text-[var(--primary)]',
+      workspace: 'bg-[var(--success)]/10 text-[var(--success)]',
     };
 
     return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--muted-foreground)]'}`;
@@ -656,9 +656,9 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
     const diffMs = expires.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / 86400000);
 
-    if (diffDays <= 0) return `${baseClasses} bg-red-100 text-red-800`;
-    if (diffDays <= 3) return `${baseClasses} bg-orange-100 text-orange-800`;
-    if (diffDays <= 7) return `${baseClasses} bg-yellow-100 text-yellow-800`;
+    if (diffDays <= 0) return `${baseClasses} bg-[var(--destructive)]/10 text-[var(--destructive)]`;
+    if (diffDays <= 3) return `${baseClasses} bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]`;
+    if (diffDays <= 7) return `${baseClasses} bg-amber-100 text-amber-800`;
     return `${baseClasses} bg-[var(--secondary)] text-[var(--card-foreground)]`;
   }
 }

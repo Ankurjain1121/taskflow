@@ -213,11 +213,11 @@ export class SharedProjectViewComponent implements OnInit {
   getPriorityClass(priority: string): string {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-100 text-red-800';
+        return 'bg-[var(--destructive)]/10 text-[var(--destructive)]ed-800';
       case 'high':
         return 'bg-orange-100 text-orange-800';
       case 'medium':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-[var(--primary)]';
       case 'low':
         return 'bg-[var(--secondary)] text-[var(--muted-foreground)]';
       default:

@@ -41,7 +41,7 @@ import { ProjectPulse } from '../dashboard.types';
         <span class="font-semibold" style="color: var(--foreground)">{{ project().active_tasks }}</span> active
         <span class="mx-1">&middot;</span>
         @if (project().overdue_tasks > 0) {
-          <span class="font-semibold text-red-500">{{ project().overdue_tasks }}</span> overdue
+          <span class="font-semibold text-[var(--destructive)]">{{ project().overdue_tasks }}</span> overdue
           <span class="mx-1">&middot;</span>
         }
         <span class="font-semibold" style="color: var(--success)">{{ project().completed_this_week }}</span> completed

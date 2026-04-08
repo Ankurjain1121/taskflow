@@ -71,10 +71,10 @@ import {
                 >
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="t.priority === 'urgent'"
+                    [class.bg-[var(--destructive)]]="t.priority === 'urgent'"
                     [class.bg-orange-500]="t.priority === 'high'"
                     [class.bg-yellow-500]="t.priority === 'medium'"
-                    [class.bg-blue-500]="t.priority === 'low'"
+                    [class.bg-[var(--primary)]]="t.priority === 'low'"
                   ></span>
                   <span class="truncate">{{ t.title }}</span>
                   <span class="text-xs text-[var(--muted-foreground)] ml-auto flex-shrink-0">{{
@@ -102,12 +102,12 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-[var(--destructive)]]="dep.related_task_priority === 'urgent'"
                     [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "
-                    [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                    [class.bg-[var(--primary)]]="dep.related_task_priority === 'low'"
                   ></span>
                   <span class="truncate" style="color: var(--status-red-text)">{{
                     dep.related_task_title
@@ -146,12 +146,12 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-[var(--destructive)]]="dep.related_task_priority === 'urgent'"
                     [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "
-                    [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                    [class.bg-[var(--primary)]]="dep.related_task_priority === 'low'"
                   ></span>
                   <span class="truncate" style="color: var(--status-amber-text)">{{
                     dep.related_task_title
@@ -189,12 +189,12 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-[var(--destructive)]]="dep.related_task_priority === 'urgent'"
                     [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "
-                    [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                    [class.bg-[var(--primary)]]="dep.related_task_priority === 'low'"
                   ></span>
                   <span class="truncate text-[var(--foreground)]">{{
                     dep.related_task_title

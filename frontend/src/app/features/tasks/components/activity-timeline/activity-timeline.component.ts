@@ -310,11 +310,11 @@ export class ActivityTimelineComponent implements OnInit, OnDestroy {
   getActionIconBgClass(action: ActivityAction): string {
     switch (action) {
       case 'created':
-        return 'bg-green-500';
+        return 'bg-[var(--success)]';
       case 'updated':
-        return 'bg-blue-500';
+        return 'bg-[var(--primary)]';
       case 'moved':
-        return 'bg-purple-500';
+        return 'bg-[var(--primary)]';
       case 'assigned':
         return 'bg-primary';
       case 'unassigned':
@@ -326,11 +326,11 @@ export class ActivityTimelineComponent implements OnInit, OnDestroy {
       case 'status_changed':
         return 'bg-yellow-500';
       case 'priority_changed':
-        return 'bg-red-500';
+        return 'bg-[var(--destructive)]';
       case 'deleted':
-        return 'bg-gray-500';
+        return 'bg-[var(--muted-foreground)]';
       default:
-        return 'bg-gray-400';
+        return 'bg-[var(--muted-foreground)]';
     }
   }
 

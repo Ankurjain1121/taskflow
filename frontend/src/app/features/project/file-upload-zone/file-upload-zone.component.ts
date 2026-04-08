@@ -65,12 +65,12 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
           class="hidden"
         />
 
-        <i class="pi pi-cloud-upload text-5xl text-gray-400 mb-2"></i>
+        <i class="pi pi-cloud-upload text-5xl text-[var(--muted-foreground)] mb-2"></i>
         <p class="text-[var(--muted-foreground)] mb-1">
           Drag and drop files here, or
           <span class="text-primary font-medium">click to browse</span>
         </p>
-        <p class="text-sm text-gray-400">Maximum file size: 10 MB</p>
+        <p class="text-sm text-[var(--muted-foreground)]">Maximum file size: 10 MB</p>
       </div>
 
       <!-- Active uploads -->
@@ -91,7 +91,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                     [class]="
                       'pi ' +
                       getFileIcon(upload.fileName) +
-                      ' text-gray-400 text-xl'
+                      ' text-[var(--muted-foreground)] text-xl'
                     "
                   ></i>
                 </div>
@@ -104,17 +104,17 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                     >
                       {{ upload.fileName }}
                     </span>
-                    <span class="text-xs text-gray-400 ml-2 flex-shrink-0">
+                    <span class="text-xs text-[var(--muted-foreground)] ml-2 flex-shrink-0">
                       {{ upload.fileSize | fileSize }}
                     </span>
                   </div>
 
                   @if (upload.status === 'error') {
-                    <div class="text-sm text-red-600">
+                    <div class="text-sm text-[var(--destructive)]">
                       {{ upload.error || 'Upload failed' }}
                     </div>
                   } @else if (upload.status === 'completed') {
-                    <div class="text-sm text-green-600 flex items-center">
+                    <div class="text-sm text-[var(--success)] flex items-center">
                       <i class="pi pi-check-circle mr-1"></i>
                       Uploaded successfully
                     </div>
@@ -128,7 +128,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                       "
                       [style]="{ height: '6px' }"
                     />
-                    <div class="mt-1 text-xs text-gray-400">
+                    <div class="mt-1 text-xs text-[var(--muted-foreground)]">
                       @switch (upload.status) {
                         @case ('pending') {
                           Preparing...

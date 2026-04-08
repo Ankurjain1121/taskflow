@@ -88,7 +88,7 @@ import { Toast } from 'primeng/toast';
         <div class="w-full bg-[var(--muted)] rounded-full h-1.5">
           <div
             class="h-1.5 rounded-full transition-all duration-300"
-            [class]="progressPercent() === 100 ? 'bg-green-500' : 'bg-primary'"
+            [class]="progressPercent() === 100 ? 'bg-[var(--success)]' : 'bg-primary'"
             [style.width.%]="progressPercent()"
           ></div>
         </div>

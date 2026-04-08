@@ -42,7 +42,7 @@ import {
           </div>
           <div>
             <div class="text-sm font-medium">{{ member.name }}</div>
-            <div class="text-xs text-gray-500">{{ member.email }}</div>
+            <div class="text-xs text-[var(--muted-foreground)]">{{ member.email }}</div>
           </div>
         </div>
       </ng-template>

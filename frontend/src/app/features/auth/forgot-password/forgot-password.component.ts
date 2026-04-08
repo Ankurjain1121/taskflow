@@ -96,7 +96,7 @@ import { AuthService } from '../../../core/services/auth.service';
           } @else {
             <div class="text-center">
               <i
-                class="pi pi-envelope text-green-500 mb-4"
+                class="pi pi-envelope text-[var(--success)] mb-4"
                 style="font-size: 48px;"
               ></i>
               <h3 class="text-lg font-semibold mb-2">Check your email</h3>

@@ -132,7 +132,7 @@ export interface CreateTaskDialogResult {
               <label
                 for="taskTitle"
                 class="text-sm font-medium text-[var(--foreground)]"
-                >Title <span class="text-red-400">*</span></label
+                >Title <span class="text-[var(--destructive)]">*</span></label
               >
               <input
                 pInputText
@@ -145,10 +145,10 @@ export interface CreateTaskDialogResult {
                 form.controls.title.hasError('required') &&
                 form.controls.title.touched
               ) {
-                <small class="text-red-500">Title is required</small>
+                <small class="text-[var(--destructive)]">Title is required</small>
               }
               @if (form.controls.title.hasError('maxlength')) {
-                <small class="text-red-500">Max 200 characters</small>
+                <small class="text-[var(--destructive)]">Max 200 characters</small>
               }
             </div>
 

@@ -101,8 +101,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
         @if (uploadState() === 'error') {
           <div class="flex flex-col items-center gap-2">
-            <i class="pi pi-exclamation-triangle text-2xl text-red-500"></i>
-            <p class="text-sm text-red-500">{{ errorMessage() }}</p>
+            <i class="pi pi-exclamation-triangle text-2xl text-[var(--destructive)]"></i>
+            <p class="text-sm text-[var(--destructive)]">{{ errorMessage() }}</p>
             <p class="text-xs" style="color: var(--muted-foreground)">
               Click or drag to try again
             </p>

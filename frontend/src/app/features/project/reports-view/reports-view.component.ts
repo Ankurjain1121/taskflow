@@ -272,13 +272,13 @@ import {
                       class="flex-1 bg-[var(--secondary)] rounded-full h-5 relative overflow-hidden flex"
                     >
                       <div
-                        class="h-full bg-green-500 transition-all duration-500"
+                        class="h-full bg-[var(--success)] transition-all duration-500"
                         [style.width.%]="
                           workloadBarWidth(a.completed_tasks, a.total_tasks)
                         "
                       ></div>
                       <div
-                        class="h-full bg-gray-300 transition-all duration-500"
+                        class="h-full bg-[var(--border)] transition-all duration-500"
                         [style.width.%]="
                           workloadBarWidth(
                             a.total_tasks - a.completed_tasks,
@@ -338,7 +338,7 @@ import {
               </div>
             } @else {
               <div
-                class="flex items-center justify-center h-32 text-green-600 text-sm font-medium"
+                class="flex items-center justify-center h-32 text-[var(--success)] text-sm font-medium"
               >
                 No overdue tasks!
               </div>

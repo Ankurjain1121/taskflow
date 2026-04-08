@@ -168,7 +168,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
                         >
                         @if (member.is_org_admin) {
                           <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]"
                             pTooltip="Has automatic access to all workspaces"
                             tooltipPosition="top"
                             >Org Admin</span
@@ -247,7 +247,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
                         </h2>
                         @if (selectedMember()!.is_org_admin) {
                           <span
-                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]"
                             pTooltip="Has automatic access to all workspaces"
                             tooltipPosition="top"
                             >Org Admin</span
@@ -331,7 +331,7 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
                           >
                           @if (ws.is_org_admin) {
                             <span
-                              class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                              class="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]"
                               >Auto-access</span
                             >
                           } @else if (ws.is_member && ws.role) {
@@ -487,11 +487,11 @@ export class PeopleHubComponent implements OnInit {
   getRoleBadgeClass(role: string): string {
     switch (role) {
       case 'admin':
-        return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
+        return 'bg-[var(--primary)]/10 text-[var(--primary)]';
       case 'manager':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
+        return 'bg-[var(--primary)]/10 text-[var(--primary)]';
       case 'member':
-        return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+        return 'bg-[var(--success)]/10 text-[var(--success)]';
       default:
         return 'bg-[var(--muted)] text-[var(--muted-foreground)]';
     }

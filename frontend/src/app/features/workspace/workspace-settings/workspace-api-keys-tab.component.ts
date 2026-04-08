@@ -143,7 +143,7 @@ import {
                       <button
                         (click)="onRevokeApiKey(key)"
                         [disabled]="revokingKey() === key.id"
-                        class="text-sm text-red-600 hover:text-red-900 disabled:opacity-50"
+                        class="text-sm text-[var(--destructive)] hover:text-[var(--destructive)] disabled:opacity-50"
                       >
                         {{
                           revokingKey() === key.id ? 'Revoking...' : 'Revoke'

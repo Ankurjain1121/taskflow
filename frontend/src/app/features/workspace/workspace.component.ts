@@ -53,7 +53,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
         } @else if (error()) {
           <!-- Error State -->
           <div class="text-center py-24" role="alert">
-            <div class="text-red-500 text-lg mb-2">
+            <div class="text-[var(--destructive)] text-lg mb-2">
               Failed to load workspace
             </div>
             <p class="text-[var(--muted-foreground)] mb-4">{{ error() }}</p>
@@ -95,7 +95,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                 <div
                   class="w-10 h-10 rounded-lg bg-[var(--status-blue-bg)] flex items-center justify-center"
                 >
-                  <i class="pi pi-th-large text-blue-600"></i>
+                  <i class="pi pi-th-large text-[var(--primary)]"></i>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-[var(--foreground)]">
@@ -112,7 +112,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                 <div
                   class="w-10 h-10 rounded-lg bg-[var(--status-green-bg)] flex items-center justify-center"
                 >
-                  <i class="pi pi-users text-green-600"></i>
+                  <i class="pi pi-users text-[var(--success)]"></i>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-[var(--foreground)]">
