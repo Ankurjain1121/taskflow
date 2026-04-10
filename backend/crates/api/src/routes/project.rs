@@ -386,6 +386,7 @@ async fn list_project_members(
             name: m.name,
             email: m.email,
             avatar_url: m.avatar_url,
+            is_implicit: m.is_implicit,
         })
         .collect();
 
@@ -511,6 +512,7 @@ async fn update_project_member_role(
         name: member.name,
         email: member.email,
         avatar_url: member.avatar_url,
+        is_implicit: member.is_implicit,
     }))
 }
 
@@ -715,6 +717,7 @@ async fn get_project_full(
             name: m.name,
             email: m.email,
             avatar_url: m.avatar_url,
+            is_implicit: m.is_implicit,
         })
         .collect();
 

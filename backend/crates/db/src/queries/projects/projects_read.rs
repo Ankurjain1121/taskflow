@@ -27,6 +27,10 @@ pub struct ProjectMemberWithUser {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    /// True if this member's access comes from workspace membership or org admin role,
+    /// not from an explicit project_members row. Implicit members cannot be removed
+    /// or have their role changed via project-level APIs.
+    pub is_implicit: bool,
 }
 
 /// A task row enriched with badge counts for the project full response
@@ -101,26 +105,31 @@ pub async fn list_projects_by_workspace(
     .await
 }
 
-/// Get a project by ID with its task lists and statuses (verify membership)
+/// Get a project by ID with its task lists and statuses.
+///
+/// Verifies membership via `is_project_member` which honors implicit access
+/// (workspace members + non-private-workspace org admins).
 pub async fn get_project_by_id(
     pool: &PgPool,
     id: Uuid,
     user_id: Uuid,
 ) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
+    // Verify access first (explicit or implicit membership)
+    if !is_project_member(pool, id, user_id).await? {
+        return Ok(None);
+    }
+
     let project = sqlx::query_as::<_, Project>(
         r"
         SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
                p.workspace_id, p.tenant_id, p.created_by_id,
                p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
         FROM projects p
-        INNER JOIN project_members pm ON p.id = pm.project_id
         WHERE p.id = $1
-          AND pm.user_id = $2
           AND p.deleted_at IS NULL
         ",
     )
     .bind(id)
-    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
@@ -162,20 +171,78 @@ pub async fn get_project_by_id(
     }
 }
 
-/// List all members of a project with user info
+/// List all members of a project with user info.
+///
+/// Includes three groups via UNION ALL:
+/// 1. Explicit project_members rows
+/// 2. Workspace members not explicitly added (implicit) — workspace owner gets
+///    'owner' role, everyone else gets 'editor'
+/// 3. Org admins/super_admins (implicit) — only for non-private workspaces
 pub async fn list_project_members(
     pool: &PgPool,
     project_id: Uuid,
 ) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
     sqlx::query_as::<_, ProjectMemberWithUser>(
         r"
-        SELECT pm.id, pm.project_id, pm.user_id, pm.role,
-               pm.joined_at, u.name, u.email, u.avatar_url
-        FROM project_members pm
-        INNER JOIN users u ON pm.user_id = u.id
-        WHERE pm.project_id = $1
-          AND u.deleted_at IS NULL
-        ORDER BY pm.joined_at ASC
+        SELECT id, project_id, user_id, role, joined_at, name, email, avatar_url, is_implicit
+        FROM (
+            -- 1. Explicit project members
+            SELECT pm.id, pm.project_id, pm.user_id, pm.role, pm.joined_at,
+                   u.name, u.email, u.avatar_url,
+                   false AS is_implicit
+            FROM project_members pm
+            INNER JOIN users u ON pm.user_id = u.id
+            WHERE pm.project_id = $1
+              AND u.deleted_at IS NULL
+
+            UNION ALL
+
+            -- 2. Workspace members not explicitly in project_members
+            SELECT '00000000-0000-0000-0000-000000000000'::uuid AS id,
+                   $1 AS project_id,
+                   wm.user_id,
+                   CASE WHEN wm.role = 'owner' THEN 'owner'::project_member_role
+                        ELSE 'editor'::project_member_role END AS role,
+                   wm.joined_at,
+                   u.name, u.email, u.avatar_url,
+                   true AS is_implicit
+            FROM workspace_members wm
+            INNER JOIN users u ON wm.user_id = u.id
+            INNER JOIN projects p ON p.id = $1
+            WHERE wm.workspace_id = p.workspace_id
+              AND u.deleted_at IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM project_members pm2
+                  WHERE pm2.project_id = $1 AND pm2.user_id = wm.user_id
+              )
+
+            UNION ALL
+
+            -- 3. Org admins with implicit access (blocked on private workspaces)
+            SELECT '00000000-0000-0000-0000-000000000000'::uuid AS id,
+                   $1 AS project_id,
+                   u.id AS user_id,
+                   'editor'::project_member_role AS role,
+                   u.created_at AS joined_at,
+                   u.name, u.email, u.avatar_url,
+                   true AS is_implicit
+            FROM users u
+            INNER JOIN projects p ON p.id = $1
+            INNER JOIN workspaces w ON w.id = p.workspace_id
+            WHERE u.role IN ('admin', 'super_admin')
+              AND u.deleted_at IS NULL
+              AND u.tenant_id = p.tenant_id
+              AND w.visibility != 'private'
+              AND NOT EXISTS (
+                  SELECT 1 FROM workspace_members wm2
+                  WHERE wm2.workspace_id = p.workspace_id AND wm2.user_id = u.id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM project_members pm2
+                  WHERE pm2.project_id = $1 AND pm2.user_id = u.id
+              )
+        ) combined
+        ORDER BY is_implicit ASC, joined_at ASC
         ",
     )
     .bind(project_id)
@@ -183,7 +250,12 @@ pub async fn list_project_members(
     .await
 }
 
-/// Check if a user is a member of a project
+/// Check if a user is a member of a project.
+///
+/// Returns true if the user has:
+/// - An explicit project_members row, OR
+/// - Workspace membership in the project's workspace (implicit), OR
+/// - Global admin role AND the workspace is not private (implicit)
 pub async fn is_project_member(
     pool: &PgPool,
     project_id: Uuid,
@@ -192,8 +264,28 @@ pub async fn is_project_member(
     let result = sqlx::query_scalar::<_, bool>(
         r"
         SELECT EXISTS(
+            -- Explicit project member
             SELECT 1 FROM project_members
             WHERE project_id = $1 AND user_id = $2
+
+            UNION ALL
+
+            -- Implicit: workspace member
+            SELECT 1 FROM workspace_members wm
+            INNER JOIN projects p ON p.id = $1
+            WHERE wm.workspace_id = p.workspace_id
+              AND wm.user_id = $2
+
+            UNION ALL
+
+            -- Implicit: org admin on non-private workspace
+            SELECT 1 FROM users u
+            INNER JOIN projects p ON p.id = $1
+            INNER JOIN workspaces w ON w.id = p.workspace_id
+            WHERE u.id = $2
+              AND u.role = 'admin'
+              AND u.deleted_at IS NULL
+              AND w.visibility != 'private'
         )
         ",
     )
@@ -205,7 +297,13 @@ pub async fn is_project_member(
     Ok(result)
 }
 
-/// Get project member role
+/// Get project member role.
+///
+/// Returns the highest-precedence role applicable to the user:
+/// 1. Explicit project_members.role (takes precedence)
+/// 2. Workspace owner → 'owner'
+/// 3. Any workspace member → 'editor'
+/// 4. Org admin on non-private workspace → 'editor'
 pub async fn get_project_member_role(
     pool: &PgPool,
     project_id: Uuid,
@@ -214,8 +312,45 @@ pub async fn get_project_member_role(
     sqlx::query_scalar::<_, BoardMemberRole>(
         r#"
         SELECT role as "role: BoardMemberRole"
-        FROM project_members
-        WHERE project_id = $1 AND user_id = $2
+        FROM (
+            -- Explicit project member (highest precedence)
+            SELECT pm.role, 1 AS priority
+            FROM project_members pm
+            WHERE pm.project_id = $1 AND pm.user_id = $2
+
+            UNION ALL
+
+            -- Workspace owner → project owner
+            SELECT 'owner'::project_member_role AS role, 2 AS priority
+            FROM workspace_members wm
+            INNER JOIN projects p ON p.id = $1
+            WHERE wm.workspace_id = p.workspace_id
+              AND wm.user_id = $2
+              AND wm.role = 'owner'
+
+            UNION ALL
+
+            -- Any other workspace member → editor
+            SELECT 'editor'::project_member_role AS role, 3 AS priority
+            FROM workspace_members wm
+            INNER JOIN projects p ON p.id = $1
+            WHERE wm.workspace_id = p.workspace_id
+              AND wm.user_id = $2
+
+            UNION ALL
+
+            -- Org admin on non-private workspace → editor
+            SELECT 'editor'::project_member_role AS role, 4 AS priority
+            FROM users u
+            INNER JOIN projects p ON p.id = $1
+            INNER JOIN workspaces w ON w.id = p.workspace_id
+            WHERE u.id = $2
+              AND u.role = 'admin'
+              AND u.deleted_at IS NULL
+              AND w.visibility != 'private'
+        ) ranked
+        ORDER BY priority ASC
+        LIMIT 1
         "#,
     )
     .bind(project_id)

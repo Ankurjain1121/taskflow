@@ -14,6 +14,7 @@ import {
 } from '../../../core/services/project.service';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
+import { TooltipModule } from 'primeng/tooltip';
 import {
   ProjectInviteMemberDialogComponent,
   InviteMemberDialogResult,
@@ -27,6 +28,7 @@ import { PositionListComponent } from '../positions/position-list.component';
     CommonModule,
     FormsModule,
     ConfirmDialog,
+    TooltipModule,
     ProjectInviteMemberDialogComponent,
     PositionListComponent,
   ],
@@ -123,34 +125,53 @@ import { PositionListComponent } from '../positions/position-list.component';
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    @if (member.role === 'owner') {
-                      <span
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
-                      >
-                        Owner
-                      </span>
-                    } @else {
-                      <select
-                        [ngModel]="member.role"
-                        (ngModelChange)="
-                          onMemberRoleChange(member, $event)
-                        "
-                        class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
-                      >
-                        <option value="viewer">Viewer</option>
-                        <option value="editor">Editor</option>
-                      </select>
-                    }
+                    <div class="flex items-center gap-2">
+                      @if (member.role === 'owner') {
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                        >
+                          Owner
+                        </span>
+                      } @else if (member.is_implicit) {
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-hover)] text-[var(--muted-foreground)] capitalize"
+                        >
+                          {{ member.role }}
+                        </span>
+                      } @else {
+                        <select
+                          [ngModel]="member.role"
+                          (ngModelChange)="
+                            onMemberRoleChange(member, $event)
+                          "
+                          class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
+                        >
+                          <option value="viewer">Viewer</option>
+                          <option value="editor">Editor</option>
+                        </select>
+                      }
+                      @if (member.is_implicit) {
+                        <span
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-hover)] text-[var(--muted-foreground)]"
+                          pTooltip="Implicit access via workspace membership"
+                          tooltipPosition="top"
+                        >
+                          <i class="pi pi-users text-[10px]"></i> Workspace
+                        </span>
+                      }
+                    </div>
                   </td>
                   <td
                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                   >
-                    <button
-                      (click)="onRemoveMember(member)"
-                      class="text-[var(--destructive)] hover:text-[var(--destructive)]"
-                    >
-                      Remove
-                    </button>
+                    @if (!member.is_implicit) {
+                      <button
+                        (click)="onRemoveMember(member)"
+                        class="text-[var(--destructive)] hover:text-[var(--destructive)]"
+                      >
+                        Remove
+                      </button>
+                    }
                   </td>
                 </tr>
               }

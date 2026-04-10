@@ -87,6 +87,8 @@ export interface ProjectMember {
   name?: string;
   email?: string;
   avatar_url?: string | null;
+  /** True if access comes from workspace membership or org admin role, not an explicit project_members row. */
+  is_implicit?: boolean;
 }
 
 export interface InviteMemberRequest {

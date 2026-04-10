@@ -92,6 +92,9 @@ pub struct ProjectMemberResponse {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    /// True if the user's access comes from workspace membership or org admin role,
+    /// not from an explicit project_members row.
+    pub is_implicit: bool,
 }
 
 // ============================================================================
