@@ -15,6 +15,7 @@ pub mod dependencies;
 pub mod eisenhower;
 pub mod favorites;
 pub mod invitations;
+pub mod issues;
 pub mod membership;
 pub mod metrics;
 pub mod milestones;
@@ -337,6 +338,13 @@ pub use milestones::{
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
     get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
     CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
+};
+
+// issues
+pub use issues::{
+    create_issue, get_issue, get_issue_project_id, get_issue_summary, list_issues, reopen_issue,
+    resolve_issue, soft_delete_issue, update_issue, CreateIssueInput, IssueFilters,
+    IssueQueryError, IssueSummary, IssueWithDetails, ResolveIssueInput, UpdateIssueInput,
 };
 
 // portfolio

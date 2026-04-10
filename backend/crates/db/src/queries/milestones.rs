@@ -16,22 +16,29 @@ pub enum MilestoneQueryError {
     NotFound,
 }
 
-/// Input for creating a new milestone
-#[derive(Debug, Deserialize)]
+/// Input for creating a new milestone (Phase)
+#[derive(Debug, Deserialize, Default)]
 pub struct CreateMilestoneInput {
     pub name: String,
     pub description: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
     pub color: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub start_date: Option<DateTime<Utc>>,
+    pub flag: Option<String>,
 }
 
 /// Input for updating an existing milestone
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct UpdateMilestoneInput {
     pub name: Option<String>,
     pub description: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
     pub color: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub start_date: Option<DateTime<Utc>>,
+    pub flag: Option<String>,
+    pub status: Option<String>,
 }
 
 /// Milestone with progress information
@@ -47,6 +54,11 @@ pub struct MilestoneWithProgress {
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub owner_id: Option<Uuid>,
+    pub owner_name: Option<String>,
+    pub status: String,
+    pub start_date: Option<DateTime<Utc>>,
+    pub flag: String,
     pub total_tasks: i64,
     pub completed_tasks: i64,
 }
@@ -76,6 +88,11 @@ pub async fn list_milestones(
             m.created_by_id,
             m.created_at,
             m.updated_at,
+            m.owner_id,
+            u.name AS owner_name,
+            m.status,
+            m.start_date,
+            m.flag,
             COALESCE(COUNT(t.id), 0) as total_tasks,
             COALESCE(SUM(
                 CASE WHEN bc.type = 'done' THEN 1 ELSE 0 END
@@ -83,10 +100,12 @@ pub async fn list_milestones(
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
         LEFT JOIN project_statuses bc ON bc.id = t.status_id
+        LEFT JOIN users u ON u.id = m.owner_id
         WHERE m.project_id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
-                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
-        ORDER BY m.due_date ASC NULLS LAST, m.created_at ASC
+                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at,
+                 m.owner_id, u.name, m.status, m.start_date, m.flag
+        ORDER BY m.start_date ASC NULLS LAST, m.due_date ASC NULLS LAST, m.created_at ASC
         ",
     )
     .bind(board_id)
@@ -115,6 +134,11 @@ pub async fn get_milestone(
             m.created_by_id,
             m.created_at,
             m.updated_at,
+            m.owner_id,
+            u.name AS owner_name,
+            m.status,
+            m.start_date,
+            m.flag,
             COALESCE(COUNT(t.id), 0) as total_tasks,
             COALESCE(SUM(
                 CASE WHEN bc.type = 'done' THEN 1 ELSE 0 END
@@ -122,9 +146,11 @@ pub async fn get_milestone(
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
         LEFT JOIN project_statuses bc ON bc.id = t.status_id
+        LEFT JOIN users u ON u.id = m.owner_id
         WHERE m.id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
-                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
+                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at,
+                 m.owner_id, u.name, m.status, m.start_date, m.flag
         ",
     )
     .bind(milestone_id)
@@ -154,15 +180,21 @@ pub async fn create_milestone(
 
     let milestone_id = Uuid::new_v4();
     let color = input.color.unwrap_or_else(|| "#6366f1".to_string());
+    let flag = input.flag.unwrap_or_else(|| "internal".to_string());
 
     let milestone = sqlx::query_as::<_, Milestone>(
         r"
-        INSERT INTO milestones (id, name, description, due_date, color, project_id, tenant_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO milestones (
+            id, name, description, due_date, color,
+            project_id, tenant_id, created_by_id,
+            owner_id, start_date, flag
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING
             id, name, description, due_date, color,
             project_id, tenant_id, created_by_id,
-            created_at, updated_at
+            created_at, updated_at,
+            owner_id, status, start_date, flag
         ",
     )
     .bind(milestone_id)
@@ -173,6 +205,9 @@ pub async fn create_milestone(
     .bind(board_id)
     .bind(tenant_id)
     .bind(user_id)
+    .bind(input.owner_id)
+    .bind(input.start_date)
+    .bind(&flag)
     .fetch_one(pool)
     .await?;
 
@@ -189,16 +224,21 @@ pub async fn update_milestone(
         r"
         UPDATE milestones
         SET
-            name = COALESCE($2, name),
+            name        = COALESCE($2, name),
             description = COALESCE($3, description),
-            due_date = COALESCE($4, due_date),
-            color = COALESCE($5, color),
-            updated_at = NOW()
+            due_date    = COALESCE($4, due_date),
+            color       = COALESCE($5, color),
+            owner_id    = COALESCE($6, owner_id),
+            start_date  = COALESCE($7, start_date),
+            flag        = COALESCE($8, flag),
+            status      = COALESCE($9, status),
+            updated_at  = NOW()
         WHERE id = $1
         RETURNING
             id, name, description, due_date, color,
             project_id, tenant_id, created_by_id,
-            created_at, updated_at
+            created_at, updated_at,
+            owner_id, status, start_date, flag
         ",
     )
     .bind(milestone_id)
@@ -206,6 +246,10 @@ pub async fn update_milestone(
     .bind(&input.description)
     .bind(input.due_date)
     .bind(&input.color)
+    .bind(input.owner_id)
+    .bind(input.start_date)
+    .bind(&input.flag)
+    .bind(&input.status)
     .fetch_optional(pool)
     .await?
     .ok_or(MilestoneQueryError::NotFound)?;

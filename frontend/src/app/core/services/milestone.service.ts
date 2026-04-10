@@ -2,13 +2,30 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+/** Phase status — maps to milestones.status column (open | closed) */
+export type PhaseStatus = 'open' | 'closed';
+
+/** Phase flag — internal | external | critical */
+export type PhaseFlag = 'internal' | 'external' | 'critical';
+
+/**
+ * A Milestone ("Phase" in the Zoho-inspired UI).
+ * Returned from `GET /api/projects/:id/milestones` and related endpoints.
+ */
 export interface Milestone {
   id: string;
   name: string;
   description: string | null;
   due_date: string | null;
+  start_date: string | null;
   color: string;
-  board_id: string;
+  /** Backend field is project_id; historical alias kept for readability */
+  project_id?: string;
+  board_id?: string;
+  owner_id: string | null;
+  owner_name: string | null;
+  status: PhaseStatus;
+  flag: PhaseFlag;
   total_tasks: number;
   completed_tasks: number;
   created_at: string;
@@ -19,14 +36,21 @@ export interface CreateMilestoneRequest {
   name: string;
   description?: string;
   due_date?: string;
+  start_date?: string;
   color?: string;
+  owner_id?: string;
+  flag?: PhaseFlag;
 }
 
 export interface UpdateMilestoneRequest {
   name?: string;
   description?: string;
   due_date?: string;
+  start_date?: string;
   color?: string;
+  owner_id?: string;
+  flag?: PhaseFlag;
+  status?: PhaseStatus;
 }
 
 @Injectable({ providedIn: 'root' })
