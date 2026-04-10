@@ -438,23 +438,21 @@ export class IssuesListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     const filters: IssueFilters = {};
-    this.issueService
-      .list(this.projectId(), filters)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (list) => {
-          this.issues.set(list);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+    // HttpClient one-shot observables auto-complete, so takeUntilDestroyed is
+    // both unnecessary and actively broken here: calling it in a method context
+    // without an injection context (or re-capturing DestroyRef on each call)
+    // can silently drop the second subscription after the first load() completes.
+    this.issueService.list(this.projectId(), filters).subscribe({
+      next: (list) => {
+        this.issues.set(list);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
 
-    this.issueService
-      .summary(this.projectId())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (s) => this.summary.set(s),
-      });
+    this.issueService.summary(this.projectId()).subscribe({
+      next: (s) => this.summary.set(s),
+    });
   }
 
   openCreate(): void {
