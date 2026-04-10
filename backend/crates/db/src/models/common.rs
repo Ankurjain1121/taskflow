@@ -29,6 +29,7 @@ pub enum WorkspaceMemberRole {
 pub enum WorkspaceVisibility {
     Open,
     Closed,
+    Private,
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
@@ -333,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_workspace_visibility_serde() {
-        for variant in [WorkspaceVisibility::Open, WorkspaceVisibility::Closed] {
+        for variant in [WorkspaceVisibility::Open, WorkspaceVisibility::Closed, WorkspaceVisibility::Private] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: WorkspaceVisibility = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);
@@ -343,7 +344,7 @@ mod tests {
     #[test]
     fn test_workspace_visibility_invalid_value_rejected() {
         let result: std::result::Result<WorkspaceVisibility, _> =
-            serde_json::from_str("\"private\"");
+            serde_json::from_str("\"secret\"");
         assert!(result.is_err(), "Invalid visibility should be rejected");
     }
 

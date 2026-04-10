@@ -36,6 +36,7 @@ export interface MemberWithDetails extends WorkspaceMember {
   is_org_admin?: boolean;
   phone_number?: string | null;
   last_login_at?: string | null;
+  is_implicit?: boolean;
 }
 
 @Component({
@@ -190,6 +191,12 @@ export interface MemberWithDetails extends WorkspaceMember {
                         <i class="pi pi-shield text-[10px]"></i> Super Admin
                       </span>
                     }
+                    @if (member.is_implicit) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-hover)] text-[var(--muted-foreground)]"
+                            pTooltip="Org-level admin — not an explicit workspace member" tooltipPosition="top">
+                        <i class="pi pi-globe text-[10px]"></i> Org Access
+                      </span>
+                    }
                   </div>
                 </td>
 
@@ -205,7 +212,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                   <td
                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                   >
-                    @if (!isOwner(member) && !isSelf(member) && (!member.is_org_admin || isSuperAdmin())) {
+                    @if (!isOwner(member) && !isSelf(member) && !member.is_implicit && (!member.is_org_admin || isSuperAdmin())) {
                       <button
                         (click)="onRemoveMember(member)"
                         [disabled]="updatingMember() === member.user_id"
@@ -700,9 +707,14 @@ export class MembersListComponent {
           this.memberRemoved.emit(member.user_id);
           this.updatingMember.set(null);
         },
-        error: () => {
+        error: (err: { status?: number }) => {
           this.updatingMember.set(null);
-          this.showError('Failed to remove member');
+          if (err.status === 404) {
+            // Member was already removed or is implicit — remove from UI
+            this.memberRemoved.emit(member.user_id);
+          } else {
+            this.showError('Failed to remove member');
+          }
         },
       });
   }

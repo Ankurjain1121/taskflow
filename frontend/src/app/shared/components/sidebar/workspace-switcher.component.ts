@@ -17,6 +17,7 @@ import {
 } from '../dialogs/create-workspace-dialog.component';
 import { WorkspaceService, Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-workspace-switcher',
@@ -196,6 +197,7 @@ export class WorkspaceSwitcherComponent implements AfterViewChecked {
   readonly ctx = inject(WorkspaceContextService);
   private readonly workspaceService = inject(WorkspaceService);
   private readonly authService = inject(AuthService);
+  private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef);
 
@@ -286,6 +288,16 @@ export class WorkspaceSwitcherComponent implements AfterViewChecked {
       next: (workspace) => {
         this.ctx.workspaces.update((ws) => [...ws, workspace]);
         this.router.navigate(['/workspace', workspace.id]);
+      },
+      error: (err) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Failed to create workspace',
+          detail:
+            err.error?.message ||
+            'Something went wrong. Please try again.',
+          life: 5000,
+        });
       },
     });
   }

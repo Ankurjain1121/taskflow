@@ -108,6 +108,7 @@ pub struct MemberInfo {
     pub is_org_admin: bool,
     pub phone_number: Option<String>,
     pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub is_implicit: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -247,6 +248,7 @@ async fn get_workspace(
                 is_org_admin: m.is_org_admin,
                 phone_number: m.phone_number,
                 last_login_at: m.last_login_at,
+                is_implicit: m.is_implicit,
             })
             .collect(),
     };
@@ -411,6 +413,7 @@ async fn list_members(
             is_org_admin: m.is_org_admin,
             phone_number: m.phone_number,
             last_login_at: m.last_login_at,
+            is_implicit: m.is_implicit,
         })
         .collect();
 
@@ -611,6 +614,7 @@ async fn update_member_role(
         is_org_admin: member_info.is_org_admin,
         phone_number: member_info.phone_number,
         last_login_at: member_info.last_login_at,
+        is_implicit: member_info.is_implicit,
     }))
 }
 

@@ -9,7 +9,8 @@ use crate::models::{
 
 /// List workspaces for a user (by membership).
 ///
-/// Global Admins see ALL workspaces in their tenant (implicit membership).
+/// Global Admins see all non-private workspaces in their tenant (implicit membership),
+/// plus private workspaces they are explicit members of.
 pub async fn list_workspaces_for_user(
     pool: &PgPool,
     user_id: Uuid,
@@ -24,10 +25,15 @@ pub async fn list_workspaces_for_user(
             FROM workspaces
             WHERE tenant_id = $1
               AND deleted_at IS NULL
+              AND (
+                  visibility != 'private'
+                  OR id IN (SELECT workspace_id FROM workspace_members WHERE user_id = $2)
+              )
             ORDER BY created_at DESC
             ",
         )
         .bind(tenant_id)
+        .bind(user_id)
         .fetch_all(pool)
         .await
     } else {
@@ -71,6 +77,7 @@ pub struct WorkspaceMemberInfo {
     pub is_org_admin: bool,
     pub phone_number: Option<String>,
     pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub is_implicit: bool,
 }
 
 /// Get a workspace by ID with its members
@@ -98,13 +105,14 @@ pub async fn get_workspace_by_id(
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
                 r"
-                SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin, phone_number, last_login_at
+                SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin, phone_number, last_login_at, is_implicit
                 FROM (
                     -- Explicit workspace members
                     SELECT wm.user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
                            wm.role, wm.joined_at,
                            (u.role = 'super_admin') AS is_org_admin,
-                           u.phone_number, u.last_login_at
+                           u.phone_number, u.last_login_at,
+                           false AS is_implicit
                     FROM workspace_members wm
                     INNER JOIN users u ON wm.user_id = u.id
                     WHERE wm.workspace_id = $1
@@ -113,10 +121,12 @@ pub async fn get_workspace_by_id(
                     UNION ALL
 
                     -- Global admins who are NOT explicit members (implicit access)
+                    -- Excluded for private workspaces
                     SELECT u.id AS user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
                            'admin'::workspace_member_role AS role, u.created_at AS joined_at,
                            (u.role = 'super_admin') AS is_org_admin,
-                           u.phone_number, u.last_login_at
+                           u.phone_number, u.last_login_at,
+                           true AS is_implicit
                     FROM users u
                     WHERE u.role IN ('admin', 'super_admin')
                       AND u.deleted_at IS NULL
@@ -124,6 +134,10 @@ pub async fn get_workspace_by_id(
                       AND NOT EXISTS (
                           SELECT 1 FROM workspace_members wm2
                           WHERE wm2.workspace_id = $1 AND wm2.user_id = u.id
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM workspaces w
+                          WHERE w.id = $1 AND w.visibility = 'private'
                       )
                 ) combined
                 ORDER BY is_org_admin DESC, joined_at ASC
@@ -253,7 +267,7 @@ pub async fn soft_delete_workspace(pool: &PgPool, id: Uuid) -> Result<bool, sqlx
 
 /// Search workspace members by name or email (ILIKE).
 ///
-/// Includes global admins who have implicit access to all workspaces.
+/// Includes global admins who have implicit access to non-private workspaces.
 pub async fn search_workspace_members(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -275,7 +289,10 @@ pub async fn search_workspace_members(
           AND (u.name ILIKE $3 OR u.email ILIKE $3)
           AND (
               EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = $1 AND wm.user_id = u.id)
-              OR (u.role = 'admin' AND u.tenant_id = $2)
+              OR (
+                  u.role = 'admin' AND u.tenant_id = $2
+                  AND NOT EXISTS (SELECT 1 FROM workspaces w WHERE w.id = $1 AND w.visibility = 'private')
+              )
           )
         ORDER BY u.name ASC
         LIMIT $4
@@ -352,8 +369,8 @@ pub async fn remove_workspace_member(
 
 /// Check if a user is a member of a workspace.
 ///
-/// Global Admins are treated as implicit members of every workspace,
-/// so this also returns `true` when the user's global role is `admin`.
+/// Global Admins are treated as implicit members of non-private workspaces.
+/// Private workspaces require explicit membership — admin role is ignored.
 pub async fn is_workspace_member(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -362,11 +379,19 @@ pub async fn is_workspace_member(
     let result: (bool,) = sqlx::query_as(
         r"
         SELECT EXISTS(
+            -- Explicit workspace member
             SELECT 1 FROM workspace_members
             WHERE workspace_id = $1 AND user_id = $2
             UNION ALL
-            SELECT 1 FROM users
-            WHERE id = $2 AND role = 'admin' AND deleted_at IS NULL
+            -- Implicit admin access (only for non-private workspaces)
+            SELECT 1 FROM users u
+            WHERE u.id = $2
+              AND u.role = 'admin'
+              AND u.deleted_at IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM workspaces w
+                  WHERE w.id = $1 AND w.visibility = 'private'
+              )
         )
         ",
     )
@@ -610,7 +635,7 @@ pub async fn get_user_workspace_matrix(
         r"
         SELECT w.id AS workspace_id,
                w.name AS workspace_name,
-               (wm.user_id IS NOT NULL OR $3) AS is_member,
+               (wm.user_id IS NOT NULL OR ($3 AND w.visibility != 'private')) AS is_member,
                wm.role,
                $3 AS is_org_admin
         FROM workspaces w

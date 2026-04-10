@@ -7,9 +7,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -39,6 +41,7 @@ export interface CreateWorkspaceDialogResult {
       [modal]="true"
       [style]="{ width: '460px' }"
       [closable]="true"
+      [appendTo]="'body'"
       (onShow)="onDialogShow()"
     >
       <p class="text-sm text-[var(--muted-foreground)] mb-4">
@@ -124,10 +127,24 @@ export class CreateWorkspaceDialogComponent {
   form: FormGroup = this.fb.group({
     name: [
       '',
-      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+      [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100),
+        CreateWorkspaceDialogComponent.noWhitespaceOnly,
+      ],
     ],
     description: [''],
   });
+
+  private static noWhitespaceOnly(
+    control: AbstractControl,
+  ): ValidationErrors | null {
+    if (typeof control.value === 'string' && control.value.trim().length === 0) {
+      return { whitespace: true };
+    }
+    return null;
+  }
 
   isSubmitting = false;
 

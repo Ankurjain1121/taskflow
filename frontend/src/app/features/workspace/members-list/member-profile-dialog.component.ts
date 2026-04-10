@@ -190,6 +190,7 @@ export class MemberProfileDialogComponent {
       this.isAdmin() &&
       !this.isSelf() &&
       !this.isOwner() &&
+      !this.member()?.is_implicit &&
       (!this.member()?.is_org_admin || this.isSuperAdmin()),
   );
 

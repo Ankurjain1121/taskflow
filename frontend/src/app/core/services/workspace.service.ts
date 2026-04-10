@@ -8,7 +8,7 @@ export interface Workspace {
   name: string;
   description: string | null;
   logo_url: string | null;
-  visibility?: 'open' | 'closed';
+  visibility?: 'open' | 'closed' | 'private';
   created_by_id: string;
   created_at: string;
   updated_at: string;
@@ -148,7 +148,7 @@ export class WorkspaceService {
 
   updateVisibility(
     workspaceId: string,
-    visibility: 'open' | 'closed',
+    visibility: 'open' | 'closed' | 'private',
   ): Observable<Workspace> {
     return this.http.patch<Workspace>(
       `${this.apiUrl}/${workspaceId}/visibility`,

@@ -143,10 +143,20 @@ import { UploadService } from '../../../core/services/upload.service';
               >
                 <option value="closed">Closed</option>
                 <option value="open">Open</option>
+                <option value="private">Private</option>
               </select>
               <p class="mt-1 text-xs text-[var(--muted-foreground)]">
-                Open workspaces can be discovered and joined by anyone in your
-                organization.
+                @switch (form.get('visibility')?.value) {
+                  @case ('open') {
+                    Open workspaces can be discovered and joined by anyone in your organization.
+                  }
+                  @case ('private') {
+                    Private workspaces are only visible to explicit members. Org admins cannot access them unless invited.
+                  }
+                  @default {
+                    Closed workspaces require an invitation to join.
+                  }
+                }
               </p>
             </div>
           }

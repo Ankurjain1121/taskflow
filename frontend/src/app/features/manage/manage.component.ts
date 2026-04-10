@@ -484,6 +484,7 @@ export class ManageComponent implements OnInit {
           role: string;
           joined_at: string;
           is_org_admin?: boolean;
+          is_implicit?: boolean;
         }>;
         this.members.set(embeddedMembers);
         this.loading.set(false);
