@@ -1,0 +1,47 @@
+# =============================================================================
+# TaskFlow Backend - FAST Dockerfile for dev/hot deploys
+# =============================================================================
+# Copies a locally-compiled binary instead of building inside Docker.
+# Build takes ~10 seconds instead of 10+ minutes.
+#
+# PREREQUISITE: Run `cargo build --release --bin taskbolt-api` on the host first.
+# The host MUST be Ubuntu 24.04 (GLIBC 2.39) to match the runtime image.
+#
+# Usage:
+#   cargo build --release --bin taskbolt-api
+#   docker build -t taskbolt-backend -f backend/Dockerfile.fast backend/
+#   docker compose up -d backend
+# =============================================================================
+
+FROM ubuntu:24.04 AS runner
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3t64 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
+
+# Copy host-compiled binary (must exist at target/release/taskbolt-api)
+COPY target/release/taskbolt-api /usr/local/bin/taskbolt-api
+
+# Copy entrypoint and init scripts
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY scripts/init-db.sh /usr/local/bin/init-db.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/init-db.sh
+
+# Switch to non-root user
+USER app
+
+# Expose API port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Run entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
