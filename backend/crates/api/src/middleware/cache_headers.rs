@@ -13,6 +13,8 @@ fn determine_cache_type(method: &Method, path: &str) -> CacheType {
         Method::GET => {
             // Dynamic data that shouldn't be cached (lists, searches)
             if path.contains("/tasks")
+                || path.contains("/issues")
+                || path.contains("/milestones")
                 || path.contains("/search")
                 || path.contains("/reports")
                 || path.contains("/dashboard")
