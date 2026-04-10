@@ -22,22 +22,29 @@ use taskbolt_db::queries::milestones::{
     CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
 };
 
-/// Request body for creating a milestone
+/// Request body for creating a milestone (Phase)
 #[derive(Deserialize)]
 pub struct CreateMilestoneRequest {
     pub name: String,
     pub description: Option<String>,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
     pub color: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub flag: Option<String>,
 }
 
-/// Request body for updating a milestone
+/// Request body for updating a milestone (Phase)
 #[derive(Deserialize)]
 pub struct UpdateMilestoneRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
     pub color: Option<String>,
+    pub owner_id: Option<Uuid>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub flag: Option<String>,
+    pub status: Option<String>,
 }
 
 /// Request body for assigning a task to a milestone
@@ -96,6 +103,9 @@ async fn create_milestone_handler(
         description: body.description,
         due_date: body.due_date,
         color: body.color,
+        owner_id: body.owner_id,
+        start_date: body.start_date,
+        flag: body.flag,
     };
 
     let milestone = create_milestone(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -147,6 +157,10 @@ async fn update_milestone_handler(
         description: body.description,
         due_date: body.due_date,
         color: body.color,
+        owner_id: body.owner_id,
+        start_date: body.start_date,
+        flag: body.flag,
+        status: body.status,
     };
 
     let milestone = update_milestone(&state.db, milestone_id, input)

@@ -127,6 +127,7 @@ async fn test_create_milestone() {
         description: Some("First milestone".to_string()),
         due_date: Some(Utc::now() + Duration::days(14)),
         color: Some("#ff5722".to_string()),
+        ..Default::default()
     };
 
     let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
@@ -151,12 +152,14 @@ async fn test_list_milestones() {
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
     let input2 = super::milestones::CreateMilestoneInput {
         name: "MS-B".to_string(),
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
 
     super::milestones::create_milestone(&pool, board_id, input1, tenant_id, user_id)
@@ -186,6 +189,7 @@ async fn test_get_milestone() {
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
 
     let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
@@ -212,6 +216,7 @@ async fn test_update_milestone() {
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
 
     let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
@@ -223,6 +228,7 @@ async fn test_update_milestone() {
         description: Some("Updated desc".to_string()),
         due_date: None,
         color: Some("#00ff00".to_string()),
+        ..Default::default()
     };
 
     let updated = super::milestones::update_milestone(&pool, ms.id, update)
@@ -244,6 +250,7 @@ async fn test_delete_milestone() {
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
 
     let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
@@ -269,6 +276,7 @@ async fn test_assign_task_to_milestone() {
         description: None,
         due_date: None,
         color: None,
+        ..Default::default()
     };
     let ms = super::milestones::create_milestone(&pool, board_id, ms_input, tenant_id, user_id)
         .await
