@@ -179,6 +179,13 @@ export const routes: Routes = [
             (m) => m.IssuesListComponent,
           ),
       },
+      {
+        path: 'project/:projectId/issues/:issueId',
+        loadComponent: () =>
+          import('./features/issues/issue-detail-page.component').then(
+            (m) => m.IssueDetailPageComponent,
+          ),
+      },
       // Redirects from old /board/ URLs for bookmarks
       {
         path: 'board/:boardId',

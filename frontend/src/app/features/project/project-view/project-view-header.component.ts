@@ -74,6 +74,22 @@ const VIEW_TABS: ViewTab[] = [
           }
         </div>
         <div class="flex items-center gap-3">
+          <!-- Issues Button -->
+          <a
+            [routerLink]="[
+              '/workspace',
+              workspaceId(),
+              'project',
+              boardId(),
+              'issues',
+            ]"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
+            aria-label="Issues"
+          >
+            <i class="pi pi-exclamation-circle w-4 h-4 text-sm" aria-hidden="true"></i>
+            Issues
+          </a>
+
           <!-- Automations Button -->
           <a
             [routerLink]="[
