@@ -472,4 +472,19 @@ export class ListViewComponent {
       year: 'numeric',
     });
   }
+
+  /**
+   * Format total logged minutes as "Xh Ym" (e.g. "1h 30m").
+   * Returns an em-dash ("—") when no time has been logged, so the column
+   * stays visually quiet for tasks without any entries.
+   *
+   * Running timers are already excluded by the backend query — this only
+   * receives minutes from stopped entries.
+   */
+  formatLoggedTime(minutes: number | null | undefined): string {
+    if (minutes == null || minutes <= 0) return '—';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  }
 }

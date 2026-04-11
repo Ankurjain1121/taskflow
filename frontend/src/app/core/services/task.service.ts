@@ -124,6 +124,8 @@ export interface TaskListItem {
   created_by_id: string;
   created_at: string;
   updated_at: string;
+  /** Sum of stopped time-entry durations in minutes. 0 when no entries. */
+  total_logged_minutes: number;
 }
 
 export interface CreateTaskRequest {

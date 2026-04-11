@@ -98,6 +98,7 @@ export class ProjectListEditHandler {
       created_by_id: '',
       created_at: now,
       updated_at: now,
+      total_logged_minutes: 0,
     };
 
     this.pendingNewTaskIds.add(tempId);

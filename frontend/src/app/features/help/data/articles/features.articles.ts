@@ -445,4 +445,58 @@ it from, what they changed it to, and exactly when it happened.
     updatedAt: '2026-04-11',
     relatedSlugs: ['project-groups'],
   },
+  {
+    slug: 'time-logged-column',
+    categorySlug: 'features',
+    title: 'Time Logged column',
+    summary:
+      'See the total hours logged against each task right from the list view, without opening the task.',
+    content: `
+## Overview
+
+Every task has a time tracker. The list view now shows a **Time Logged**
+column summing every completed time entry for each task. No more opening
+each task to check how many hours have been burned.
+
+## Where to find it
+
+- Open any project
+- Switch to **List** view
+- The Time Logged column shows between Priority and Due Date
+
+## What's counted
+
+- Every time entry that has been stopped (you pressed Stop, or entered hours
+  manually)
+- Entries are summed regardless of who logged them
+- Both billable and non-billable entries are included
+
+## What's NOT counted
+
+- **Running timers** are excluded. A timer that's currently running doesn't
+  contribute until you stop it. Check the Timer widget for live elapsed
+  time.
+- Deleted time entries are excluded (as expected)
+- Time logged on **subtasks** is not rolled up to the parent — each task
+  shows only its own hours
+
+## Formatting
+
+- 0 minutes → displayed as "—"
+- 45 minutes → "0h 45m"
+- 90 minutes → "1h 30m"
+- 480 minutes → "8h 0m"
+
+## Tips
+
+- Sort the column descending to find the tasks consuming the most time
+- Combine with a date filter to see "time logged this week"
+- If the number surprises you, open the task's **Time Tracking** section
+  to audit individual entries
+    `,
+    tags: ['time-tracking', 'logged-hours', 'list-view', 'column', 'billing'],
+    order: 11,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['status-timeline', 'kanban-boards'],
+  },
 ];

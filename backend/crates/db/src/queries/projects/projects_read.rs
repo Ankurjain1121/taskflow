@@ -53,6 +53,9 @@ pub struct TaskWithBadgesRow {
     pub has_running_timer: bool,
     pub comment_count: i64,
     pub parent_task_id: Option<Uuid>,
+    /// Sum of `duration_minutes` for all COMPLETED (stopped) time entries on this task.
+    /// Running timers are excluded. Defaults to 0 when no entries exist.
+    pub total_logged_minutes: i64,
 }
 
 /// Assignee info returned for a project's tasks
@@ -436,7 +439,14 @@ pub async fn list_project_tasks_with_badges(
             COALESCE(sub.total, 0) AS "subtask_total",
             COALESCE(sub.completed, 0) AS "subtask_completed",
             COALESCE(tmr.has_running, false) AS "has_running_timer",
-            COALESCE(cmt.cnt, 0) AS "comment_count"
+            COALESCE(cmt.cnt, 0) AS "comment_count",
+            COALESCE((
+                SELECT SUM(te.duration_minutes)::bigint
+                FROM time_entries te
+                WHERE te.task_id = t.id
+                  AND te.is_running = false
+                  AND te.duration_minutes IS NOT NULL
+            ), 0) AS "total_logged_minutes"
         FROM tasks t
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         LEFT JOIN LATERAL (

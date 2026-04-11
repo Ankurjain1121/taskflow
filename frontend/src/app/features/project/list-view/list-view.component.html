@@ -129,6 +129,19 @@
           }
         </td>
         <td>
+          @if (task.total_logged_minutes && task.total_logged_minutes > 0) {
+            <span
+              class="inline-flex items-center gap-1 text-sm text-[var(--foreground)] tabular-nums"
+              [attr.aria-label]="'Logged: ' + formatLoggedTime(task.total_logged_minutes)"
+            >
+              <i class="pi pi-clock text-xs text-[var(--muted-foreground)]"></i>
+              {{ formatLoggedTime(task.total_logged_minutes) }}
+            </span>
+          } @else {
+            <span class="text-sm text-[var(--muted-foreground)]">—</span>
+          }
+        </td>
+        <td>
           <span class="text-sm text-[var(--muted-foreground)]">
             {{ formatDate(task.created_at) }}
           </span>
@@ -177,6 +190,9 @@
               <th pSortableColumn="due_date" pResizableColumn style="min-width: 120px; width: 160px">
                 Due Date <p-sortIcon field="due_date" />
               </th>
+              <th pSortableColumn="total_logged_minutes" pResizableColumn style="min-width: 110px; width: 130px">
+                Time Logged <p-sortIcon field="total_logged_minutes" />
+              </th>
               <th pSortableColumn="created_at" pResizableColumn style="min-width: 100px; width: 140px">
                 Created <p-sortIcon field="created_at" />
               </th>
@@ -186,7 +202,7 @@
             @let group = getGroupData(task.task_list_id);
             <tr pRowGroupHeader>
               <td
-                colspan="6"
+                colspan="7"
                 class="!p-0 !border-none"
               >
                 <div
@@ -241,7 +257,7 @@
           <ng-template #body let-task>
             @if (isGroupCollapsed(task.task_list_id)) {
               <tr style="display: none">
-                <td colspan="6"></td>
+                <td colspan="7"></td>
               </tr>
             } @else {
               <tr
@@ -264,7 +280,7 @@
           </ng-template>
           <ng-template #emptymessage>
             <tr>
-              <td colspan="6">
+              <td colspan="7">
                 @if (hasActiveFilters()) {
                   <app-empty-state
                     variant="column-filtered"
@@ -321,6 +337,9 @@
               <th pSortableColumn="due_date" pResizableColumn style="min-width: 120px; width: 160px">
                 Due Date <p-sortIcon field="due_date" />
               </th>
+              <th pSortableColumn="total_logged_minutes" pResizableColumn style="min-width: 110px; width: 130px">
+                Time Logged <p-sortIcon field="total_logged_minutes" />
+              </th>
               <th pSortableColumn="created_at" pResizableColumn style="min-width: 100px; width: 140px">
                 Created <p-sortIcon field="created_at" />
               </th>
@@ -345,7 +364,7 @@
           </ng-template>
           <ng-template #emptymessage>
             <tr>
-              <td colspan="6">
+              <td colspan="7">
                 @if (hasActiveFilters()) {
                   <app-empty-state
                     variant="column-filtered"
