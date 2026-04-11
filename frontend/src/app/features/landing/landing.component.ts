@@ -364,10 +364,10 @@ import { RouterModule } from '@angular/router';
         <div class="grid grid-cols-2 md:grid-cols-3 gap-10 mb-12">
           @for (col of footerColumns; track col.title) {
             <div>
-              <h4
+              <h3
                 class="text-xs font-semibold uppercase tracking-[0.15em] mb-4"
                 style="font-family: var(--font-display); color: var(--foreground)"
-              >{{ col.title }}</h4>
+              >{{ col.title }}</h3>
               <ul class="space-y-2.5">
                 @for (link of col.links; track link.label) {
                   <li>
