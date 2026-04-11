@@ -283,7 +283,7 @@ pub async fn is_project_member(
             INNER JOIN projects p ON p.id = $1
             INNER JOIN workspaces w ON w.id = p.workspace_id
             WHERE u.id = $2
-              AND u.role = 'admin'
+              AND u.role IN ('admin', 'super_admin')
               AND u.deleted_at IS NULL
               AND w.visibility != 'private'
         )
@@ -345,7 +345,7 @@ pub async fn get_project_member_role(
             INNER JOIN projects p ON p.id = $1
             INNER JOIN workspaces w ON w.id = p.workspace_id
             WHERE u.id = $2
-              AND u.role = 'admin'
+              AND u.role IN ('admin', 'super_admin')
               AND u.deleted_at IS NULL
               AND w.visibility != 'private'
         ) ranked
