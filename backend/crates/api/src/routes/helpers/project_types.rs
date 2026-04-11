@@ -48,6 +48,7 @@ pub struct ProjectResponse {
     pub created_by_id: Uuid,
     pub background_color: Option<String>,
     pub is_sample: bool,
+    pub project_group_id: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -77,6 +78,7 @@ pub struct ProjectDetailResponse {
     pub created_by_id: Uuid,
     pub background_color: Option<String>,
     pub is_sample: bool,
+    pub project_group_id: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub statuses: Vec<StatusResponse>,

@@ -71,6 +71,7 @@ async fn list_projects(
             created_by_id: b.created_by_id,
             background_color: b.background_color,
             is_sample: b.is_sample,
+            project_group_id: b.project_group_id,
             created_at: b.created_at,
             updated_at: b.updated_at,
         })
@@ -132,6 +133,7 @@ async fn get_project(
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
         is_sample: board.project.is_sample,
+        project_group_id: board.project.project_group_id,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
@@ -226,6 +228,7 @@ async fn create_project(
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
         is_sample: board.project.is_sample,
+        project_group_id: board.project.project_group_id,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
@@ -310,6 +313,7 @@ async fn update_project(
         created_by_id: board.created_by_id,
         background_color: board.background_color,
         is_sample: board.is_sample,
+        project_group_id: board.project_group_id,
         created_at: board.created_at,
         updated_at: board.updated_at,
     }))
@@ -560,6 +564,7 @@ async fn duplicate_project(
         created_by_id: result.project.created_by_id,
         background_color: result.project.background_color,
         is_sample: result.project.is_sample,
+        project_group_id: result.project.project_group_id,
         created_at: result.project.created_at,
         updated_at: result.project.updated_at,
         statuses: result
@@ -688,6 +693,7 @@ async fn get_project_full(
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
         is_sample: board.project.is_sample,
+        project_group_id: board.project.project_group_id,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
