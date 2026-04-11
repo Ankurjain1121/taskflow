@@ -19,6 +19,7 @@ import { TaskDependenciesSectionComponent } from './task-dependencies-section.co
 import { TaskCustomFieldsSectionComponent } from './task-custom-fields-section.component';
 import { TaskRecurringSectionComponent } from './task-recurring-section.component';
 import { TaskTimeTrackingSectionComponent } from './task-time-tracking-section.component';
+import { TaskLinkedIssuesSectionComponent } from './task-linked-issues-section.component';
 
 @Component({
   selector: 'app-task-detail-fields',
@@ -28,6 +29,7 @@ import { TaskTimeTrackingSectionComponent } from './task-time-tracking-section.c
     TaskCustomFieldsSectionComponent,
     TaskRecurringSectionComponent,
     TaskTimeTrackingSectionComponent,
+    TaskLinkedIssuesSectionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -41,6 +43,11 @@ import { TaskTimeTrackingSectionComponent } from './task-time-tracking-section.c
         (dependencyAdded)="dependencyAdded.emit($event)"
         (dependencyRemoved)="dependencyRemoved.emit($event)"
         (depSearchChanged)="depSearchChanged.emit($event)"
+      />
+
+      <app-task-linked-issues-section
+        [taskId]="taskId()"
+        [projectId]="projectId()"
       />
 
       <app-task-custom-fields-section
@@ -70,6 +77,7 @@ import { TaskTimeTrackingSectionComponent } from './task-time-tracking-section.c
 export class TaskDetailFieldsComponent {
   // Inputs
   taskId = input.required<string>();
+  projectId = input<string>('');
   dependencies = input<TaskDependency[]>([]);
   blockingDeps = input<TaskDependency[]>([]);
   blockedByDeps = input<TaskDependency[]>([]);

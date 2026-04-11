@@ -173,4 +173,69 @@ Access the **Eisenhower Matrix** from the sidebar (or press **G then E**) to see
     order: 4,
     updatedAt: '2026-04-08',
   },
+  {
+    slug: 'linking-tasks-and-issues',
+    categorySlug: 'workflows',
+    title: 'Linking Tasks and Issues',
+    summary:
+      'Connect a bug report to the task that tracks fixing it. Links are bidirectional and visible from both sides.',
+    content: `
+## Overview
+
+Tasks track planned work. Issues track bugs and feature requests. Often a
+single piece of work connects both: a customer files a bug, your team creates
+a task to fix it, and you want to jump between the two without copying text
+back and forth.
+
+TaskBolt lets you link any task to any issue as long as they're in the same
+project. The link is bidirectional: you set it once from either side and
+both detail pages show the other.
+
+## Linking from a task
+
+1. Open the task detail page
+2. Scroll to the **Linked Issues** section (under Dependencies)
+3. Click **+ Link issue**
+4. Search by title. The dropdown filters to issues in the same project
+5. Click the issue you want to link
+
+The issue appears in the Linked Issues list immediately. Open the issue and
+you'll see the task under **Linked Tasks** on its detail page.
+
+## Unlinking
+
+From the task side, click the × icon next to any linked issue. The link is
+removed on both sides instantly. Unlinking does not delete either entity.
+
+## Rules
+
+- Both entities must be in the **same project**. Cross-project linking is
+  planned for a future release
+- A task can be linked to multiple issues, and vice versa
+- Attempting to link the same pair twice is a no-op, not an error
+- Deleting a task or issue automatically removes all its links
+
+## When to link
+
+- **Bug fix in progress**: user files a bug (issue), engineer starts working
+  on the fix (task). Link them so PMs can track the fix from either side
+- **Feature request → implementation**: a feature request issue links to all
+  the tasks that implement it
+- **Regression tracking**: if a new issue resurfaces an old closed issue, link
+  the old issue to the task investigating the regression
+
+## Tips
+
+- Link early. The value of a link is highest when both sides are still active
+- Use the issue's severity badge in the task detail as a priority signal —
+  a critical-severity linked issue is a stronger "drop everything" signal
+  than just task priority
+- If you find yourself linking 10+ issues to a single task, consider
+  grouping them under a milestone instead
+    `,
+    tags: ['linking', 'tasks', 'issues', 'bugs', 'relationships', 'workflow'],
+    order: 5,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['priority-management'],
+  },
 ];

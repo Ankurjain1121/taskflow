@@ -28,6 +28,7 @@ pub mod portfolio;
 pub mod positions;
 pub mod project_groups;
 pub mod project_overview;
+pub mod task_issue_links;
 pub mod project_shares;
 pub mod project_statuses;
 pub mod project_templates;

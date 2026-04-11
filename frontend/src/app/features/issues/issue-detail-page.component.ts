@@ -13,6 +13,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { IssueService } from '../../core/services/issue.service';
 import {
+  LinkedTask,
+  TaskIssueLinkService,
+} from '../../core/services/task-issue-link.service';
+import {
   ISSUE_CLASSIFICATION_OPTIONS,
   ISSUE_REPRODUCIBILITY_OPTIONS,
   ISSUE_SEVERITY_OPTIONS,
@@ -382,6 +386,40 @@ import { ResolveIssueDialogComponent } from './resolve-issue-dialog.component';
                 </div>
               }
             </section>
+
+            <section class="card">
+              <h2>Linked Tasks ({{ linkedTasks().length }})</h2>
+              @if (linkedTasks().length === 0) {
+                <p style="font-size:.8rem;color:var(--muted-foreground);margin:0">
+                  No tasks linked yet. Open a task in this project and use the
+                  <strong>Linked Issues</strong> section to link it here.
+                </p>
+              } @else {
+                <div style="display:flex;flex-direction:column;gap:.4rem">
+                  @for (t of linkedTasks(); track t.id) {
+                    <a
+                      [routerLink]="[
+                        '/workspace',
+                        workspaceId(),
+                        'project',
+                        projectId(),
+                        'task',
+                        t.id,
+                      ]"
+                      style="display:flex;align-items:center;gap:.5rem;padding:.5rem .625rem;background:var(--background);border:1px solid var(--border);border-radius:.5rem;text-decoration:none;color:var(--foreground);font-size:.8125rem"
+                    >
+                      @if (t.task_number) {
+                        <span style="font-family:ui-monospace,monospace;font-size:.7rem;color:var(--muted-foreground)">T-{{ t.task_number }}</span>
+                      }
+                      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</span>
+                      @if (t.status_name) {
+                        <span style="font-size:.7rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:.04em">{{ t.status_name }}</span>
+                      }
+                    </a>
+                  }
+                </div>
+              }
+            </section>
           </div>
 
           <aside>
@@ -502,6 +540,7 @@ export class IssueDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly issueService = inject(IssueService);
+  private readonly linkService = inject(TaskIssueLinkService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly severityOptions = ISSUE_SEVERITY_OPTIONS;
@@ -515,6 +554,7 @@ export class IssueDetailPageComponent implements OnInit {
   readonly projectId = signal('');
   readonly issueId = signal('');
   readonly issue = signal<Issue | null>(null);
+  readonly linkedTasks = signal<LinkedTask[]>([]);
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly saving = signal(false);
@@ -555,6 +595,9 @@ export class IssueDetailPageComponent implements OnInit {
           err?.error?.error?.message ?? 'Failed to load issue',
         );
       },
+    });
+    this.linkService.listTasksForIssue(this.issueId()).subscribe({
+      next: (tasks) => this.linkedTasks.set(tasks),
     });
   }
 
