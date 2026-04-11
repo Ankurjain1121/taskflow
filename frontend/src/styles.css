@@ -1577,12 +1577,34 @@ small.p-error,
 }
 
 /* ============================================
-   Input Focus Glow (auth-page style)
+   Input Focus Ring — keyboard-first, double-ring spec
+   Per DESIGN.md: 2px background gap + 4px primary-tinted outer ring
    ============================================ */
-.p-inputtext:focus,
-.p-textarea:focus,
-.p-select:focus {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+.p-inputtext:focus-visible,
+.p-textarea:focus-visible,
+.p-select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px color-mix(in srgb, var(--primary) 55%, transparent);
+  border-color: var(--primary);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo);
+}
+
+/* Mouse-click focus: soft inner glow, no big ring */
+.p-inputtext:focus:not(:focus-visible),
+.p-textarea:focus:not(:focus-visible),
+.p-select:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
   border-color: var(--primary);
 }
 
