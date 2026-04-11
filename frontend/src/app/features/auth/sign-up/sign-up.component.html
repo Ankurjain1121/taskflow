@@ -88,6 +88,8 @@
                   formControlName="name"
                   placeholder="John Doe"
                   class="w-full"
+                  required
+                  autocomplete="name"
                   [attr.aria-describedby]="signUpForm.get('name')?.hasError('required') && signUpForm.get('name')?.touched ? 'signup-name-required-error' : null"
                 />
                 @if (
@@ -107,6 +109,9 @@
                   formControlName="email"
                   placeholder="you@example.com"
                   class="w-full"
+                  required
+                  autocomplete="email"
+                  inputmode="email"
                   [attr.aria-describedby]="signUpForm.get('email')?.hasError('required') && signUpForm.get('email')?.touched ? 'signup-email-required-error' : signUpForm.get('email')?.hasError('email') && signUpForm.get('email')?.touched ? 'signup-email-invalid-error' : null"
                 />
                 @if (
@@ -135,6 +140,8 @@
                   formControlName="phone_number"
                   placeholder="+91 8750269626"
                   class="w-full"
+                  autocomplete="tel"
+                  inputmode="tel"
                 />
                 @if (
                   signUpForm.get('phone_number')?.hasError('pattern') &&
