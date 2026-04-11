@@ -160,6 +160,9 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   showCreateColumnDialog = false;
   showCreateGroupDialog = false;
 
+  // Signal used to tell ListViewComponent which task row should open in inline title edit mode.
+  inlineEditTaskId = signal<string | null>(null);
+
   constructor() {
     effect(() => {
       this.quickEditService.setProjectMembers(this.state.projectMembers());
@@ -368,6 +371,27 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       description: '',
       priority: 'medium',
     } as CreateTaskDialogResult);
+  }
+
+  /** Ctrl+Shift+ArrowUp / ArrowDown handler from ListViewComponent. */
+  onCreateTaskRelative(focusedTaskId: string, direction: 'above' | 'below'): void {
+    const newId = this.listEdit.createTaskRelative(
+      focusedTaskId,
+      direction,
+      this.boardId,
+      this.destroy$,
+    );
+    if (newId) {
+      this.inlineEditTaskId.set(newId);
+    }
+  }
+
+  onInlineEditCancelled(taskId: string): void {
+    // Clear the parent-side signal so future edits on the same id re-trigger the effect.
+    if (this.inlineEditTaskId() === taskId) {
+      this.inlineEditTaskId.set(null);
+    }
+    this.listEdit.onInlineEditCancelled(taskId, this.boardId, this.destroy$);
   }
 
   // === Keyboard Navigation ===

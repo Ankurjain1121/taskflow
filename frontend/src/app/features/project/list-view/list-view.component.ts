@@ -6,6 +6,8 @@ import {
   computed,
   effect,
   ChangeDetectionStrategy,
+  ElementRef,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -78,6 +80,9 @@ export class ListViewComponent {
     return resolveCardColor(colorable, this.colorBy());
   }
 
+  // Parent may push a task id into inline-edit mode (e.g., after "create above/below")
+  inlineEditTaskId = input<string | null>(null);
+
   taskClicked = output<string>();
   titleChanged = output<{ taskId: string; title: string }>();
   priorityChanged = output<{ taskId: string; priority: string }>();
@@ -85,6 +90,15 @@ export class ListViewComponent {
   dueDateChanged = output<{ taskId: string; dueDate: string | null }>();
   groupToggled = output<TaskGroupWithStats>();
   createTaskClicked = output<void>();
+  createAboveRequested = output<string>();
+  createBelowRequested = output<string>();
+  /** Emitted when user presses Escape/blurs an inline-edit input with an empty title. */
+  inlineEditCancelled = output<string>();
+
+  // Row focus tracking — used by Ctrl+Shift+Up/Down shortcuts
+  focusedTaskId = signal<string | null>(null);
+
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
   selectedTasks: TaskListItem[] = [];
 
@@ -100,6 +114,42 @@ export class ListViewComponent {
         this.loadSortState(pid);
       }
     });
+
+    // When parent sets inlineEditTaskId (e.g., after a create-above/below),
+    // switch the matching row into inline title edit mode and focus the input.
+    effect(() => {
+      const id = this.inlineEditTaskId();
+      if (!id) return;
+      const task = this.tasks().find((t) => t.id === id);
+      if (!task) return;
+      this.editingTitleTaskId.set(id);
+      this.editingTitleValue.set(task.title ?? '');
+      this.focusedTaskId.set(id);
+      queueMicrotask(() => this.focusInlineTitleInput(id));
+    });
+  }
+
+  private focusInlineTitleInput(taskId: string): void {
+    // Retry briefly in case PrimeNG hasn't rendered the row yet.
+    let attempts = 0;
+    const rootEl: HTMLElement = this.host.nativeElement;
+    const tryFocus = () => {
+      attempts++;
+      const row = rootEl.querySelector(
+        `tr[data-task-row-id="${taskId}"]`,
+      ) as HTMLElement | null;
+      const input = row?.querySelector('input[pInputText]') as
+        | HTMLInputElement
+        | null
+        | undefined;
+      if (input) {
+        input.focus();
+        input.select();
+        return;
+      }
+      if (attempts < 10) setTimeout(tryFocus, 30);
+    };
+    tryFocus();
   }
 
   private loadSortState(pid: string): void {
@@ -280,7 +330,8 @@ export class ListViewComponent {
   saveTitleEdit(task: TaskListItem): void {
     const newTitle = this.editingTitleValue().trim();
     if (!newTitle) {
-      this.cancelTitleEdit();
+      // Empty title on save — treat as cancel so parent can clean up pending new tasks.
+      this.cancelTitleEdit(task.id);
       return;
     }
     if (newTitle !== task.title) {
@@ -289,9 +340,13 @@ export class ListViewComponent {
     this.editingTitleTaskId.set(null);
   }
 
-  cancelTitleEdit(): void {
+  cancelTitleEdit(taskId?: string): void {
+    const id = taskId ?? this.editingTitleTaskId();
     this.editingTitleTaskId.set(null);
     this.editingTitleValue.set('');
+    if (id) {
+      this.inlineEditCancelled.emit(id);
+    }
   }
 
   // === Priority editing ===
@@ -357,7 +412,45 @@ export class ListViewComponent {
   }
 
   onRowClick(task: TaskListItem): void {
+    this.focusedTaskId.set(task.id);
     this.taskClicked.emit(task.id);
+  }
+
+  onRowFocus(task: TaskListItem): void {
+    this.focusedTaskId.set(task.id);
+  }
+
+  /**
+   * Ctrl+Shift+ArrowUp / ArrowDown on the wrapper:
+   * create a new task above/below the currently focused row.
+   * No-op if no row is focused or the user is typing in an input/textarea.
+   */
+  onWrapperKeydown(event: KeyboardEvent): void {
+    if (!event.ctrlKey || !event.shiftKey) return;
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+
+    const target = event.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      target?.isContentEditable
+    ) {
+      return;
+    }
+
+    const focusedId = this.focusedTaskId();
+    if (!focusedId) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'ArrowUp') {
+      this.createAboveRequested.emit(focusedId);
+    } else {
+      this.createBelowRequested.emit(focusedId);
+    }
   }
 
   formatDueDate(date: string): string {

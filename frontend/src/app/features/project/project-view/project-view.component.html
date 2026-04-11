@@ -84,6 +84,7 @@
               [columns]="state.columns()"
               [colorBy]="state.colorBy()"
               [projectId]="boardId"
+              [inlineEditTaskId]="inlineEditTaskId()"
               (taskClicked)="navigateToTask($event)"
               (titleChanged)="listEdit.onTitleChanged($event, boardId, destroy$)"
               (priorityChanged)="listEdit.onPriorityChanged($event, boardId, destroy$)"
@@ -91,6 +92,9 @@
               (dueDateChanged)="listEdit.onDueDateChanged($event, boardId, destroy$)"
               (groupToggled)="state.toggleGroupCollapse($event)"
               (createTaskClicked)="onCreateTask()"
+              (createAboveRequested)="onCreateTaskRelative($event, 'above')"
+              (createBelowRequested)="onCreateTaskRelative($event, 'below')"
+              (inlineEditCancelled)="onInlineEditCancelled($event)"
             ></app-list-view>
           } @placeholder {
             <div

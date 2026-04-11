@@ -45,6 +45,8 @@ TaskBolt supports color-coding cards by:
 | **N** | New task |
 | **/** | Focus search |
 | **?** | Show all shortcuts |
+| **Ctrl+Shift+↑** | Create task above focused row |
+| **Ctrl+Shift+↓** | Create task below focused row |
 
 ## Tips
 
@@ -54,7 +56,7 @@ TaskBolt supports color-coding cards by:
     `,
     tags: ['kanban', 'board', 'columns', 'drag-drop', 'cards', 'workflow'],
     order: 1,
-    updatedAt: '2026-04-08',
+    updatedAt: '2026-04-11',
     relatedSlugs: ['create-tasks', 'workflow-automation'],
   },
   {

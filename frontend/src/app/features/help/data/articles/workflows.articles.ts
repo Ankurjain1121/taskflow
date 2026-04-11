@@ -120,6 +120,8 @@ Keyboard shortcuts let you navigate TaskBolt without touching the mouse. Power u
 | **A** | Assign |
 | **P** | Set priority |
 | **L** | Add label |
+| **Ctrl+Shift+↑** | Create task above focused row |
+| **Ctrl+Shift+↓** | Create task below focused row |
 
 ## Discovering Shortcuts
 
@@ -133,7 +135,7 @@ Press **?** anywhere in TaskBolt to open the keyboard shortcuts reference. Short
     `,
     tags: ['keyboard', 'shortcuts', 'navigation', 'productivity', 'speed'],
     order: 3,
-    updatedAt: '2026-04-08',
+    updatedAt: '2026-04-11',
   },
   {
     slug: 'managing-priorities',

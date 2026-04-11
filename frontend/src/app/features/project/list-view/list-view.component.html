@@ -1,4 +1,7 @@
-    <div class="mx-4 my-4 space-y-3 overflow-x-auto">
+    <div
+      class="mx-4 my-4 space-y-3 overflow-x-auto"
+      (keydown)="onWrapperKeydown($event)"
+    >
       <!-- Shared task row cells template -->
       <ng-template #taskRowCells let-task>
         <td (click)="$event.stopPropagation()">
@@ -12,7 +15,7 @@
               (ngModelChange)="editingTitleValue.set($event)"
               (blur)="saveTitleEdit(task)"
               (keydown.enter)="saveTitleEdit(task)"
-              (keydown.escape)="cancelTitleEdit()"
+              (keydown.escape)="cancelTitleEdit(task.id)"
               #titleInput
             />
           } @else {
@@ -244,8 +247,11 @@
               <tr
                 [pSelectableRow]="task"
                 class="cursor-pointer"
+                [attr.data-task-row-id]="task.id"
+                [attr.tabindex]="0"
                 [style.border-left]="getRowStripe(task) ? '4px solid ' + getRowStripe(task) : 'none'"
                 (click)="onRowClick(task)"
+                (focus)="onRowFocus(task)"
               >
                 <td (click)="$event.stopPropagation()">
                   <p-tableCheckbox [value]="task" />
@@ -324,7 +330,10 @@
             <tr
               [pSelectableRow]="task"
               class="cursor-pointer"
+              [attr.data-task-row-id]="task.id"
+              [attr.tabindex]="0"
               (click)="onRowClick(task)"
+              (focus)="onRowFocus(task)"
             >
               <td (click)="$event.stopPropagation()">
                 <p-tableCheckbox [value]="task" />
