@@ -227,4 +227,9 @@ export class ProjectViewHeaderComponent {
   viewModeChanged = output<ViewMode>();
 
   readonly viewTabs = VIEW_TABS;
+  readonly showBudget = signal(false);
+
+  toggleBudget(): void {
+    this.showBudget.update((v) => !v);
+  }
 }
