@@ -31,6 +31,7 @@ import { WorkspaceGeneralTabComponent } from '../workspace/workspace-settings/wo
 import { WorkspaceLabelsComponent } from '../workspace/labels/workspace-labels.component';
 import { WorkspaceApiKeysTabComponent } from '../workspace/workspace-settings/workspace-api-keys-tab.component';
 import { WorkspaceAdvancedTabComponent } from '../workspace/workspace-settings/workspace-advanced-tab.component';
+import { ProjectGroupsTabComponent } from '../workspace/workspace-settings/project-groups-tab.component';
 import { AuditLogComponent } from '../workspace/audit-log/audit-log.component';
 import { TrashComponent } from '../workspace/trash/trash.component';
 import { InviteMemberDialogComponent } from '../../shared/components/dialogs/invite-member-dialog.component';
@@ -69,6 +70,7 @@ const ALL_TABS: TabDef[] = [
     WorkspaceLabelsComponent,
     WorkspaceApiKeysTabComponent,
     WorkspaceAdvancedTabComponent,
+    ProjectGroupsTabComponent,
     AuditLogComponent,
     TrashComponent,
 
@@ -229,6 +231,15 @@ const ALL_TABS: TabDef[] = [
                   <section>
                     @defer {
                       <app-workspace-labels [workspaceId]="workspaceId" />
+                    } @placeholder {
+                      <div class="h-24 bg-[var(--muted)] rounded-xl animate-pulse"></div>
+                    }
+                  </section>
+
+                  <!-- Project Groups -->
+                  <section>
+                    @defer {
+                      <app-project-groups-tab [workspaceId]="workspaceId" />
                     } @placeholder {
                       <div class="h-24 bg-[var(--muted)] rounded-xl animate-pulse"></div>
                     }

@@ -26,6 +26,7 @@ pub mod notifications;
 pub mod personal_board;
 pub mod portfolio;
 pub mod positions;
+pub mod project_groups;
 pub mod project_overview;
 pub mod project_shares;
 pub mod project_statuses;

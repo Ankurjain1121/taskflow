@@ -28,8 +28,9 @@ use crate::routes::{
     dashboard_router, dependency_router, eisenhower_router, favorites_router,
     filter_presets_router, health_handler, issue_router, liveness_handler, milestone_router,
     my_tasks_router, notification_preferences_router, notification_router, onboarding_router,
-    personal_board_router, positions_router, project_router, project_share_router,
-    project_template_router, project_templates_router, readiness_handler, recent_items_router,
+    personal_board_router, positions_router, project_group_router, project_router,
+    project_share_router, project_template_router, project_templates_router, readiness_handler,
+    recent_items_router,
     recurring_router, reports_router, saved_views_router, search_router, sessions_router,
     shared_project_public_router, subtask_router, task_group_routes, task_labels_router,
     task_router, task_snooze_router, task_template_router, team_overview_router, tenant_router,
@@ -215,6 +216,7 @@ pub fn build_router(
         .nest("/api", dependency_router(state.clone()))
         .nest("/api", milestone_router(state.clone()))
         .nest("/api", issue_router(state.clone()))
+        .nest("/api", project_group_router(state.clone()))
         .nest("/api", attachment_router(state.clone()))
         // Comment routes
         .nest("/api", comment_router(state.clone()))

@@ -17,6 +17,9 @@ pub struct Project {
     pub created_by_id: Uuid,
     pub background_color: Option<String>,
     pub is_sample: bool,
+    /// Optional collection this project belongs to within the workspace.
+    /// NULL = ungrouped.
+    pub project_group_id: Option<Uuid>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -72,6 +75,7 @@ mod tests {
             created_by_id: Uuid::new_v4(),
             background_color: None,
             is_sample: false,
+            project_group_id: None,
             deleted_at: None,
             created_at: now,
             updated_at: now,

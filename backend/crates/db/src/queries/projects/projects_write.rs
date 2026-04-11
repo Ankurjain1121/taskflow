@@ -24,7 +24,7 @@ pub async fn create_project(
         INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                  created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
+                  created_by_id, background_color, is_sample, project_group_id, deleted_at, created_at, updated_at
         ",
     )
     .bind(name)
@@ -95,7 +95,7 @@ pub async fn update_project(
                 WHERE id = $1
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                          created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
+                          created_by_id, background_color, is_sample, project_group_id, deleted_at, created_at, updated_at
                 ",
             )
             .bind(id)
@@ -114,7 +114,7 @@ pub async fn update_project(
                 WHERE id = $1
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                          created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
+                          created_by_id, background_color, is_sample, project_group_id, deleted_at, created_at, updated_at
                 ",
             )
             .bind(id)
@@ -227,7 +227,7 @@ pub async fn duplicate_project(
         FROM projects WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, name, description, slack_webhook_url, prefix,
                   workspace_id, tenant_id, created_by_id,
-                  background_color, is_sample, deleted_at, created_at, updated_at
+                  background_color, is_sample, project_group_id, deleted_at, created_at, updated_at
         ",
     )
     .bind(source_id)

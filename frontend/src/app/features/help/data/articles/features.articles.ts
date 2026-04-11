@@ -325,4 +325,69 @@ The Client Portal lets you share project progress with external stakeholders wit
     order: 8,
     updatedAt: '2026-04-08',
   },
+  {
+    slug: 'project-groups',
+    categorySlug: 'features',
+    title: 'Project Groups',
+    summary:
+      'Organize projects into named collections like "Q3 Launches" or "Client X" without creating separate workspaces.',
+    content: `
+## Overview
+
+Project Groups let you organize the projects inside a workspace into named
+collections. A group is lighter than a workspace: everyone in the workspace
+still sees all projects, but groups give you a way to slice them into
+meaningful buckets like **Q3 Launches**, **Client X**, or **Internal Tools**.
+
+A project can belong to at most one group, or stay ungrouped.
+
+## Creating a group
+
+1. Open **Manage** from the sidebar
+2. Go to the **Config** tab
+3. Scroll to **Project Groups**
+4. Enter a name, pick a color swatch, and click **+ Add Group**
+
+You'll see the new group appear in the list with a project count of 0.
+
+## Assigning projects to a group
+
+1. Open the project's settings
+2. Under **Project Group**, pick the group from the dropdown
+3. Save
+
+The project now shows up under that group wherever groups are filtered.
+
+## Renaming or deleting a group
+
+From **Manage → Config → Project Groups**:
+
+- **Rename**: click the pencil icon next to the group name, type the new
+  name, press Enter
+- **Delete**: click the trash icon. Projects inside the group are **not**
+  deleted — they become ungrouped. A confirmation dialog warns you how many
+  projects will be affected.
+
+## When to use a group vs a workspace
+
+| Scenario | Use |
+|----------|-----|
+| Separate companies / tenants | **Workspace** |
+| Permissions vary per bucket | **Workspace** |
+| Just visual organization inside one company | **Project Group** |
+| Cross-functional teams sharing projects | **Project Group** |
+
+## Tips
+
+- Use color to encode meaning at a glance: red for client work, blue for
+  internal, amber for experimental
+- Keep group names short — they show up in filter dropdowns
+- An empty group is fine. Create it before you have projects so you can
+  assign from the start
+    `,
+    tags: ['project-groups', 'organize', 'collections', 'workspace', 'filter'],
+    order: 9,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['client-portal'],
+  },
 ];
