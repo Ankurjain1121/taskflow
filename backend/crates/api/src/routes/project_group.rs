@@ -169,20 +169,13 @@ async fn assign_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
-    // Caller must be a workspace member of the project's workspace.
-    // Use project_groups membership check which validates workspace membership.
-    // We verify by attempting a load with a dummy group — simpler: inline check.
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r"
-        SELECT EXISTS(
-            SELECT 1 FROM workspace_members
-            WHERE workspace_id = $1 AND user_id = $2
-        )
-        ",
+    // Caller must be a workspace member of the project's workspace. Use the
+    // canonical helper so super admins and org admins get implicit access.
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
+        &state.db,
+        project.workspace_id,
+        tenant.user_id,
     )
-    .bind(project.workspace_id)
-    .bind(tenant.user_id)
-    .fetch_one(&state.db)
     .await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a workspace member".into()));

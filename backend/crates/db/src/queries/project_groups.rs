@@ -54,18 +54,9 @@ async fn verify_workspace_member(
     workspace_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar::<_, bool>(
-        r"
-        SELECT EXISTS(
-            SELECT 1 FROM workspace_members
-            WHERE workspace_id = $1 AND user_id = $2
-        )
-        ",
-    )
-    .bind(workspace_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await
+    // Delegate to the canonical check so super admins and org admins get
+    // implicit access to non-private workspaces, matching the rest of the app.
+    super::workspaces::is_workspace_member(pool, workspace_id, user_id).await
 }
 
 /// List all groups in a workspace, each with its project count.
