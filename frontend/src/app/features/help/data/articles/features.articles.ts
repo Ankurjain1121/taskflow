@@ -390,4 +390,57 @@ From **Manage → Config → Project Groups**:
     updatedAt: '2026-04-11',
     relatedSlugs: ['client-portal'],
   },
+  {
+    slug: 'status-timeline',
+    categorySlug: 'features',
+    title: 'Task Status Timeline',
+    summary:
+      'See every status transition for a task with who made the change and when.',
+    content: `
+## Overview
+
+The Status Timeline tab on any task detail page shows every time the task moved
+between statuses. It's a chronological record: who moved it, what they changed
+it from, what they changed it to, and exactly when it happened.
+
+## Where to find it
+
+1. Open any task
+2. Scroll to the **Status Timeline** section
+3. Read the entries top-to-bottom
+
+## What gets logged
+
+- Initial creation (the first transition into whatever status the task started in)
+- Every manual status change by any team member
+- Status changes made by automations (the automation shows as the actor)
+- Bulk operations that changed this task's status
+
+## What does NOT get logged here
+
+- Other field changes (assignee, due date, priority) — those live in the
+  **Activity** tab, which shows a broader edit history
+- Comments
+- Status transitions in linked tasks or subtasks
+
+## When it's useful
+
+- **Audit trail** for compliance: "who closed this task and when?"
+- **Diagnosing regressions**: "why was this moved back to In Progress twice?"
+- **Estimating cycle time**: look at the timestamps between Open and Done
+- **Debugging automations**: confirm an automation actually fired the status
+  change you expected
+
+## Tips
+
+- Hover any entry to see the full timestamp
+- Use browser search (Ctrl+F) to find an actor by name
+- If the timeline looks empty on an old task, it means the status hasn't been
+  touched since the feature was added — the log starts recording on first change
+    `,
+    tags: ['status', 'timeline', 'history', 'audit', 'transitions', 'activity'],
+    order: 10,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['project-groups'],
+  },
 ];

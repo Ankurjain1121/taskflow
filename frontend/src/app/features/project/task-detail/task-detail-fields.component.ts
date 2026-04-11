@@ -20,6 +20,7 @@ import { TaskCustomFieldsSectionComponent } from './task-custom-fields-section.c
 import { TaskRecurringSectionComponent } from './task-recurring-section.component';
 import { TaskTimeTrackingSectionComponent } from './task-time-tracking-section.component';
 import { TaskLinkedIssuesSectionComponent } from './task-linked-issues-section.component';
+import { TaskStatusTimelineSectionComponent } from './task-status-timeline-section.component';
 
 @Component({
   selector: 'app-task-detail-fields',
@@ -30,6 +31,7 @@ import { TaskLinkedIssuesSectionComponent } from './task-linked-issues-section.c
     TaskRecurringSectionComponent,
     TaskTimeTrackingSectionComponent,
     TaskLinkedIssuesSectionComponent,
+    TaskStatusTimelineSectionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -44,6 +46,8 @@ import { TaskLinkedIssuesSectionComponent } from './task-linked-issues-section.c
         (dependencyRemoved)="dependencyRemoved.emit($event)"
         (depSearchChanged)="depSearchChanged.emit($event)"
       />
+
+      <app-task-status-timeline-section [taskId]="taskId()" />
 
       <app-task-linked-issues-section
         [taskId]="taskId()"
