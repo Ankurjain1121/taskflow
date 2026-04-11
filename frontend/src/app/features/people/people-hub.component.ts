@@ -51,8 +51,13 @@ type RoleFilter = 'all' | 'admin' | 'manager' | 'member';
         background: var(--accent-900);
       }
       .role-chip {
-        transition: all var(--duration-fast, 150ms)
-          var(--ease-standard, ease);
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo);
         cursor: pointer;
         user-select: none;
       }

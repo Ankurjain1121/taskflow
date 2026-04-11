@@ -342,7 +342,13 @@ const DEFAULT_FILTERS: TaskFilters = {
         font-weight: 500;
         border: 1px solid var(--border);
         color: var(--muted-foreground);
-        transition: all 150ms;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo);
         white-space: nowrap;
       }
       .quick-chip:hover {

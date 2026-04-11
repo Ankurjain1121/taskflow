@@ -232,7 +232,13 @@ import Link from '@tiptap/extension-link';
         height: 28px;
         border-radius: 4px;
         color: var(--muted-foreground);
-        transition: all 0.1s ease;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo);
       }
 
       .toolbar-btn:hover {

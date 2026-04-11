@@ -210,7 +210,13 @@
         letter-spacing: 0.01em;
         background: var(--primary) !important;
         color: var(--primary-foreground) !important;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo) !important;
         box-shadow:
           0 2px 4px rgba(59, 130, 246, 0.3),
           0 6px 20px rgba(59, 130, 246, 0.2) !important;

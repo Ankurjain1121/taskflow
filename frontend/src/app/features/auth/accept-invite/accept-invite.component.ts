@@ -557,7 +557,13 @@ type PageState =
         border-radius: 12px !important;
         background: var(--primary) !important;
         color: var(--primary-foreground) !important;
-        transition: all 0.2s ease !important;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo) !important;
         box-shadow:
           0 1px 3px rgba(79, 70, 229, 0.3),
           0 4px 12px rgba(79, 70, 229, 0.15) !important;

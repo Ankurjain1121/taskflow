@@ -107,7 +107,13 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         border-radius: 9999px;
         font-size: 0.75rem;
         cursor: pointer;
-        transition: all 0.15s;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo);
         border: 1px solid var(--border);
       }
       .reminder-chip:hover {
