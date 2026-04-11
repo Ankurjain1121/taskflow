@@ -129,6 +129,11 @@ import { FocusTask } from '../dashboard.types';
     }
   `,
   styles: [`
+    .focus-mode-card {
+      transition:
+        box-shadow var(--duration-normal) var(--ease-out-expo),
+        transform var(--duration-normal) var(--ease-out-expo);
+    }
     @media (prefers-reduced-motion: no-preference) {
       .focus-mode-overlay {
         animation: fadeIn 0.3s ease-out;

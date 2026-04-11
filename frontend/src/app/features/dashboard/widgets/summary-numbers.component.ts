@@ -23,8 +23,14 @@ export interface SummaryStats {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      @for (card of cards(); track card.label) {
-        <div class="widget-card p-5 relative overflow-hidden">
+      @for (card of cards(); track card.label; let i = $index) {
+        <div
+          class="widget-card p-5 relative overflow-hidden animate-fade-in-up"
+          [class.stagger-1]="i === 0"
+          [class.stagger-2]="i === 1"
+          [class.stagger-3]="i === 2"
+          [class.stagger-4]="i === 3"
+        >
           <!-- Background accent -->
           <div
             class="absolute top-0 right-0 w-20 h-20 -mr-4 -mt-4 rounded-full opacity-[0.07]"
@@ -54,7 +60,7 @@ export interface SummaryStats {
 
           <!-- Number -->
           <div
-            class="text-2xl lg:text-3xl font-bold tracking-tight animate-count-up"
+            class="text-2xl lg:text-3xl font-bold tracking-tight"
             style="color: var(--foreground)"
           >
             @if (card.isPercentage) {

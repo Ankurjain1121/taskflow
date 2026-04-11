@@ -110,13 +110,20 @@ import {
           </p-table>
         </div>
       } @else {
-        <div
-          class="flex-1 flex items-center justify-center"
-          style="color: var(--muted-foreground)"
-        >
-          <div class="text-center">
-            <i class="pi pi-check-circle text-3xl text-[var(--success)] mb-2"></i>
-            <p class="text-sm">No overdue tasks!</p>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="text-center animate-fade-in-up">
+            <div
+              class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-3"
+              style="background: color-mix(in srgb, var(--success) 12%, transparent)"
+            >
+              <i class="pi pi-check-circle text-2xl" style="color: var(--success)"></i>
+            </div>
+            <p class="text-sm font-semibold" style="color: var(--foreground)">
+              All caught up
+            </p>
+            <p class="text-xs mt-1" style="color: var(--muted-foreground)">
+              Nothing is overdue. Nice pace.
+            </p>
           </div>
         </div>
       }

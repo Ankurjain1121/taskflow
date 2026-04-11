@@ -19,6 +19,17 @@ import {
   standalone: true,
   imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      .task-row-item {
+        background: transparent;
+        transition: background-color var(--duration-fast) var(--ease-standard);
+      }
+      .task-row-item:hover {
+        background: var(--muted);
+      }
+    `,
+  ],
   template: `
     <div class="widget-card p-5">
       <div class="flex items-center justify-between mb-4">
@@ -59,12 +70,17 @@ import {
         </div>
       } @else {
         <div class="space-y-1">
-          @for (task of filteredTasks().slice(0, 8); track task.id) {
+          @for (task of filteredTasks().slice(0, 8); track task.id; let i = $index) {
             <div
-              class="flex items-start gap-3 p-2.5 rounded-lg transition-colors"
-              style="background: transparent"
-              onmouseover="this.style.background='var(--muted)'"
-              onmouseout="this.style.background='transparent'"
+              class="task-row-item flex items-start gap-3 p-2.5 rounded-lg animate-fade-in-up"
+              [class.stagger-1]="i === 0"
+              [class.stagger-2]="i === 1"
+              [class.stagger-3]="i === 2"
+              [class.stagger-4]="i === 3"
+              [class.stagger-5]="i === 4"
+              [class.stagger-6]="i === 5"
+              [class.stagger-7]="i === 6"
+              [class.stagger-8]="i === 7"
             >
               <!-- Priority indicator -->
               <div
