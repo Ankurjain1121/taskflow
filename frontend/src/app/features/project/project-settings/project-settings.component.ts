@@ -53,10 +53,10 @@ import { ProjectMembersSettingsComponent } from './project-members-settings.comp
             >
           </nav>
           <h1 class="text-3xl font-bold text-[var(--foreground)]">
-            Board Setup
+            Project Setup
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">
-            Configure your board's columns and rules.
+            Configure your project's columns and rules.
           </p>
           <p class="mt-1 text-sm text-[var(--muted-foreground)]">
             Labels &amp; roles are workspace-wide.

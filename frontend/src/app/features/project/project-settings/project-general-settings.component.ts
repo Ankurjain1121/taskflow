@@ -77,7 +77,7 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
                 formControlName="description"
                 rows="3"
                 class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
-                placeholder="Add a description for this board..."
+                placeholder="Add a description for this project..."
               ></textarea>
             </div>
 
@@ -214,7 +214,7 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
         </div>
       </section>
 
-      <!-- Board Color -->
+      <!-- Project Color -->
       <section class="animate-fade-in-up">
         <div class="bg-[var(--card)] shadow rounded-lg">
           <div class="px-6 py-4 border-b border-[var(--border)]">
@@ -455,11 +455,11 @@ export class ProjectGeneralSettingsComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'Color Updated',
-            detail: 'Board color has been updated.',
+            detail: 'Project color has been updated.',
             life: 2000,
           });
         },
-        error: () => this.errorOccurred.emit('Failed to update board color'),
+        error: () => this.errorOccurred.emit('Failed to update project color'),
       });
   }
 
@@ -473,11 +473,11 @@ export class ProjectGeneralSettingsComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'Color Cleared',
-            detail: 'Board color has been removed.',
+            detail: 'Project color has been removed.',
             life: 2000,
           });
         },
-        error: () => this.errorOccurred.emit('Failed to clear board color'),
+        error: () => this.errorOccurred.emit('Failed to clear project color'),
       });
   }
 
@@ -485,7 +485,7 @@ export class ProjectGeneralSettingsComponent implements OnInit {
     this.messageService.add({
       severity: 'success',
       summary: 'Template Saved',
-      detail: 'Board saved as template successfully.',
+      detail: 'Project saved as template successfully.',
       life: 3000,
     });
   }

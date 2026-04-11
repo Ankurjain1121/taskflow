@@ -127,7 +127,7 @@ export class ProjectInviteMemberDialogComponent {
   invited = output<InviteMemberDialogResult>();
 
   roleOptions = [
-    { label: 'Viewer - Can view board and tasks', value: 'viewer' },
+    { label: 'Viewer - Can view project and tasks', value: 'viewer' },
     { label: 'Editor - Can edit tasks and columns', value: 'editor' },
   ];
 

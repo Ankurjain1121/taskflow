@@ -36,10 +36,10 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-medium text-[var(--foreground)]">
-                  Archive Board
+                  Archive Project
                 </h3>
                 <p class="text-sm text-[var(--muted-foreground)]">
-                  Hide this board from the sidebar. It can be
+                  Hide this project from the sidebar. It can be
                   restored later from the Archived section.
                 </p>
               </div>
@@ -71,7 +71,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
                   Archiving...
                 } @else {
                   <i class="pi pi-inbox"></i>
-                  Archive Board
+                  Archive Project
                 }
               </button>
             </div>
@@ -102,10 +102,10 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
                   <h3
                     class="text-sm font-medium text-[var(--foreground)]"
                   >
-                    Delete Board
+                    Delete Project
                   </h3>
                   <p class="text-sm text-[var(--muted-foreground)]">
-                    Permanently delete this board and all its tasks.
+                    Permanently delete this project and all its tasks.
                     This action cannot be undone.
                   </p>
                 </div>
@@ -137,7 +137,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
                     </svg>
                     Deleting...
                   } @else {
-                    Delete Board
+                    Delete Project
                   }
                 </button>
               </div>
@@ -176,7 +176,7 @@ export class ProjectAdvancedSettingsComponent {
 
     this.confirmationService.confirm({
       message: `Archive "${board.name}"? It will be hidden from the sidebar but can be restored later.`,
-      header: 'Archive Board',
+      header: 'Archive Project',
       icon: 'pi pi-inbox',
       acceptButtonStyleClass: 'p-button-warning p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
@@ -186,7 +186,7 @@ export class ProjectAdvancedSettingsComponent {
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Board Archived',
+              summary: 'Project Archived',
               detail: `"${board.name}" has been archived.`,
               life: 4000,
             });
@@ -194,7 +194,7 @@ export class ProjectAdvancedSettingsComponent {
           },
           error: () => {
             this.archiving.set(false);
-            this.errorOccurred.emit('Failed to archive board');
+            this.errorOccurred.emit('Failed to archive project');
           },
         });
       },
@@ -207,7 +207,7 @@ export class ProjectAdvancedSettingsComponent {
 
     this.confirmationService.confirm({
       message: `Are you sure you want to delete "${board.name}"? This action cannot be undone. All tasks, columns, and data will be permanently lost.`,
-      header: 'Delete Board',
+      header: 'Delete Project',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',

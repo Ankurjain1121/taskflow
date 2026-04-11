@@ -295,7 +295,7 @@ export class ProjectMembersSettingsComponent {
 
   onRemoveMember(member: ProjectMember): void {
     this.confirmationService.confirm({
-      message: `Remove ${member.name || member.email} from this board?`,
+      message: `Remove ${member.name || member.email} from this project?`,
       header: 'Remove Member',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',

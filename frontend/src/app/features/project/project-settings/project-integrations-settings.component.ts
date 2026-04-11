@@ -114,7 +114,7 @@ import { ExportDialogComponent } from '../import-export/export-dialog.component'
               <h3
                 class="text-sm font-medium text-[var(--foreground)]"
               >
-                Export Board
+                Export Project
               </h3>
               <p class="text-sm text-[var(--muted-foreground)]">
                 Export all tasks to CSV or JSON format.
