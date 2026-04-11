@@ -86,6 +86,25 @@ import {
       .sidebar-icon-color {
         color: var(--sidebar-text-muted);
       }
+
+      .workspace-menu {
+        transform-origin: top right;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .workspace-menu {
+          animation: slideDownFade 180ms var(--ease-out-expo);
+        }
+      }
+      @keyframes slideDownFade {
+        from {
+          opacity: 0;
+          transform: translateY(-6px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
     `,
   ],
   template: `
@@ -179,7 +198,7 @@ import {
               (click)="workspaceMenuOpen.set(false)"
             ></div>
             <div
-              class="absolute right-0 top-full mt-1 w-44 rounded-lg shadow-lg border py-1 z-20"
+              class="workspace-menu absolute right-0 top-full mt-1 w-44 rounded-lg shadow-lg border py-1 z-20"
               style="background: var(--sidebar-bg); border-color: var(--sidebar-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4)"
             >
               <a

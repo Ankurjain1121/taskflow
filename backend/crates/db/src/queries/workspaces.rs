@@ -290,7 +290,7 @@ pub async fn search_workspace_members(
           AND (
               EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = $1 AND wm.user_id = u.id)
               OR (
-                  u.role = 'admin' AND u.tenant_id = $2
+                  u.role IN ('admin', 'super_admin') AND u.tenant_id = $2
                   AND NOT EXISTS (SELECT 1 FROM workspaces w WHERE w.id = $1 AND w.visibility = 'private')
               )
           )
@@ -386,7 +386,7 @@ pub async fn is_workspace_member(
             -- Implicit admin access (only for non-private workspaces)
             SELECT 1 FROM users u
             WHERE u.id = $2
-              AND u.role = 'admin'
+              AND u.role IN ('admin', 'super_admin')
               AND u.deleted_at IS NULL
               AND NOT EXISTS (
                   SELECT 1 FROM workspaces w

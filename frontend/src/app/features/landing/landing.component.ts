@@ -65,23 +65,23 @@ import { RouterModule } from '@angular/router';
       <div class="max-w-6xl mx-auto">
         <div class="max-w-2xl mx-auto text-center">
           <p
-            class="text-xs font-medium uppercase tracking-[0.2em] mb-5"
+            class="text-xs font-medium uppercase tracking-[0.2em] mb-5 animate-fade-in-up"
             style="font-family: var(--font-body); color: var(--muted-foreground)"
           >Project management that doesn't suck</p>
 
           <h1
-            class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight"
+            class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight animate-fade-in-up stagger-1"
             style="font-family: var(--font-display); color: var(--foreground)"
           >Your team's work,<br>finally organized.</h1>
 
           <p
-            class="mt-6 text-lg leading-relaxed max-w-xl mx-auto"
+            class="mt-6 text-lg leading-relaxed max-w-xl mx-auto animate-fade-in-up stagger-2"
             style="font-family: var(--font-body); color: var(--muted-foreground)"
           >Kanban boards. Real-time collaboration. Automations that actually save time. All in one place your team will love.</p>
 
           <a
             routerLink="/auth/sign-up"
-            class="inline-flex items-center gap-2 mt-10 px-8 py-3.5 text-base font-semibold rounded-full transition-all"
+            class="inline-flex items-center gap-2 mt-10 px-8 py-3.5 text-base font-semibold rounded-full transition-all animate-fade-in-up stagger-3"
             style="
               font-family: var(--font-body);
               background: var(--primary);
@@ -364,10 +364,10 @@ import { RouterModule } from '@angular/router';
         <div class="grid grid-cols-2 md:grid-cols-3 gap-10 mb-12">
           @for (col of footerColumns; track col.title) {
             <div>
-              <h4
+              <h3
                 class="text-xs font-semibold uppercase tracking-[0.15em] mb-4"
                 style="font-family: var(--font-display); color: var(--foreground)"
-              >{{ col.title }}</h4>
+              >{{ col.title }}</h3>
               <ul class="space-y-2.5">
                 @for (link of col.links; track link.label) {
                   <li>

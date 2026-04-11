@@ -72,6 +72,8 @@
                     formControlName="identifier"
                     placeholder="you@example.com or +918750269626"
                     class="w-full"
+                    required
+                    autocomplete="username"
                     [attr.aria-describedby]="signInForm.get('identifier')?.hasError('required') && signInForm.get('identifier')?.touched ? 'identifier-required-error' : null"
                   />
                   @if (

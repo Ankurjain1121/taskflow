@@ -24,6 +24,25 @@ import {
   standalone: true,
   imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      @media (prefers-reduced-motion: no-preference) {
+        .skeleton-row-staggered {
+          opacity: 0;
+          animation: fadeInUp 0.5s var(--ease-out-expo) forwards;
+        }
+        .skeleton-row-staggered.delay-1 {
+          animation-delay: 0ms;
+        }
+        .skeleton-row-staggered.delay-2 {
+          animation-delay: 80ms;
+        }
+        .skeleton-row-staggered.delay-3 {
+          animation-delay: 160ms;
+        }
+      }
+    `,
+  ],
   template: `
     <div class="widget-card p-5 h-full">
       <h3 class="widget-title mb-4">Tasks by Status</h3>
@@ -36,8 +55,14 @@ import {
           ></div>
         </div>
         <div class="mt-4 space-y-2 px-4">
-          @for (i of [1, 2, 3]; track i) {
-            <div class="skeleton skeleton-row" style="height: 1.25rem;"></div>
+          @for (i of [1, 2, 3]; track i; let idx = $index) {
+            <div
+              class="skeleton skeleton-row skeleton-row-staggered"
+              [class.delay-1]="idx === 0"
+              [class.delay-2]="idx === 1"
+              [class.delay-3]="idx === 2"
+              style="height: 1.25rem;"
+            ></div>
           }
         </div>
       } @else if (data().length > 0) {

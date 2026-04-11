@@ -140,7 +140,13 @@ import { SeverityBadgeComponent } from './severity-badge.component';
         background: var(--card);
         color: var(--foreground);
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition:
+          color var(--duration-fast) var(--ease-out-expo),
+          background-color var(--duration-fast) var(--ease-out-expo),
+          border-color var(--duration-fast) var(--ease-out-expo),
+          box-shadow var(--duration-fast) var(--ease-out-expo),
+          transform var(--duration-fast) var(--ease-out-expo),
+          opacity var(--duration-fast) var(--ease-out-expo);
       }
       .btn:hover {
         border-color: var(--primary);

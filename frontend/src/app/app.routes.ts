@@ -333,5 +333,12 @@ export const routes: Routes = [
     canActivate: [publicOnlyGuard],
     data: { hideSidebar: true },
   },
+  // Friendly redirects for common auth URLs people guess at
+  { path: 'sign-in', redirectTo: '/auth/sign-in', pathMatch: 'full' as const },
+  { path: 'login', redirectTo: '/auth/sign-in', pathMatch: 'full' as const },
+  { path: 'signin', redirectTo: '/auth/sign-in', pathMatch: 'full' as const },
+  { path: 'sign-up', redirectTo: '/auth/sign-up', pathMatch: 'full' as const },
+  { path: 'signup', redirectTo: '/auth/sign-up', pathMatch: 'full' as const },
+  { path: 'register', redirectTo: '/auth/sign-up', pathMatch: 'full' as const },
   { path: '**', redirectTo: '' },
 ];
