@@ -12,6 +12,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::{CreateTaskGroupRequest, UpdateTaskGroupRequest};
+use taskbolt_db::queries::membership::verify_project_membership as db_verify_project_membership;
 use taskbolt_db::queries::{
     create_task_group, get_task_group_by_id, list_task_groups_by_board,
     list_task_groups_with_stats, soft_delete_task_group, toggle_task_group_collapse,
@@ -34,43 +35,36 @@ pub fn task_group_routes(state: AppState) -> Router<AppState> {
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
-/// Verify board membership for a given board_id and user_id
+/// Verify board membership using the canonical membership check
+/// (explicit project member OR workspace member OR org admin/super_admin on
+/// non-private workspace).
 async fn verify_board_access(pool: &sqlx::PgPool, board_id: Uuid, user_id: Uuid) -> Result<bool> {
-    let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM projects p
-            JOIN project_members pm ON p.id = pm.project_id
-            WHERE p.id = $1 AND pm.user_id = $2 AND p.deleted_at IS NULL
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(exists.unwrap_or(false))
+    db_verify_project_membership(pool, board_id, user_id)
+        .await
+        .map_err(AppError::from)
 }
 
-/// Verify group access for a given group id and user_id
+/// Verify group access by resolving the group's project_id, then checking
+/// project membership via the canonical helper.
 async fn verify_group_access(pool: &sqlx::PgPool, group_id: Uuid, user_id: Uuid) -> Result<bool> {
-    let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
+    let project_id: Option<Uuid> = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT EXISTS(
-            SELECT 1 FROM task_lists tl
-            JOIN projects p ON tl.project_id = p.id
-            JOIN project_members pm ON p.id = pm.project_id
-            WHERE tl.id = $1 AND pm.user_id = $2 AND tl.deleted_at IS NULL
-        )
+        SELECT p.id FROM task_lists tl
+        JOIN projects p ON tl.project_id = p.id
+        WHERE tl.id = $1 AND tl.deleted_at IS NULL AND p.deleted_at IS NULL
         "#,
     )
     .bind(group_id)
-    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
-    Ok(exists.unwrap_or(false))
+    let Some(pid) = project_id else {
+        return Ok(false);
+    };
+
+    db_verify_project_membership(pool, pid, user_id)
+        .await
+        .map_err(AppError::from)
 }
 
 /// List task groups for a board
