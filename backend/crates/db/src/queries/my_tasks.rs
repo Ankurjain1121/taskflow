@@ -155,10 +155,7 @@ pub async fn list_my_tasks(
         .into_iter()
         .take(limit as usize)
         .map(|row| {
-            let is_done = row
-                .status_type
-                .as_deref()
-                .is_some_and(|t| t == "done");
+            let is_done = row.status_type.as_deref().is_some_and(|t| t == "done");
 
             MyTaskItem {
                 id: row.id,

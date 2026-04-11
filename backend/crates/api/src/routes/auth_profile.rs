@@ -2,7 +2,7 @@
 //!
 //! Provides user profile retrieval and update.
 
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use serde::Deserialize;
 
 use taskbolt_db::queries::auth;
@@ -12,9 +12,9 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
-use super::validation::{validate_optional_string, MAX_BIO_LEN, MAX_NAME_LEN};
+use super::validation::{MAX_BIO_LEN, MAX_NAME_LEN, validate_optional_string};
 
-use super::auth::{AuthResponse, UserResponse, SESSION_TTL_SECS};
+use super::auth::{AuthResponse, SESSION_TTL_SECS, UserResponse};
 
 // ============================================================================
 // Request DTOs

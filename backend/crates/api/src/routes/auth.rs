@@ -3,11 +3,11 @@
 //! Provides sign-in, token refresh, sign-out, and user profile endpoints.
 
 use axum::{
+    Json, Router,
     extract::State,
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue},
+    http::{HeaderMap, HeaderValue, header::SET_COOKIE},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ use crate::state::AppState;
 
 use super::auth_password;
 use super::auth_profile;
-use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
+use super::auth_session::{SessionParams, build_auth_session, extract_session_metadata};
 use super::common::MessageResponse;
 
 pub(crate) const SESSION_TTL_SECS: usize = 30 * 60;

@@ -3,10 +3,10 @@
 //! Provides endpoints for viewing tasks across all projects in a workspace.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use uuid::Uuid;
 

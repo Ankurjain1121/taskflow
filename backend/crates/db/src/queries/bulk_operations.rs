@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::bulk_operation::BulkOperation;
 use crate::models::TaskPriority;
+use crate::models::bulk_operation::BulkOperation;
 
 use super::tasks::TaskQueryError;
 

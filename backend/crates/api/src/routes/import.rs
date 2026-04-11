@@ -3,10 +3,10 @@
 //! Provides import (JSON, CSV, Trello) for board tasks.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::post,
-    Json, Router,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::{require_capability, verify_project_membership, Capability};
+use super::common::{Capability, require_capability, verify_project_membership};
 
 const MAX_IMPORT_BATCH_SIZE: usize = 500;
 
@@ -557,9 +557,7 @@ async fn import_trello_handler(
                 .copied()
                 .unwrap_or_else(|| {
                     // Fallback to first column
-                    existing_columns
-                        .first()
-                        .map_or(Uuid::nil(), |c| c.id)
+                    existing_columns.first().map_or(Uuid::nil(), |c| c.id)
                 })
         } else {
             // Fallback to first column

@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::routes::validation::{
-    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
+    MAX_DESCRIPTION_LEN, MAX_NAME_LEN, validate_optional_string, validate_required_string,
 };
 use crate::state::AppState;
 use taskbolt_db::models::{Task, UserRole};
@@ -132,7 +132,9 @@ async fn create_child_task_handler(
                estimated_hours, project_id, status_id, task_list_id, position,
                milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                tenant_id, created_by_id, deleted_at,
-               created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+               created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+               rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+               cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -183,7 +185,9 @@ async fn create_child_task_handler(
             estimated_hours, project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at,
-            created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+            created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         "#,
     )
     .bind(&body.title)

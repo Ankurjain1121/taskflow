@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -12,27 +12,27 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    create_task, duplicate_task, find_done_status, find_non_done_status, get_project_status_name,
-    get_task_assignee_ids, get_task_board_id, get_task_by_id, get_task_row, get_task_status_id,
-    get_user_display_name, list_tasks_by_board, soft_delete_task, update_task, CreateTaskInput,
-    TaskQueryError, TaskWithDetails, UpdateTaskInput,
+    CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput, create_task, duplicate_task,
+    find_done_status, find_non_done_status, get_project_status_name, get_task_assignee_ids,
+    get_task_board_id, get_task_by_id, get_task_row, get_task_status_id, get_user_display_name,
+    list_tasks_by_board, soft_delete_task, update_task,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::{
-    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
 };
 
 use crate::services::ActivityLogService;
 
-use super::common::{require_capability, verify_project_membership, Capability};
+use super::common::{Capability, require_capability, verify_project_membership};
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
-    ListTasksResponse, UpdateTaskRequest,
+    CreateTaskRequest, ListTasksResponse, UpdateTaskRequest, broadcast_workspace_task_update,
+    get_workspace_id_for_board, sanitize_html,
 };
 use super::validation::{
-    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
+    MAX_DESCRIPTION_LEN, MAX_NAME_LEN, validate_optional_string, validate_required_string,
 };
 
 /// GET /api/boards/:board_id/tasks
@@ -128,6 +128,14 @@ pub async fn create_task_handler(
         label_ids: body.label_ids,
         parent_task_id: body.parent_task_id,
         reporting_person_id: body.reporting_person_id,
+        // Budget fields (Phase 2.6)
+        rate_per_hour: body.rate_per_hour,
+        budgeted_hours: body.budgeted_hours,
+        budgeted_hours_threshold: body.budgeted_hours_threshold,
+        cost_budget: body.cost_budget,
+        cost_budget_threshold: body.cost_budget_threshold,
+        cost_per_hour: body.cost_per_hour,
+        revenue_budget: body.revenue_budget,
     };
 
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -313,6 +321,17 @@ pub async fn update_task_handler(
         clear_estimated_hours: body.clear_estimated_hours,
         clear_milestone: body.clear_milestone,
         expected_version: body.expected_version,
+        // Budget fields (Phase 2.6) — wrap each Option<f64> into Option<Option<f64>>
+        // so the query layer can distinguish "absent" from "explicit null". v1 only
+        // supports "set to a value" or "leave as-is"; explicit null is not wired through
+        // the HTTP body yet (would need `clear_rate_per_hour` etc. flags).
+        rate_per_hour: body.rate_per_hour.map(Some),
+        budgeted_hours: body.budgeted_hours.map(Some),
+        budgeted_hours_threshold: body.budgeted_hours_threshold.map(Some),
+        cost_budget: body.cost_budget.map(Some),
+        cost_budget_threshold: body.cost_budget_threshold.map(Some),
+        cost_per_hour: body.cost_per_hour.map(Some),
+        revenue_budget: body.revenue_budget.map(Some),
     };
 
     let task = update_task(&state.db, task_id, input)

@@ -38,6 +38,18 @@ import {
 } from './task-detail-helpers';
 import { getPriorityLabel } from '../../shared/utils/task-colors';
 
+// Keys for the seven Phase 2.6 budget fields on Task.
+// Kept local to the task-detail sidebar — if another view needs them,
+// promote to a shared types file.
+export type BudgetFieldKey =
+  | 'rate_per_hour'
+  | 'budgeted_hours'
+  | 'budgeted_hours_threshold'
+  | 'cost_budget'
+  | 'cost_budget_threshold'
+  | 'cost_per_hour'
+  | 'revenue_budget';
+
 @Component({
   selector: 'app-task-detail-sidebar',
   standalone: true,
@@ -88,6 +100,87 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         border-radius: 9999px;
         font-size: 0.75rem;
         font-weight: 500;
+      }
+      .budget-section > summary {
+        list-style: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted-foreground);
+        padding: 0.25rem 0;
+        user-select: none;
+      }
+      .budget-section > summary::-webkit-details-marker {
+        display: none;
+      }
+      .budget-section > summary::before {
+        content: '\\25B8';
+        display: inline-block;
+        font-size: 0.625rem;
+        color: var(--muted-foreground);
+        transition: transform var(--duration-fast, 150ms) var(--ease-standard, ease);
+      }
+      .budget-section[open] > summary::before {
+        transform: rotate(90deg);
+      }
+      .budget-badge {
+        font-size: 0.625rem;
+        font-weight: 600;
+        padding: 0.0625rem 0.375rem;
+        border-radius: 9999px;
+        background: var(--primary);
+        color: var(--primary-foreground, #fff);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .budget-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem 0.75rem;
+      }
+      .budget-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .budget-prefix {
+        position: absolute;
+        left: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
+        pointer-events: none;
+      }
+      .budget-input {
+        width: 100%;
+        padding: 0.3125rem 0.5rem 0.3125rem 1.1rem;
+        font-size: 0.8125rem;
+        color: var(--foreground);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        transition: border-color var(--duration-fast, 150ms) var(--ease-standard, ease);
+      }
+      .budget-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+      .budget-input::-webkit-outer-spin-button,
+      .budget-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      .budget-input[type='number'] {
+        -moz-appearance: textfield;
+      }
+      .budget-help {
+        font-size: 0.6875rem;
+        color: var(--muted-foreground);
+        font-style: italic;
       }
       .field-editable {
         cursor: pointer;
@@ -273,6 +366,46 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         </div>
 
         <!-- Reminders (only shown when task has a due date) -->
+        <!-- Budget (collapsible, Phase 2.6) -->
+        <div>
+          <details class="budget-section">
+            <summary class="budget-summary">
+              <i class="pi pi-dollar text-xs"></i>
+              <span>Budget</span>
+              @if (hasAnyBudget()) {
+                <span class="budget-badge">set</span>
+              }
+            </summary>
+            <div class="budget-grid mt-3">
+              @for (field of budgetFields; track field.key) {
+                <div>
+                  <label class="field-label" [attr.for]="'bf-' + field.key">
+                    {{ field.label }}
+                  </label>
+                  <div class="budget-input-wrapper mt-1">
+                    <span class="budget-prefix">$</span>
+                    <input
+                      [id]="'bf-' + field.key"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      class="budget-input"
+                      [value]="budgetValue(field.key) ?? ''"
+                      (blur)="onBudgetBlur(field.key, $event)"
+                      (keydown.enter)="onBudgetBlur(field.key, $event)"
+                      [attr.placeholder]="field.placeholder"
+                    />
+                  </div>
+                </div>
+              }
+            </div>
+            <p class="budget-help mt-2">
+              All amounts in USD. Leave blank to skip.
+            </p>
+          </details>
+        </div>
+
         @if (task()!.due_date) {
           <div>
             <label class="field-label">Reminders</label>
@@ -644,6 +777,7 @@ export class TaskDetailSidebarComponent {
   reminderSet = output<number>();
   reminderRemoved = output<string>();
   estimatedHoursChanged = output<number | null>();
+  budgetFieldChanged = output<{ key: BudgetFieldKey; value: number | null }>();
 
   editingField = signal<string | null>(null);
   showAssigneeSearch = signal(false);
@@ -679,6 +813,58 @@ export class TaskDetailSidebarComponent {
     { minutes: 60, label: '1 hour' },
     { minutes: 1440, label: '1 day' },
   ];
+
+  // Phase 2.6 — single source of truth for the budget fields UI.
+  // Order is intentional: rate first (anchors what a billable hour costs),
+  // then budgeted effort, then cost, then revenue.
+  readonly budgetFields: ReadonlyArray<{
+    key: BudgetFieldKey;
+    label: string;
+    placeholder: string;
+  }> = [
+    { key: 'rate_per_hour', label: 'Rate / hr', placeholder: '150' },
+    { key: 'cost_per_hour', label: 'Cost / hr', placeholder: '85' },
+    { key: 'budgeted_hours', label: 'Budgeted Hours', placeholder: '40' },
+    {
+      key: 'budgeted_hours_threshold',
+      label: 'Hours Warning',
+      placeholder: '32',
+    },
+    { key: 'cost_budget', label: 'Cost Budget', placeholder: '3400' },
+    {
+      key: 'cost_budget_threshold',
+      label: 'Cost Warning',
+      placeholder: '3000',
+    },
+    { key: 'revenue_budget', label: 'Revenue Budget', placeholder: '6000' },
+  ];
+
+  budgetValue(key: BudgetFieldKey): number | null | undefined {
+    return this.task()?.[key];
+  }
+
+  hasAnyBudget(): boolean {
+    const t = this.task();
+    if (!t) return false;
+    return this.budgetFields.some((f) => {
+      const v = t[f.key];
+      return v !== null && v !== undefined;
+    });
+  }
+
+  onBudgetBlur(key: BudgetFieldKey, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const raw = input.value.trim();
+    const parsed = raw === '' ? null : Number(raw);
+    if (parsed !== null && (isNaN(parsed) || parsed < 0)) return;
+
+    // Skip emit if unchanged — avoids noisy PATCHes on every blur.
+    const current = this.budgetValue(key);
+    if (current === parsed) return;
+    if (current == null && parsed == null) return;
+
+    this.budgetFieldChanged.emit({ key, value: parsed });
+  }
 
   formatDate = formatDate;
   formatShortDate = formatShortDate;

@@ -5,7 +5,7 @@
 use uuid::Uuid;
 
 use taskbolt_db::models::automation::AutomationTrigger;
-use taskbolt_services::{spawn_automation_evaluation, TriggerContext};
+use taskbolt_services::{TriggerContext, spawn_automation_evaluation};
 
 /// Fire MemberJoined trigger for all boards in a workspace.
 ///

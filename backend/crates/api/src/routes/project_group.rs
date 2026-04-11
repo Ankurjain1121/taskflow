@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, post},
-    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -15,9 +15,9 @@ use crate::state::AppState;
 
 use taskbolt_db::models::ProjectGroup;
 use taskbolt_db::queries::project_groups::{
-    create_project_group, delete_project_group, get_group_workspace_id, get_project_group,
-    list_project_groups, set_project_group, update_project_group, CreateProjectGroupInput,
-    ProjectGroupQueryError, ProjectGroupWithCount, UpdateProjectGroupInput,
+    CreateProjectGroupInput, ProjectGroupQueryError, ProjectGroupWithCount,
+    UpdateProjectGroupInput, create_project_group, delete_project_group, get_group_workspace_id,
+    get_project_group, list_project_groups, set_project_group, update_project_group,
 };
 use taskbolt_db::queries::projects::get_project_internal;
 
@@ -88,9 +88,15 @@ async fn create_handler(
         color: body.color,
         description: body.description,
     };
-    let group = create_project_group(&state.db, workspace_id, tenant.tenant_id, tenant.user_id, input)
-        .await
-        .map_err(map_group_error)?;
+    let group = create_project_group(
+        &state.db,
+        workspace_id,
+        tenant.tenant_id,
+        tenant.user_id,
+        input,
+    )
+    .await
+    .map_err(map_group_error)?;
     Ok(Json(group))
 }
 

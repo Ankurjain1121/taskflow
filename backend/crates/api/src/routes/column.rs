@@ -3,10 +3,10 @@
 //! Provides CRUD operations for project statuses.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, put},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -21,8 +21,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
-use super::common::{require_capability, Capability, MessageResponse};
-use super::validation::{validate_required_string, MAX_SHORT_NAME_LEN};
+use super::common::{Capability, MessageResponse, require_capability};
+use super::validation::{MAX_SHORT_NAME_LEN, validate_required_string};
 
 // ============================================================================
 // Request/Response DTOs

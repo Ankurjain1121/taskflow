@@ -3,10 +3,10 @@
 //! CRUD operations for workspace-level labels.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, put},
-    Json, Router,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::validation::{validate_hex_color, validate_required_string, MAX_SHORT_NAME_LEN};
+use super::validation::{MAX_SHORT_NAME_LEN, validate_hex_color, validate_required_string};
 
 // ============================================================================
 // DTOs

@@ -159,12 +159,14 @@ mod tests {
     #[test]
     fn test_valid_length_strings_accepted() {
         assert!(validate_required_string("Title", "Short title", MAX_NAME_LEN).is_ok());
-        assert!(validate_optional_string(
-            "Description",
-            Some("A brief description"),
-            MAX_DESCRIPTION_LEN
-        )
-        .is_ok());
+        assert!(
+            validate_optional_string(
+                "Description",
+                Some("A brief description"),
+                MAX_DESCRIPTION_LEN
+            )
+            .is_ok()
+        );
         assert!(validate_required_string("Name", "My Project", MAX_NAME_LEN).is_ok());
     }
 
@@ -226,12 +228,10 @@ mod tests {
         );
 
         let too_long = "p".repeat(5_001);
-        assert!(validate_optional_string(
-            "Description",
-            Some(&too_long),
-            MAX_PROJECT_DESCRIPTION_LEN
-        )
-        .is_err());
+        assert!(
+            validate_optional_string("Description", Some(&too_long), MAX_PROJECT_DESCRIPTION_LEN)
+                .is_err()
+        );
     }
 
     #[test]

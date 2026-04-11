@@ -2,7 +2,7 @@
 //!
 //! Sends and verifies OTP codes via WhatsApp (WAHA) for phone number confirmation.
 
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

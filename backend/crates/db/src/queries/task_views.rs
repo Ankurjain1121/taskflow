@@ -27,6 +27,9 @@ pub struct TaskListItem {
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Sum of `duration_minutes` for completed (stopped) time entries on this task.
+    /// Running timers and NULL durations are excluded. Defaults to 0.
+    pub total_logged_minutes: i64,
 }
 
 /// List all tasks for a board as a flat list with column names
@@ -51,7 +54,14 @@ pub async fn list_tasks_flat(
                t.task_list_id,
                tl.name as task_list_name,
                t.position, t.created_by_id,
-               t.created_at, t.updated_at
+               t.created_at, t.updated_at,
+               COALESCE((
+                   SELECT SUM(te.duration_minutes)::bigint
+                   FROM time_entries te
+                   WHERE te.task_id = t.id
+                     AND te.is_running = false
+                     AND te.duration_minutes IS NOT NULL
+               ), 0) AS total_logged_minutes
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id

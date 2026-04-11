@@ -6,10 +6,10 @@
 //! task detail page.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use uuid::Uuid;
 
@@ -19,7 +19,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::verify_project_membership;
-use taskbolt_db::queries::activity_log::{list_task_status_timeline, StatusTimelineEntry};
+use taskbolt_db::queries::activity_log::{StatusTimelineEntry, list_task_status_timeline};
 use taskbolt_db::queries::tasks::get_task_project_id;
 
 /// GET /api/tasks/{task_id}/status-timeline

@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -16,8 +16,8 @@ use crate::state::AppState;
 use super::common::verify_project_membership;
 use taskbolt_db::queries::issues::get_issue_project_id;
 use taskbolt_db::queries::task_issue_links::{
-    create_link, delete_link, list_linked_issues, list_linked_tasks, LinkedIssueRow,
-    LinkedTaskRow, TaskIssueLinkError,
+    LinkedIssueRow, LinkedTaskRow, TaskIssueLinkError, create_link, delete_link,
+    list_linked_issues, list_linked_tasks,
 };
 use taskbolt_db::queries::tasks::get_task_project_id;
 
@@ -27,9 +27,7 @@ fn map_err(e: TaskIssueLinkError) -> AppError {
         TaskIssueLinkError::ProjectMismatch => {
             AppError::BadRequest("Task and issue must be in the same project".into())
         }
-        TaskIssueLinkError::AlreadyExists => {
-            AppError::Conflict("Link already exists".into())
-        }
+        TaskIssueLinkError::AlreadyExists => AppError::Conflict("Link already exists".into()),
         TaskIssueLinkError::Database(e) => AppError::SqlxError(e),
     }
 }
@@ -68,7 +66,9 @@ async fn unlink_issue_from_task(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
     verify_project_membership(&state.db, project_id, tenant.user_id, &tenant.role).await?;
 
-    delete_link(&state.db, task_id, issue_id).await.map_err(map_err)?;
+    delete_link(&state.db, task_id, issue_id)
+        .await
+        .map_err(map_err)?;
     Ok(Json(json!({ "success": true })))
 }
 

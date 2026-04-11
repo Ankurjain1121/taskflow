@@ -81,6 +81,13 @@ pub async fn create_test_task(
         label_ids: None,
         parent_task_id: None,
         reporting_person_id: None,
+        rate_per_hour: None,
+        budgeted_hours: None,
+        budgeted_hours_threshold: None,
+        cost_budget: None,
+        cost_budget_threshold: None,
+        cost_per_hour: None,
+        revenue_budget: None,
     };
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
         .await
@@ -114,6 +121,13 @@ pub async fn create_test_task_with_dates(
         label_ids: None,
         parent_task_id: None,
         reporting_person_id: None,
+        rate_per_hour: None,
+        budgeted_hours: None,
+        budgeted_hours_threshold: None,
+        cost_budget: None,
+        cost_budget_threshold: None,
+        cost_per_hour: None,
+        revenue_budget: None,
     };
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
         .await

@@ -125,10 +125,7 @@ pub async fn get_project_group(
 }
 
 /// Get the workspace_id for a group (auth check helper).
-pub async fn get_group_workspace_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Uuid>, sqlx::Error> {
+pub async fn get_group_workspace_id(pool: &PgPool, id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM project_groups WHERE id = $1")
         .bind(id)
         .fetch_optional(pool)
@@ -147,7 +144,9 @@ pub async fn create_project_group(
     }
     let name = input.name.trim();
     if name.is_empty() {
-        return Err(ProjectGroupQueryError::Invalid("name cannot be empty".into()));
+        return Err(ProjectGroupQueryError::Invalid(
+            "name cannot be empty".into(),
+        ));
     }
     let color = input.color.unwrap_or_else(|| "#BF7B54".to_string());
 
@@ -199,10 +198,7 @@ pub async fn update_project_group(
     Ok(group)
 }
 
-pub async fn delete_project_group(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<(), ProjectGroupQueryError> {
+pub async fn delete_project_group(pool: &PgPool, id: Uuid) -> Result<(), ProjectGroupQueryError> {
     // FK on projects.project_group_id is ON DELETE SET NULL, so projects get
     // un-grouped automatically instead of being deleted.
     let rows = sqlx::query("DELETE FROM project_groups WHERE id = $1")

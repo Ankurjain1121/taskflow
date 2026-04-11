@@ -5,11 +5,11 @@
 //! `user_2fa` table. Recovery codes are hashed with SHA-256 before storage.
 
 use axum::{
+    Json, Router,
     extract::State,
     http::HeaderMap,
     response::{IntoResponse, Response},
     routing::post,
-    Json, Router,
 };
 use chrono::Utc;
 use data_encoding::BASE32;
@@ -22,7 +22,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::state::AppState;
 
-use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
+use super::auth_session::{SessionParams, build_auth_session, extract_session_metadata};
 use super::common::MessageResponse;
 
 /// Max TOTP verification attempts before rate limiting (5 per 5 minutes)
@@ -123,7 +123,11 @@ fn generate_recovery_codes() -> Vec<String> {
 /// We don't have a `hex` crate, so use a simple inline hex encoder.
 mod hex {
     pub fn encode(bytes: &[u8]) -> String {
-        bytes.iter().fold(String::new(), |mut s, b| { use std::fmt::Write as _; let _ = write!(s, "{b:02x}"); s })
+        bytes.iter().fold(String::new(), |mut s, b| {
+            use std::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+            s
+        })
     }
 }
 
@@ -520,7 +524,9 @@ async fn validate_and_consume_recovery_code(
     recovery_code: &str,
     recovery_codes_json: Option<&serde_json::Value>,
 ) -> Result<bool> {
-    let Some(codes_value) = recovery_codes_json else { return Ok(false) };
+    let Some(codes_value) = recovery_codes_json else {
+        return Ok(false);
+    };
 
     let stored_hashes: Vec<String> =
         serde_json::from_value(codes_value.clone()).unwrap_or_default();

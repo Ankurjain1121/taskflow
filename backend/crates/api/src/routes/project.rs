@@ -5,11 +5,11 @@
 use std::collections::HashMap;
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     response::IntoResponse,
     routing::{delete, get},
-    Json, Router,
 };
 use uuid::Uuid;
 
@@ -28,7 +28,7 @@ use crate::state::AppState;
 use super::common::MessageResponse;
 use super::helpers::project_types::*;
 use super::validation::{
-    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+    MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN, validate_optional_string, validate_required_string,
 };
 
 // ============================================================================

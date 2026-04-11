@@ -3,8 +3,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use taskbolt_auth::rbac::capabilities_for_user_role;
-use taskbolt_db::models::workspace_role::Capabilities;
 use taskbolt_db::models::UserRole;
+use taskbolt_db::models::workspace_role::Capabilities;
 
 use crate::errors::{AppError, Result};
 

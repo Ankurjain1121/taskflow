@@ -3,10 +3,10 @@
 //! Endpoints for managing user notification preferences per event type.
 
 use axum::{
+    Json, Router,
     extract::State,
     middleware::from_fn_with_state,
     routing::{delete, get, put},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -17,7 +17,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::NotificationPreference;
 use taskbolt_db::queries::notification_preferences::{
-    list_by_user, reset_all, upsert, NotificationPreferenceError,
+    NotificationPreferenceError, list_by_user, reset_all, upsert,
 };
 
 /// Response for listing preferences

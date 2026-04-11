@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -16,17 +16,17 @@ use taskbolt_db::queries::{
     get_task_watcher_ids, get_user_display_name, is_done_status, move_subtasks_to_project,
     move_task, move_task_to_project, strip_task_labels_for_project, validate_transition,
 };
-use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::{
-    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
 };
 
 use crate::services::ActivityLogService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, MoveTaskRequest,
+    MoveTaskRequest, broadcast_workspace_task_update, get_workspace_id_for_board,
 };
 
 /// Request body for moving a task to a different project

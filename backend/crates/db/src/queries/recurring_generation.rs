@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::RecurringTaskConfig;
 
-use super::recurring::{calculate_next_run, RecurringQueryError};
+use super::recurring::{RecurringQueryError, calculate_next_run};
 
 /// Internal struct for fetching source task fields
 #[derive(sqlx::FromRow)]
@@ -159,7 +159,10 @@ pub async fn create_recurring_instance(
         // Subtasks from template (as child tasks)
         for (i, subtask) in template.subtasks.iter().enumerate() {
             let child_id = Uuid::new_v4();
-            let child_position = format!("a{}", now.timestamp_millis() + i64::try_from(i).unwrap_or(i64::MAX) + 1);
+            let child_position = format!(
+                "a{}",
+                now.timestamp_millis() + i64::try_from(i).unwrap_or(i64::MAX) + 1
+            );
             sqlx::query(
                 r"
                 INSERT INTO tasks (

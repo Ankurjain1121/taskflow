@@ -202,7 +202,7 @@ pub(super) fn calculate_next_run(
                 return from + Duration::days(7);
             }
             let current_dow = from.weekday().num_days_from_monday().cast_signed(); // 0=Mon
-                                                                            // Find next matching day this week or next week
+            // Find next matching day this week or next week
             let mut best_offset = 7i64; // worst case: same day next week
             for &dow in &config.days_of_week {
                 let dow = dow.clamp(0, 6);
@@ -774,6 +774,13 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
@@ -956,7 +963,9 @@ mod tests {
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+                   rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                   cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
             FROM tasks WHERE id = $1
             ",
         )

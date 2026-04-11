@@ -4,10 +4,10 @@
 //! Protected by ManagerOrAdmin extractor.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -18,8 +18,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::is_workspace_member;
 use taskbolt_db::queries::team_overview::{
-    get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks, MemberTask,
-    MemberWorkload, OverloadedMember,
+    MemberTask, MemberWorkload, OverloadedMember, get_member_active_tasks, get_overloaded_members,
+    get_workload, reassign_tasks,
 };
 
 /// Query parameters for overloaded members endpoint

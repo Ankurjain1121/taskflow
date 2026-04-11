@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskbolt_db::queries::reports::{get_board_report, BoardReport, ReportQueryError};
+use taskbolt_db::queries::reports::{BoardReport, ReportQueryError, get_board_report};
 
 #[derive(Deserialize)]
 pub struct ReportQuery {

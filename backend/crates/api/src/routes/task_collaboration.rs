@@ -5,8 +5,8 @@
 
 use crate::services::cache;
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -18,20 +18,20 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
+    ReminderInfo, add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
     get_user_display_name, list_reminders_for_task, remove_reminder, remove_watcher, set_reminder,
-    unassign_user, ReminderInfo,
+    unassign_user,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::{
-    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
 };
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, AssignUserRequest,
+    AssignUserRequest, broadcast_workspace_task_update, get_workspace_id_for_board,
 };
 
 // ── Watcher types ───────────────────────────────────────────────────────────

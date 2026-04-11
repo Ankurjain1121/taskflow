@@ -67,7 +67,9 @@ pub async fn get_task_row(
             project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         ",
@@ -202,7 +204,9 @@ pub async fn list_tasks_by_board(
             t.estimated_hours, t.project_id, t.task_list_id, t.status_id, t.position,
             t.milestone_id, t.task_number, t.eisenhower_urgency, t.eisenhower_importance,
             t.tenant_id, t.created_by_id, t.deleted_at, t.created_at, t.updated_at,
-            t.version, t.parent_task_id, t.depth, t.reporting_person_id
+            t.version, t.parent_task_id, t.depth, t.reporting_person_id,
+            t.rate_per_hour, t.budgeted_hours, t.budgeted_hours_threshold,
+            t.cost_budget, t.cost_budget_threshold, t.cost_per_hour, t.revenue_budget
         FROM tasks t
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
@@ -348,7 +352,9 @@ pub async fn list_child_tasks(
            estimated_hours, project_id, task_list_id, status_id, position,
            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
            tenant_id, created_by_id, deleted_at,
-           created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+           created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+           rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+           cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC",

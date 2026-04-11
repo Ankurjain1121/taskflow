@@ -1,8 +1,8 @@
 //! Bulk task operations (update, delete)
 
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -14,7 +14,7 @@ use crate::services::ActivityLogService;
 use crate::state::AppState;
 use taskbolt_db::models::TaskPriority;
 use taskbolt_db::queries::{
-    bulk_delete_tasks, bulk_update_tasks, get_project_status_name, BulkUpdateInput, TaskQueryError,
+    BulkUpdateInput, TaskQueryError, bulk_delete_tasks, bulk_update_tasks, get_project_status_name,
 };
 
 const MAX_BULK_TASK_IDS: usize = 200;

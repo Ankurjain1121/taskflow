@@ -17,7 +17,7 @@ use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
 use super::auth::{
-    build_auth_cookie_headers, hash_token, AuthResponse, UserResponse, SESSION_TTL_SECS,
+    AuthResponse, SESSION_TTL_SECS, UserResponse, build_auth_cookie_headers, hash_token,
 };
 
 /// Parameters needed to build an auth session.

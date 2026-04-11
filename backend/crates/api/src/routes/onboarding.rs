@@ -8,10 +8,10 @@
 //! - Onboarding completion
 
 use axum::{
+    Json, Router,
     extract::{Query, State},
     middleware::from_fn_with_state,
     routing::{get, post},
-    Json, Router,
 };
 use chrono::{Duration, Utc};
 use regex::Regex;
@@ -29,7 +29,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::validation::{
-    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+    MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN, validate_optional_string, validate_required_string,
 };
 
 // ============================================================================
@@ -472,8 +472,8 @@ mod email_validation_tests {
         assert!(is_valid_email("user@example.co")); // Two char TLD valid
         assert!(is_valid_email("user@example.international")); // Long TLD
         assert!(!is_valid_email("user@@example.com")); // Double @
-                                                       // Our simplified regex allows dots at start/end of local part
-                                                       // (stricter than RFC but acceptable for onboarding)
+        // Our simplified regex allows dots at start/end of local part
+        // (stricter than RFC but acceptable for onboarding)
         assert!(is_valid_email(".user@example.com")); // Dot at start (allowed by our regex)
         assert!(is_valid_email("user.@example.com")); // Dot at end (allowed by our regex)
         assert!(!is_valid_email("user@exam ple.com")); // Space in domain

@@ -1,7 +1,7 @@
 use axum::{
+    Router,
     middleware::from_fn_with_state,
     routing::{delete, get, patch, post},
-    Router,
 };
 
 use crate::middleware::{auth_middleware, csrf_middleware};

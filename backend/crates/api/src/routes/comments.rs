@@ -3,11 +3,11 @@
 //! Provides CRUD endpoints for task comments with @mention extraction and real-time broadcasting.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -21,8 +21,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::ActivityLogService;
 use crate::state::AppState;
 use taskbolt_db::queries::comments::{
-    create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
-    list_comments_by_task, update_comment, CommentWithAuthor,
+    CommentWithAuthor, create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
+    list_comments_by_task, update_comment,
 };
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_services::broadcast::events;
@@ -32,7 +32,7 @@ use taskbolt_services::{BroadcastService, NotifyContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::sanitize_html;
-use super::validation::{validate_required_string, MAX_DESCRIPTION_LEN};
+use super::validation::{MAX_DESCRIPTION_LEN, validate_required_string};
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: LazyLock<Regex> =
