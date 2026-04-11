@@ -260,8 +260,9 @@ pub use task_watchers::{
 
 // tasks
 pub use tasks::{
-    create_task, duplicate_task, find_done_status, find_non_done_status, get_task_board_id,
-    get_task_by_id, get_task_project_id, get_task_row, get_task_status_id, get_user_display_name,
+    create_task, duplicate_task, find_done_status, find_non_done_status, get_project_status_name,
+    get_task_board_id, get_task_by_id, get_task_project_id, get_task_row, get_task_status_id,
+    get_user_display_name,
     is_done_status, list_child_tasks, list_child_tasks_with_details, list_tasks_by_board,
     move_subtasks_to_project, move_task, move_task_to_project, soft_delete_task,
     strip_task_labels_for_project, update_task, update_task_list, update_task_status,

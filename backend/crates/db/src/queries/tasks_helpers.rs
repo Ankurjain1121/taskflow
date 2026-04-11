@@ -87,6 +87,20 @@ pub async fn get_task_status_id(pool: &PgPool, task_id: Uuid) -> Result<Option<U
     .await
 }
 
+/// Fetch the display name of a project status by its id.
+///
+/// Returns `None` when the status does not exist. Callers that need a
+/// never-panicking fallback (e.g. activity logging) should `.unwrap_or_default()`.
+pub async fn get_project_status_name(
+    pool: &PgPool,
+    status_id: Uuid,
+) -> Result<Option<String>, sqlx::Error> {
+    sqlx::query_scalar::<_, String>("SELECT name FROM project_statuses WHERE id = $1")
+        .bind(status_id)
+        .fetch_optional(pool)
+        .await
+}
+
 /// Check whether a project status has type = 'done'.
 pub async fn is_done_status(pool: &PgPool, status_id: Uuid) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar::<_, bool>(

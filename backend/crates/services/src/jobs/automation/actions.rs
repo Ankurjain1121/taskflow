@@ -10,6 +10,8 @@ use super::safety::{resolve_column_by_name, resolve_label_by_name};
 use super::{AutomationExecutorError, TriggerContext};
 
 use taskbolt_db::models::automation::AutomationActionType;
+use taskbolt_db::models::ActivityAction;
+use taskbolt_db::queries::activity_log::insert_activity_log;
 
 /// Execute a single automation action
 pub(crate) async fn execute_action(
@@ -62,6 +64,16 @@ async fn execute_move_task(
         ));
     };
 
+    // Capture previous status before the UPDATE so we can emit a
+    // `status_changed` activity entry if it actually changes. Missing
+    // values are tolerated — logging is best-effort.
+    let previous_status_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL")
+            .bind(context.task_id)
+            .fetch_optional(pool)
+            .await?
+            .flatten();
+
     let position = format!("a{}", chrono::Utc::now().timestamp_millis());
 
     sqlx::query(
@@ -75,6 +87,48 @@ async fn execute_move_task(
     .bind(&position)
     .execute(pool)
     .await?;
+
+    // Record status_changed activity when the status actually changed.
+    // Runs inline (we're already in a background job) but errors are
+    // swallowed with a log — automation moves must not fail on logging.
+    if previous_status_id != Some(column_id) {
+        let from_name: Option<String> = match previous_status_id {
+            Some(id) => sqlx::query_scalar("SELECT name FROM project_statuses WHERE id = $1")
+                .bind(id)
+                .fetch_optional(pool)
+                .await
+                .unwrap_or(None),
+            None => None,
+        };
+        let to_name: Option<String> =
+            sqlx::query_scalar("SELECT name FROM project_statuses WHERE id = $1")
+                .bind(column_id)
+                .fetch_optional(pool)
+                .await
+                .unwrap_or(None);
+
+        let metadata = json!({
+            "from_status": from_name.clone().unwrap_or_default(),
+            "to_status": to_name.clone().unwrap_or_default(),
+        });
+
+        if let Err(e) = insert_activity_log(
+            pool,
+            context.task_id,
+            context.user_id,
+            ActivityAction::StatusChanged,
+            Some(metadata),
+            context.tenant_id,
+        )
+        .await
+        {
+            tracing::error!(
+                task_id = %context.task_id,
+                "Failed to record status_changed activity from automation: {}",
+                e
+            );
+        }
+    }
 
     Ok(())
 }

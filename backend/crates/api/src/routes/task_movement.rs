@@ -12,15 +12,17 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    get_task_assignee_ids, get_task_board_id, get_task_status_id, get_task_watcher_ids,
-    get_user_display_name, is_done_status, move_subtasks_to_project, move_task,
-    move_task_to_project, strip_task_labels_for_project, validate_transition,
+    get_project_status_name, get_task_assignee_ids, get_task_board_id, get_task_status_id,
+    get_task_watcher_ids, get_user_display_name, is_done_status, move_subtasks_to_project,
+    move_task, move_task_to_project, strip_task_labels_for_project, validate_transition,
 };
 use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::{
     spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
 };
+
+use crate::services::ActivityLogService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
@@ -68,6 +70,43 @@ pub async fn move_task_handler(
     }
 
     let task = move_task(&state.db, task_id, body.status_id, body.position.clone()).await?;
+
+    // Record status_changed activity when the status actually changed.
+    // Fire-and-forget so a logging failure never blocks the user-visible move.
+    if previous_status_id != Some(body.status_id) {
+        let db = state.db.clone();
+        let tenant_id = tenant.tenant_id;
+        let actor_id = tenant.user_id;
+        let new_status_id = body.status_id;
+        let prev_status_id = previous_status_id;
+        tokio::spawn(async move {
+            let from_name = match prev_status_id {
+                Some(id) => get_project_status_name(&db, id).await.ok().flatten(),
+                None => None,
+            };
+            let to_name = get_project_status_name(&db, new_status_id)
+                .await
+                .ok()
+                .flatten();
+
+            if let Err(e) = ActivityLogService::record_status_changed(
+                &db,
+                task_id,
+                actor_id,
+                tenant_id,
+                from_name.as_deref().unwrap_or(""),
+                to_name.as_deref().unwrap_or(""),
+            )
+            .await
+            {
+                tracing::error!(
+                    task_id = %task_id,
+                    "Failed to record status_changed activity: {}",
+                    e
+                );
+            }
+        });
+    }
 
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
@@ -261,6 +300,9 @@ pub async fn move_task_to_project_handler(
         ));
     }
 
+    // Capture previous status_id for activity logging before moving.
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
+
     // 4. Update the task: move to new project, status, position
     let task = move_task_to_project(
         &state.db,
@@ -270,6 +312,43 @@ pub async fn move_task_to_project_handler(
         body.position.clone(),
     )
     .await?;
+
+    // Record status_changed activity when the status actually changed.
+    // Fire-and-forget — never blocks the move itself.
+    if previous_status_id != Some(body.target_status_id) {
+        let db = state.db.clone();
+        let tenant_id = tenant.tenant_id;
+        let actor_id = tenant.user_id;
+        let new_status_id = body.target_status_id;
+        let prev_status_id = previous_status_id;
+        tokio::spawn(async move {
+            let from_name = match prev_status_id {
+                Some(id) => get_project_status_name(&db, id).await.ok().flatten(),
+                None => None,
+            };
+            let to_name = get_project_status_name(&db, new_status_id)
+                .await
+                .ok()
+                .flatten();
+
+            if let Err(e) = ActivityLogService::record_status_changed(
+                &db,
+                task_id,
+                actor_id,
+                tenant_id,
+                from_name.as_deref().unwrap_or(""),
+                to_name.as_deref().unwrap_or(""),
+            )
+            .await
+            {
+                tracing::error!(
+                    task_id = %task_id,
+                    "Failed to record status_changed activity on cross-project move: {}",
+                    e
+                );
+            }
+        });
+    }
 
     // 5. Strip project-scoped labels from the task
     if let Err(e) = strip_task_labels_for_project(&state.db, task_id, source_project_id).await {

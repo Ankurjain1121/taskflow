@@ -12,10 +12,10 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    create_task, duplicate_task, find_done_status, find_non_done_status, get_task_assignee_ids,
-    get_task_board_id, get_task_by_id, get_task_row, get_user_display_name, list_tasks_by_board,
-    soft_delete_task, update_task, CreateTaskInput, TaskQueryError, TaskWithDetails,
-    UpdateTaskInput,
+    create_task, duplicate_task, find_done_status, find_non_done_status, get_project_status_name,
+    get_task_assignee_ids, get_task_board_id, get_task_by_id, get_task_row, get_task_status_id,
+    get_user_display_name, list_tasks_by_board, soft_delete_task, update_task, CreateTaskInput,
+    TaskQueryError, TaskWithDetails, UpdateTaskInput,
 };
 use taskbolt_services::broadcast::events;
 use taskbolt_services::notifications::dispatcher::notify;
@@ -23,6 +23,8 @@ use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::{
     spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
 };
+
+use crate::services::ActivityLogService;
 
 use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{
@@ -527,6 +529,8 @@ pub async fn complete_task_handler(
     let done_status_id = done_status_id
         .ok_or_else(|| AppError::BadRequest("No done status found on project".into()))?;
 
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
+
     let task =
         taskbolt_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
             .await
@@ -535,6 +539,15 @@ pub async fn complete_task_handler(
                 TaskQueryError::Database(e) => AppError::SqlxError(e),
                 _ => AppError::InternalError("Failed to complete task".into()),
             })?;
+
+    spawn_record_status_changed(
+        state.db.clone(),
+        task_id,
+        tenant.user_id,
+        tenant.tenant_id,
+        previous_status_id,
+        done_status_id,
+    );
 
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
@@ -563,6 +576,8 @@ pub async fn uncomplete_task_handler(
     let status_id = status_id
         .ok_or_else(|| AppError::BadRequest("No non-done status found on project".into()))?;
 
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
+
     let task = taskbolt_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
         .await
         .map_err(|e| match e {
@@ -571,10 +586,62 @@ pub async fn uncomplete_task_handler(
             _ => AppError::InternalError("Failed to uncomplete task".into()),
         })?;
 
+    spawn_record_status_changed(
+        state.db.clone(),
+        task_id,
+        tenant.user_id,
+        tenant.tenant_id,
+        previous_status_id,
+        status_id,
+    );
+
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     Ok(Json(task))
+}
+
+/// Fire-and-forget helper: spawn a background task that resolves status names
+/// and records a `status_changed` activity log entry. No-op when the status
+/// did not actually change. Never panics; logs on failure.
+fn spawn_record_status_changed(
+    pool: sqlx::PgPool,
+    task_id: Uuid,
+    actor_id: Uuid,
+    tenant_id: Uuid,
+    previous_status_id: Option<Uuid>,
+    new_status_id: Uuid,
+) {
+    if previous_status_id == Some(new_status_id) {
+        return;
+    }
+    tokio::spawn(async move {
+        let from_name = match previous_status_id {
+            Some(id) => get_project_status_name(&pool, id).await.ok().flatten(),
+            None => None,
+        };
+        let to_name = get_project_status_name(&pool, new_status_id)
+            .await
+            .ok()
+            .flatten();
+
+        if let Err(e) = ActivityLogService::record_status_changed(
+            &pool,
+            task_id,
+            actor_id,
+            tenant_id,
+            from_name.as_deref().unwrap_or(""),
+            to_name.as_deref().unwrap_or(""),
+        )
+        .await
+        {
+            tracing::error!(
+                task_id = %task_id,
+                "Failed to record status_changed activity: {}",
+                e
+            );
+        }
+    });
 }
 
 /// POST /api/tasks/:id/duplicate
