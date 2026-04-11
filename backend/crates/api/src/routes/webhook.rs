@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -13,8 +13,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::webhooks::{
-    create_webhook, delete_webhook, get_webhook_deliveries, list_webhooks, update_webhook,
-    CreateWebhookInput, UpdateWebhookInput, WebhookQueryError,
+    CreateWebhookInput, UpdateWebhookInput, WebhookQueryError, create_webhook, delete_webhook,
+    get_webhook_deliveries, list_webhooks, update_webhook,
 };
 
 /// Map WebhookQueryError to AppError

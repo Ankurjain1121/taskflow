@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
@@ -15,9 +15,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_db::queries::time_entries::{
-    create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
-    get_timesheet_report, list_task_time_entries, start_timer, stop_timer, update_entry,
-    ManualEntryInput, StartTimerInput, TimeEntryQueryError, UpdateEntryInput,
+    ManualEntryInput, StartTimerInput, TimeEntryQueryError, UpdateEntryInput, create_manual_entry,
+    delete_entry, get_board_time_report, get_running_timer, get_timesheet_report,
+    list_task_time_entries, start_timer, stop_timer, update_entry,
 };
 
 /// Request body for starting a timer

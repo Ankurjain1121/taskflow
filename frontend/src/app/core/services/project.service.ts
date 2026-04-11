@@ -142,6 +142,8 @@ export interface TaskWithBadges {
   subtask_total: number;
   has_running_timer: boolean;
   comment_count: number;
+  /** Sum of stopped time-entry durations in minutes. 0 when no entries. */
+  total_logged_minutes: number;
   assignees: { id: string; display_name: string; avatar_url: string | null }[];
   labels: { id: string; name: string; color: string }[];
 }

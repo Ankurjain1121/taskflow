@@ -53,6 +53,9 @@ pub struct TaskWithBadgesRow {
     pub has_running_timer: bool,
     pub comment_count: i64,
     pub parent_task_id: Option<Uuid>,
+    /// Sum of `duration_minutes` for all COMPLETED (stopped) time entries on this task.
+    /// Running timers are excluded. Defaults to 0 when no entries exist.
+    pub total_logged_minutes: i64,
 }
 
 /// Assignee info returned for a project's tasks
@@ -92,7 +95,7 @@ pub async fn list_projects_by_workspace(
         r"
         SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
                p.workspace_id, p.tenant_id, p.created_by_id,
-               p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
+               p.background_color, p.is_sample, p.project_group_id, p.deleted_at, p.created_at, p.updated_at
         FROM projects p
         WHERE p.workspace_id = $1
           AND p.deleted_at IS NULL
@@ -123,7 +126,7 @@ pub async fn get_project_by_id(
         r"
         SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
                p.workspace_id, p.tenant_id, p.created_by_id,
-               p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
+               p.background_color, p.is_sample, p.project_group_id, p.deleted_at, p.created_at, p.updated_at
         FROM projects p
         WHERE p.id = $1
           AND p.deleted_at IS NULL
@@ -365,7 +368,7 @@ pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Proj
         r"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
-               background_color, is_sample, deleted_at, created_at, updated_at
+               background_color, is_sample, project_group_id, deleted_at, created_at, updated_at
         FROM projects
         WHERE id = $1
           AND deleted_at IS NULL
@@ -436,7 +439,14 @@ pub async fn list_project_tasks_with_badges(
             COALESCE(sub.total, 0) AS "subtask_total",
             COALESCE(sub.completed, 0) AS "subtask_completed",
             COALESCE(tmr.has_running, false) AS "has_running_timer",
-            COALESCE(cmt.cnt, 0) AS "comment_count"
+            COALESCE(cmt.cnt, 0) AS "comment_count",
+            COALESCE((
+                SELECT SUM(te.duration_minutes)::bigint
+                FROM time_entries te
+                WHERE te.task_id = t.id
+                  AND te.is_running = false
+                  AND te.duration_minutes IS NOT NULL
+            ), 0) AS "total_logged_minutes"
         FROM tasks t
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         LEFT JOIN LATERAL (

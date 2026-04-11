@@ -4,10 +4,10 @@
 //! shared audit query logic in `audit_queries`.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use serde::Serialize;
 use uuid::Uuid;

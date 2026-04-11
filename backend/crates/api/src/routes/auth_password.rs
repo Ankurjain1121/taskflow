@@ -2,7 +2,7 @@
 //!
 //! Provides password change, account deletion, forgot/reset password.
 
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use chrono::{Duration, Utc};
 use serde::Deserialize;
 use uuid::Uuid;

@@ -5,10 +5,10 @@
 //! Results are cached in Redis with a 60-second TTL.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use uuid::Uuid;
 
@@ -18,7 +18,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskbolt_db::queries::portfolio::{
-    get_portfolio_milestones, get_portfolio_projects, PortfolioResponse,
+    PortfolioResponse, get_portfolio_milestones, get_portfolio_projects,
 };
 use taskbolt_db::queries::workspaces::is_workspace_member;
 

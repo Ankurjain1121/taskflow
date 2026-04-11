@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -12,25 +12,27 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    create_task, duplicate_task, find_done_status, find_non_done_status, get_task_assignee_ids,
-    get_task_board_id, get_task_by_id, get_task_row, get_user_display_name, list_tasks_by_board,
-    soft_delete_task, update_task, CreateTaskInput, TaskQueryError, TaskWithDetails,
-    UpdateTaskInput,
+    CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput, create_task, duplicate_task,
+    find_done_status, find_non_done_status, get_project_status_name, get_task_assignee_ids,
+    get_task_board_id, get_task_by_id, get_task_row, get_task_status_id, get_user_display_name,
+    list_tasks_by_board, soft_delete_task, update_task,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::notifications::dispatcher::notify;
 use taskbolt_services::{
-    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
 };
 
-use super::common::{require_capability, verify_project_membership, Capability};
+use crate::services::ActivityLogService;
+
+use super::common::{Capability, require_capability, verify_project_membership};
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
-    ListTasksResponse, UpdateTaskRequest,
+    CreateTaskRequest, ListTasksResponse, UpdateTaskRequest, broadcast_workspace_task_update,
+    get_workspace_id_for_board, sanitize_html,
 };
 use super::validation::{
-    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
+    MAX_DESCRIPTION_LEN, MAX_NAME_LEN, validate_optional_string, validate_required_string,
 };
 
 /// GET /api/boards/:board_id/tasks
@@ -126,6 +128,14 @@ pub async fn create_task_handler(
         label_ids: body.label_ids,
         parent_task_id: body.parent_task_id,
         reporting_person_id: body.reporting_person_id,
+        // Budget fields (Phase 2.6)
+        rate_per_hour: body.rate_per_hour,
+        budgeted_hours: body.budgeted_hours,
+        budgeted_hours_threshold: body.budgeted_hours_threshold,
+        cost_budget: body.cost_budget,
+        cost_budget_threshold: body.cost_budget_threshold,
+        cost_per_hour: body.cost_per_hour,
+        revenue_budget: body.revenue_budget,
     };
 
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -311,6 +321,17 @@ pub async fn update_task_handler(
         clear_estimated_hours: body.clear_estimated_hours,
         clear_milestone: body.clear_milestone,
         expected_version: body.expected_version,
+        // Budget fields (Phase 2.6) — wrap each Option<f64> into Option<Option<f64>>
+        // so the query layer can distinguish "absent" from "explicit null". v1 only
+        // supports "set to a value" or "leave as-is"; explicit null is not wired through
+        // the HTTP body yet (would need `clear_rate_per_hour` etc. flags).
+        rate_per_hour: body.rate_per_hour.map(Some),
+        budgeted_hours: body.budgeted_hours.map(Some),
+        budgeted_hours_threshold: body.budgeted_hours_threshold.map(Some),
+        cost_budget: body.cost_budget.map(Some),
+        cost_budget_threshold: body.cost_budget_threshold.map(Some),
+        cost_per_hour: body.cost_per_hour.map(Some),
+        revenue_budget: body.revenue_budget.map(Some),
     };
 
     let task = update_task(&state.db, task_id, input)
@@ -527,6 +548,8 @@ pub async fn complete_task_handler(
     let done_status_id = done_status_id
         .ok_or_else(|| AppError::BadRequest("No done status found on project".into()))?;
 
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
+
     let task =
         taskbolt_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
             .await
@@ -535,6 +558,15 @@ pub async fn complete_task_handler(
                 TaskQueryError::Database(e) => AppError::SqlxError(e),
                 _ => AppError::InternalError("Failed to complete task".into()),
             })?;
+
+    spawn_record_status_changed(
+        state.db.clone(),
+        task_id,
+        tenant.user_id,
+        tenant.tenant_id,
+        previous_status_id,
+        done_status_id,
+    );
 
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
@@ -563,6 +595,8 @@ pub async fn uncomplete_task_handler(
     let status_id = status_id
         .ok_or_else(|| AppError::BadRequest("No non-done status found on project".into()))?;
 
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
+
     let task = taskbolt_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
         .await
         .map_err(|e| match e {
@@ -571,10 +605,62 @@ pub async fn uncomplete_task_handler(
             _ => AppError::InternalError("Failed to uncomplete task".into()),
         })?;
 
+    spawn_record_status_changed(
+        state.db.clone(),
+        task_id,
+        tenant.user_id,
+        tenant.tenant_id,
+        previous_status_id,
+        status_id,
+    );
+
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     Ok(Json(task))
+}
+
+/// Fire-and-forget helper: spawn a background task that resolves status names
+/// and records a `status_changed` activity log entry. No-op when the status
+/// did not actually change. Never panics; logs on failure.
+fn spawn_record_status_changed(
+    pool: sqlx::PgPool,
+    task_id: Uuid,
+    actor_id: Uuid,
+    tenant_id: Uuid,
+    previous_status_id: Option<Uuid>,
+    new_status_id: Uuid,
+) {
+    if previous_status_id == Some(new_status_id) {
+        return;
+    }
+    tokio::spawn(async move {
+        let from_name = match previous_status_id {
+            Some(id) => get_project_status_name(&pool, id).await.ok().flatten(),
+            None => None,
+        };
+        let to_name = get_project_status_name(&pool, new_status_id)
+            .await
+            .ok()
+            .flatten();
+
+        if let Err(e) = ActivityLogService::record_status_changed(
+            &pool,
+            task_id,
+            actor_id,
+            tenant_id,
+            from_name.as_deref().unwrap_or(""),
+            to_name.as_deref().unwrap_or(""),
+        )
+        .await
+        {
+            tracing::error!(
+                task_id = %task_id,
+                "Failed to record status_changed activity: {}",
+                e
+            );
+        }
+    });
 }
 
 /// POST /api/tasks/:id/duplicate

@@ -43,10 +43,18 @@ pub struct CreateTaskInput {
     pub label_ids: Option<Vec<Uuid>>,
     pub parent_task_id: Option<Uuid>,
     pub reporting_person_id: Option<Uuid>,
+    // Budget fields (Phase 2.6)
+    pub rate_per_hour: Option<f64>,
+    pub budgeted_hours: Option<f64>,
+    pub budgeted_hours_threshold: Option<f64>,
+    pub cost_budget: Option<f64>,
+    pub cost_budget_threshold: Option<f64>,
+    pub cost_per_hour: Option<f64>,
+    pub revenue_budget: Option<f64>,
 }
 
 /// Input for updating an existing task
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct UpdateTaskInput {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -70,6 +78,24 @@ pub struct UpdateTaskInput {
     /// When set, the update will only succeed if the task's current version matches.
     #[serde(default)]
     pub expected_version: Option<i32>,
+    // Budget fields (Phase 2.6). Each uses Option<Option<f64>>:
+    //   None           = field absent from request, leave DB value alone
+    //   Some(None)     = explicit NULL, clear the value
+    //   Some(Some(v))  = new value
+    #[serde(default)]
+    pub rate_per_hour: Option<Option<f64>>,
+    #[serde(default)]
+    pub budgeted_hours: Option<Option<f64>>,
+    #[serde(default)]
+    pub budgeted_hours_threshold: Option<Option<f64>>,
+    #[serde(default)]
+    pub cost_budget: Option<Option<f64>>,
+    #[serde(default)]
+    pub cost_budget_threshold: Option<Option<f64>>,
+    #[serde(default)]
+    pub cost_per_hour: Option<Option<f64>>,
+    #[serde(default)]
+    pub revenue_budget: Option<Option<f64>>,
 }
 
 /// Task with all associated details
@@ -183,16 +209,20 @@ pub async fn create_task(
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth,
-                          reporting_person_id)
+                          reporting_person_id,
+                          rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                          cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                 COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = (SELECT id FROM projects WHERE id = $8 FOR UPDATE)), 0) + 1,
-                $13, $14, $15, $16, $17)
+                $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)
@@ -212,6 +242,13 @@ pub async fn create_task(
     .bind(parent_task_id)
     .bind(depth)
     .bind(input.reporting_person_id)
+    .bind(input.rate_per_hour)
+    .bind(input.budgeted_hours)
+    .bind(input.budgeted_hours_threshold)
+    .bind(input.cost_budget)
+    .bind(input.cost_budget_threshold)
+    .bind(input.cost_per_hour)
+    .bind(input.revenue_budget)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -263,6 +300,42 @@ pub async fn update_task(
     task_id: Uuid,
     input: UpdateTaskInput,
 ) -> Result<Task, TaskQueryError> {
+    // Budget fields use Option<Option<f64>>:
+    //   None          -> leave DB alone
+    //   Some(None)    -> set to NULL
+    //   Some(Some(v)) -> set to v
+    // Encode each as (set_flag, value) so the SQL can decide without COALESCE quirks.
+    let (rate_per_hour_set, rate_per_hour_val): (bool, Option<f64>) = match input.rate_per_hour {
+        Some(v) => (true, v),
+        None => (false, None),
+    };
+    let (budgeted_hours_set, budgeted_hours_val): (bool, Option<f64>) = match input.budgeted_hours {
+        Some(v) => (true, v),
+        None => (false, None),
+    };
+    let (budgeted_hours_threshold_set, budgeted_hours_threshold_val): (bool, Option<f64>) =
+        match input.budgeted_hours_threshold {
+            Some(v) => (true, v),
+            None => (false, None),
+        };
+    let (cost_budget_set, cost_budget_val): (bool, Option<f64>) = match input.cost_budget {
+        Some(v) => (true, v),
+        None => (false, None),
+    };
+    let (cost_budget_threshold_set, cost_budget_threshold_val): (bool, Option<f64>) =
+        match input.cost_budget_threshold {
+            Some(v) => (true, v),
+            None => (false, None),
+        };
+    let (cost_per_hour_set, cost_per_hour_val): (bool, Option<f64>) = match input.cost_per_hour {
+        Some(v) => (true, v),
+        None => (false, None),
+    };
+    let (revenue_budget_set, revenue_budget_val): (bool, Option<f64>) = match input.revenue_budget {
+        Some(v) => (true, v),
+        None => (false, None),
+    };
+
     let task = sqlx::query_as::<_, Task>(
         r"
         UPDATE tasks
@@ -274,6 +347,13 @@ pub async fn update_task(
             start_date = CASE WHEN $11 = true THEN NULL WHEN $6 IS NOT NULL THEN $6 ELSE start_date END,
             estimated_hours = CASE WHEN $12 = true THEN NULL WHEN $7 IS NOT NULL THEN $7 ELSE estimated_hours END,
             milestone_id = CASE WHEN $13 = true THEN NULL WHEN $8 IS NOT NULL THEN $8 ELSE milestone_id END,
+            rate_per_hour = CASE WHEN $15 = true THEN $16 ELSE rate_per_hour END,
+            budgeted_hours = CASE WHEN $17 = true THEN $18 ELSE budgeted_hours END,
+            budgeted_hours_threshold = CASE WHEN $19 = true THEN $20 ELSE budgeted_hours_threshold END,
+            cost_budget = CASE WHEN $21 = true THEN $22 ELSE cost_budget END,
+            cost_budget_threshold = CASE WHEN $23 = true THEN $24 ELSE cost_budget_threshold END,
+            cost_per_hour = CASE WHEN $25 = true THEN $26 ELSE cost_per_hour END,
+            revenue_budget = CASE WHEN $27 = true THEN $28 ELSE revenue_budget END,
             version = version + 1,
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
@@ -283,7 +363,9 @@ pub async fn update_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)
@@ -300,6 +382,20 @@ pub async fn update_task(
     .bind(input.clear_estimated_hours.unwrap_or(false))
     .bind(input.clear_milestone.unwrap_or(false))
     .bind(input.expected_version)
+    .bind(rate_per_hour_set)
+    .bind(rate_per_hour_val)
+    .bind(budgeted_hours_set)
+    .bind(budgeted_hours_val)
+    .bind(budgeted_hours_threshold_set)
+    .bind(budgeted_hours_threshold_val)
+    .bind(cost_budget_set)
+    .bind(cost_budget_val)
+    .bind(cost_budget_threshold_set)
+    .bind(cost_budget_threshold_val)
+    .bind(cost_per_hour_set)
+    .bind(cost_per_hour_val)
+    .bind(revenue_budget_set)
+    .bind(revenue_budget_val)
     .fetch_optional(pool)
     .await?;
 
@@ -315,7 +411,9 @@ pub async fn update_task(
                            estimated_hours, project_id, task_list_id, status_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                            tenant_id, created_by_id, deleted_at, created_at, updated_at,
-                           version, parent_task_id, depth, reporting_person_id
+                           version, parent_task_id, depth, reporting_person_id,
+                           rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                           cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
                     ",
                 )
@@ -348,7 +446,9 @@ pub async fn update_task_status(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)
@@ -376,7 +476,9 @@ pub async fn update_task_list(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)
@@ -436,7 +538,9 @@ pub async fn move_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)
@@ -499,16 +603,20 @@ pub async fn duplicate_task(
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-                          tenant_id, created_by_id)
+                          tenant_id, created_by_id,
+                          rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                          cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                 COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = (SELECT id FROM projects WHERE id = $8 FOR UPDATE)), 0) + 1,
-                $13, $14, $15, $16)
+                $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(new_id)
@@ -527,6 +635,13 @@ pub async fn duplicate_task(
     .bind(source.eisenhower_importance)
     .bind(source.tenant_id)
     .bind(created_by_id)
+    .bind(source.rate_per_hour)
+    .bind(source.budgeted_hours)
+    .bind(source.budgeted_hours_threshold)
+    .bind(source.cost_budget)
+    .bind(source.cost_budget_threshold)
+    .bind(source.cost_per_hour)
+    .bind(source.revenue_budget)
     .fetch_one(pool)
     .await?;
 
@@ -603,7 +718,9 @@ pub async fn move_task_to_project(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth, reporting_person_id
+            version, parent_task_id, depth, reporting_person_id,
+            rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+            cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         ",
     )
     .bind(task_id)

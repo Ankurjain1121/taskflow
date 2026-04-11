@@ -88,6 +88,14 @@ export interface Task {
   attachment_count?: number;
   parent_task_id?: string | null;
   depth?: number;
+  // Budget fields (Phase 2.6) — all optional USD, nullable.
+  rate_per_hour?: number | null;
+  budgeted_hours?: number | null;
+  budgeted_hours_threshold?: number | null;
+  cost_budget?: number | null;
+  cost_budget_threshold?: number | null;
+  cost_per_hour?: number | null;
+  revenue_budget?: number | null;
 }
 
 export interface TaskLabel {
@@ -124,6 +132,8 @@ export interface TaskListItem {
   created_by_id: string;
   created_at: string;
   updated_at: string;
+  /** Sum of stopped time-entry durations in minutes. 0 when no entries. */
+  total_logged_minutes: number;
 }
 
 export interface CreateTaskRequest {
@@ -141,6 +151,14 @@ export interface CreateTaskRequest {
   label_ids?: string[];
   parent_task_id?: string;
   reporting_person_id?: string;
+  // Budget fields (Phase 2.6)
+  rate_per_hour?: number | null;
+  budgeted_hours?: number | null;
+  budgeted_hours_threshold?: number | null;
+  cost_budget?: number | null;
+  cost_budget_threshold?: number | null;
+  cost_per_hour?: number | null;
+  revenue_budget?: number | null;
 }
 
 export interface CreateChildTaskRequest {
@@ -169,6 +187,15 @@ export interface UpdateTaskRequest {
   milestone_id?: string | null;
   status_id?: string | null;
   version?: number;
+  // Budget fields (Phase 2.6). v1 only supports setting a number — use
+  // `undefined` or omit to leave unchanged. Null-semantics not wired yet.
+  rate_per_hour?: number | null;
+  budgeted_hours?: number | null;
+  budgeted_hours_threshold?: number | null;
+  cost_budget?: number | null;
+  cost_budget_threshold?: number | null;
+  cost_per_hour?: number | null;
+  revenue_budget?: number | null;
 }
 
 export interface ConflictError {

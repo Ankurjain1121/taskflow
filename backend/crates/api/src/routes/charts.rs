@@ -1,10 +1,10 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::header,
     middleware::from_fn_with_state,
     response::IntoResponse,
     routing::get,
-    Json, Router,
 };
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};

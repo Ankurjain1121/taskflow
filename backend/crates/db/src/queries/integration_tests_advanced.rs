@@ -84,6 +84,13 @@ async fn create_test_task(
         label_ids: None,
         parent_task_id: None,
         reporting_person_id: None,
+        rate_per_hour: None,
+        budgeted_hours: None,
+        budgeted_hours_threshold: None,
+        cost_budget: None,
+        cost_budget_threshold: None,
+        cost_per_hour: None,
+        revenue_budget: None,
     };
 
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
@@ -196,6 +203,13 @@ async fn test_update_task_title() {
         clear_estimated_hours: None,
         clear_milestone: None,
         expected_version: None,
+        rate_per_hour: None,
+        budgeted_hours: None,
+        budgeted_hours_threshold: None,
+        cost_budget: None,
+        cost_budget_threshold: None,
+        cost_per_hour: None,
+        revenue_budget: None,
     };
 
     let updated = super::tasks::update_task(&pool, task.id, input)
@@ -236,6 +250,13 @@ async fn test_update_task_priority() {
         clear_estimated_hours: None,
         clear_milestone: None,
         expected_version: None,
+        rate_per_hour: None,
+        budgeted_hours: None,
+        budgeted_hours_threshold: None,
+        cost_budget: None,
+        cost_budget_threshold: None,
+        cost_per_hour: None,
+        revenue_budget: None,
     };
 
     let updated = super::tasks::update_task(&pool, task.id, input)
@@ -680,10 +701,12 @@ async fn test_search_tasks_by_title() {
         !results.tasks.is_empty(),
         "search should find the task with the unique needle"
     );
-    assert!(results
-        .tasks
-        .iter()
-        .any(|t| t.title.contains(&unique_needle)));
+    assert!(
+        results
+            .tasks
+            .iter()
+            .any(|t| t.title.contains(&unique_needle))
+    );
 }
 
 // ============================================================================

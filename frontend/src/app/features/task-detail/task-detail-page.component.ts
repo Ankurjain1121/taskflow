@@ -316,6 +316,7 @@ import { Toast } from 'primeng/toast';
             (reminderSet)="onSetReminder($event)"
             (reminderRemoved)="onRemoveReminder($event)"
             (estimatedHoursChanged)="onEstimatedHoursChange($event)"
+            (budgetFieldChanged)="onBudgetFieldChange($event)"
           />
         </div>
       </div>
@@ -499,6 +500,25 @@ export class TaskDetailPageComponent {
     } else {
       this.updateTask({ estimated_hours: hours } as UpdateTaskRequest);
     }
+  }
+
+  onBudgetFieldChange(change: {
+    key:
+      | 'rate_per_hour'
+      | 'budgeted_hours'
+      | 'budgeted_hours_threshold'
+      | 'cost_budget'
+      | 'cost_budget_threshold'
+      | 'cost_per_hour'
+      | 'revenue_budget';
+    value: number | null;
+  }): void {
+    // v1: only "set to a value" is wired — null means "skip this update"
+    // rather than "clear", because the backend UpdateTaskRequest doesn't
+    // distinguish absent from explicit-null yet.
+    if (change.value === null) return;
+    const patch = { [change.key]: change.value } as unknown as UpdateTaskRequest;
+    this.updateTask(patch);
   }
 
   private updateTask(updates: UpdateTaskRequest): void {

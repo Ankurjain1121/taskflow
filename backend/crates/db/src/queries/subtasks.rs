@@ -334,7 +334,9 @@ pub async fn promote_subtask_to_task(
         RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
                   project_id, task_list_id, status_id, position, milestone_id, task_number,
                   eisenhower_urgency, eisenhower_importance,
-                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+                  rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                  cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
         "#,
     )
     .bind(task_id)
@@ -440,6 +442,13 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         };
         let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
             .await

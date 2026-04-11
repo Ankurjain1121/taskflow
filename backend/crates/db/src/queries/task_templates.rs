@@ -778,7 +778,9 @@ mod tests {
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id
+                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id,
+                   rate_per_hour, budgeted_hours, budgeted_hours_threshold,
+                   cost_budget, cost_budget_threshold, cost_per_hour, revenue_budget
             FROM tasks WHERE id = $1
             ",
         )

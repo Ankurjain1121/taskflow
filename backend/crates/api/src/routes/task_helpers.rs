@@ -4,8 +4,8 @@ use uuid::Uuid;
 
 use crate::errors::Result;
 use taskbolt_db::models::{TaskPriority, UserRole};
-use taskbolt_services::broadcast::events;
 use taskbolt_services::BroadcastService;
+use taskbolt_services::broadcast::events;
 
 /// Sanitize HTML content from rich text editor.
 /// Allows safe formatting tags, removes scripts and dangerous attributes.
@@ -71,6 +71,14 @@ pub struct CreateTaskRequest {
     pub label_ids: Option<Vec<Uuid>>,
     pub parent_task_id: Option<Uuid>,
     pub reporting_person_id: Option<Uuid>,
+    // Budget fields (Phase 2.6) — all optional USD, f64 to match estimated_hours.
+    pub rate_per_hour: Option<f64>,
+    pub budgeted_hours: Option<f64>,
+    pub budgeted_hours_threshold: Option<f64>,
+    pub cost_budget: Option<f64>,
+    pub cost_budget_threshold: Option<f64>,
+    pub cost_per_hour: Option<f64>,
+    pub revenue_budget: Option<f64>,
 }
 
 /// Request body for updating a task
@@ -90,6 +98,22 @@ pub struct UpdateTaskRequest {
     pub clear_milestone: Option<bool>,
     /// For optimistic concurrency: the version the client last saw.
     pub expected_version: Option<i32>,
+    // Budget fields (Phase 2.6). Plain Option<f64> for v1: field absent or null
+    // in the request both mean "leave as-is" — no explicit-null semantics yet.
+    #[serde(default)]
+    pub rate_per_hour: Option<f64>,
+    #[serde(default)]
+    pub budgeted_hours: Option<f64>,
+    #[serde(default)]
+    pub budgeted_hours_threshold: Option<f64>,
+    #[serde(default)]
+    pub cost_budget: Option<f64>,
+    #[serde(default)]
+    pub cost_budget_threshold: Option<f64>,
+    #[serde(default)]
+    pub cost_per_hour: Option<f64>,
+    #[serde(default)]
+    pub revenue_budget: Option<f64>,
 }
 
 /// Request body for moving a task
@@ -505,6 +529,13 @@ mod tests {
             parent_task_id: None,
             depth: 0,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         };
         let mut tasks = std::collections::HashMap::new();
         tasks.insert(status_id, vec![task]);

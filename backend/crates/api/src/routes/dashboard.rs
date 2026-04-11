@@ -4,10 +4,10 @@
 //! All endpoints support optional `workspace_id` query param for filtering.
 
 use axum::{
+    Json, Router,
     extract::{Query, State},
     middleware::from_fn_with_state,
     routing::get,
-    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -18,11 +18,11 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskbolt_db::queries::dashboard::{
+    CompletionTrendPoint, DashboardActivityEntry, DashboardStats, FocusTask, OverdueTask,
+    ProjectPulse, TasksByPriority, TasksByStatus, UpcomingDeadline, UserStreak,
     get_completion_trend, get_dashboard_stats, get_focus_tasks, get_overdue_tasks,
     get_project_pulse, get_recent_activity, get_tasks_by_priority, get_tasks_by_status,
-    get_upcoming_deadlines, get_user_streak, CompletionTrendPoint, DashboardActivityEntry,
-    DashboardStats, FocusTask, OverdueTask, ProjectPulse, TasksByPriority, TasksByStatus,
-    UpcomingDeadline, UserStreak,
+    get_upcoming_deadlines, get_user_streak,
 };
 
 /// Common workspace filter applied to all dashboard endpoints

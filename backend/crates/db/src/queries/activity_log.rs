@@ -307,6 +307,75 @@ pub async fn insert_activity_log(
     Ok(entry)
 }
 
+/// A single status transition entry for the task Status Timeline view.
+///
+/// Produced by `list_task_status_timeline`. Status names come directly from
+/// the activity log's metadata JSONB (`from_status`, `to_status`). Colors are
+/// resolved by LEFT JOINing `project_statuses` on `(project_id, name)` so
+/// renamed or deleted statuses simply return `NULL` for color.
+#[derive(Debug, sqlx::FromRow, Serialize, Clone)]
+pub struct StatusTimelineEntry {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub actor_id: Uuid,
+    pub actor_name: Option<String>,
+    pub actor_avatar_url: Option<String>,
+    pub from_status_name: Option<String>,
+    pub from_status_color: Option<String>,
+    pub to_status_name: Option<String>,
+    pub to_status_color: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// List every `status_changed` activity entry for a task in chronological order.
+///
+/// Returns an empty vector if no status changes have been recorded.
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `task_id` - The task's UUID (entity_id where entity_type = 'task')
+///
+/// Caller is responsible for authorizing the request (project membership).
+pub async fn list_task_status_timeline(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Vec<StatusTimelineEntry>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, StatusTimelineEntry>(
+        r"
+        SELECT
+            al.id,
+            al.entity_id AS task_id,
+            al.user_id AS actor_id,
+            u.name AS actor_name,
+            u.avatar_url AS actor_avatar_url,
+            (al.metadata ->> 'from_status') AS from_status_name,
+            ps_from.color AS from_status_color,
+            (al.metadata ->> 'to_status') AS to_status_name,
+            ps_to.color AS to_status_color,
+            al.created_at
+        FROM activity_log al
+        JOIN users u ON u.id = al.user_id
+        JOIN tasks t ON t.id = al.entity_id
+        LEFT JOIN project_statuses ps_from
+          ON ps_from.project_id = t.project_id
+         AND ps_from.name = (al.metadata ->> 'from_status')
+        LEFT JOIN project_statuses ps_to
+          ON ps_to.project_id = t.project_id
+         AND ps_to.name = (al.metadata ->> 'to_status')
+        WHERE al.entity_type = 'task'
+          AND al.entity_id = $1
+          AND al.action = $2
+        ORDER BY al.created_at ASC, al.id ASC
+        ",
+    )
+    .bind(task_id)
+    .bind(ActivityAction::StatusChanged)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -319,5 +388,24 @@ mod tests {
         };
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("next_cursor"));
+    }
+
+    #[test]
+    fn test_status_timeline_entry_serializes() {
+        let entry = StatusTimelineEntry {
+            id: Uuid::nil(),
+            task_id: Uuid::nil(),
+            actor_id: Uuid::nil(),
+            actor_name: Some("Alice".to_string()),
+            actor_avatar_url: None,
+            from_status_name: Some("Open".to_string()),
+            from_status_color: Some("#6B7280".to_string()),
+            to_status_name: Some("In Progress".to_string()),
+            to_status_color: Some("#3B82F6".to_string()),
+            created_at: Utc::now(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(json.contains("from_status_name"));
+        assert!(json.contains("to_status_color"));
     }
 }

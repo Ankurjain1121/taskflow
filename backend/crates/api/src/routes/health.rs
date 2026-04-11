@@ -7,7 +7,7 @@
 //! - Novu notification service
 //! - Lago billing service
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::time::Duration;

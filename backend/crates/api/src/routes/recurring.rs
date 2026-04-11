@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -13,9 +13,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::TaskTemplateData;
 use taskbolt_db::queries::recurring::{
-    create_config, create_template_config, delete_config, get_config_for_task,
-    list_configs_for_project, update_config, CreateRecurringInput, CreateTemplateRecurringInput,
-    RecurringConfigWithTask, RecurringQueryError, UpdateRecurringInput,
+    CreateRecurringInput, CreateTemplateRecurringInput, RecurringConfigWithTask,
+    RecurringQueryError, UpdateRecurringInput, create_config, create_template_config,
+    delete_config, get_config_for_task, list_configs_for_project, update_config,
 };
 
 /// Map RecurringQueryError to AppError

@@ -3,7 +3,7 @@
 //! These endpoints are designed to be called by an external scheduler (e.g., cron, Cloud Scheduler).
 //! They are protected by a shared secret header, not user authentication.
 
-use axum::{extract::State, http::HeaderMap, routing::post, Json, Router};
+use axum::{Json, Router, extract::State, http::HeaderMap, routing::post};
 use serde::Serialize;
 use std::env;
 
@@ -13,8 +13,8 @@ use taskbolt_db::queries::metrics::refresh_metrics;
 use taskbolt_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
 use taskbolt_services::broadcast::BroadcastService;
 use taskbolt_services::jobs::{
-    cleanup_expired_trash, execute_scheduled_automations, scan_deadlines, send_weekly_digests,
     DeadlineScanResult, ScheduledAutomationResult, TrashCleanupResult, WeeklyDigestResult,
+    cleanup_expired_trash, execute_scheduled_automations, scan_deadlines, send_weekly_digests,
 };
 use taskbolt_services::minio::{MinioConfig, MinioService};
 use taskbolt_services::notifications::{NotificationService, PostalClient};

@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{get, post},
-    Json, Router,
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
@@ -14,15 +14,15 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::{require_capability, verify_project_membership, Capability};
+use super::common::{Capability, require_capability, verify_project_membership};
 use taskbolt_db::models::{
     Issue, IssueClassification, IssueReproducibility, IssueResolutionType, IssueSeverity,
     IssueStatus,
 };
 use taskbolt_db::queries::issues::{
-    create_issue, get_issue, get_issue_project_id, get_issue_summary, list_issues, reopen_issue,
-    resolve_issue, soft_delete_issue, update_issue, CreateIssueInput, IssueFilters,
-    IssueQueryError, IssueSummary, IssueWithDetails, ResolveIssueInput, UpdateIssueInput,
+    CreateIssueInput, IssueFilters, IssueQueryError, IssueSummary, IssueWithDetails,
+    ResolveIssueInput, UpdateIssueInput, create_issue, get_issue, get_issue_project_id,
+    get_issue_summary, list_issues, reopen_issue, resolve_issue, soft_delete_issue, update_issue,
 };
 
 // ============================================

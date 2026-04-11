@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -63,9 +63,11 @@ async fn create_api_key(
     let mut all_bytes = Vec::with_capacity(32);
     all_bytes.extend_from_slice(uuid1.as_bytes());
     all_bytes.extend_from_slice(uuid2.as_bytes());
-    let hex_part: String = all_bytes[..20]
-        .iter()
-        .fold(String::new(), |mut s, b| { use std::fmt::Write as _; let _ = write!(s, "{b:02x}"); s });
+    let hex_part: String = all_bytes[..20].iter().fold(String::new(), |mut s, b| {
+        use std::fmt::Write as _;
+        let _ = write!(s, "{b:02x}");
+        s
+    });
     let full_key = format!("tf_{}", hex_part);
     let key_prefix = format!("tf_{}...", &hex_part[..8]);
 

@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::State,
     middleware::from_fn_with_state,
     routing::{get, put},
-    Json, Router,
 };
 use serde::Deserialize;
 

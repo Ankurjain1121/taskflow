@@ -3,10 +3,10 @@
 //! Provides CRUD operations for workspaces and workspace membership management.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sqlx;
@@ -26,7 +26,7 @@ use crate::state::AppState;
 
 use super::common::MessageResponse;
 use super::validation::{
-    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+    MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN, validate_optional_string, validate_required_string,
 };
 use super::workspace_helpers::fire_member_joined_trigger;
 

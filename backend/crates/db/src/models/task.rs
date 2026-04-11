@@ -31,6 +31,17 @@ pub struct Task {
     pub parent_task_id: Option<Uuid>,
     pub depth: i16,
     pub reporting_person_id: Option<Uuid>,
+    // Budget fields (Phase 2.6). All optional USD, stored as NUMERIC(12,2) in PG.
+    // Tech debt: using f64 because the rest of the codebase uses f64 for money/hours
+    // and we have no currency abstraction yet. Revisit with `rust_decimal` when we
+    // add multi-currency + invoicing.
+    pub rate_per_hour: Option<f64>,
+    pub budgeted_hours: Option<f64>,
+    pub budgeted_hours_threshold: Option<f64>,
+    pub cost_budget: Option<f64>,
+    pub cost_budget_threshold: Option<f64>,
+    pub cost_per_hour: Option<f64>,
+    pub revenue_budget: Option<f64>,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -106,6 +117,13 @@ mod tests {
             parent_task_id: None,
             depth: 0,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         }
     }
 

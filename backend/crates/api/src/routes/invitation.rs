@@ -3,10 +3,10 @@
 //! Provides invitation creation, validation, acceptance, and listing endpoints.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
-    Json, Router,
 };
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Invitation, UserRole};
 use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::{
-    generate_invitation_html, spawn_automation_evaluation, ResendClient, TriggerContext,
+    ResendClient, TriggerContext, generate_invitation_html, spawn_automation_evaluation,
 };
 
 use crate::errors::{AppError, Result};
@@ -286,10 +286,8 @@ pub async fn create_handler(
     let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
     let workspace =
         workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id).await?;
-    let inviter_name = inviter
-        .map_or_else(|| "A teammate".into(), |u| u.name);
-    let workspace_name = workspace
-        .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
+    let inviter_name = inviter.map_or_else(|| "A teammate".into(), |u| u.name);
+    let workspace_name = workspace.map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
     spawn_invitation_emails(
         vec![inv_response.clone()],
@@ -701,10 +699,9 @@ pub async fn bulk_create_handler(
         let workspace =
             workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id)
                 .await?;
-        let inviter_name = inviter
-            .map_or_else(|| "A teammate".into(), |u| u.name);
-        let workspace_name = workspace
-            .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
+        let inviter_name = inviter.map_or_else(|| "A teammate".into(), |u| u.name);
+        let workspace_name =
+            workspace.map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
         spawn_invitation_emails(
             created.clone(),
@@ -826,10 +823,8 @@ pub async fn resend_handler(
     let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
     let workspace =
         workspaces::get_workspace_by_id(&state.db, inv.workspace_id, auth.0.tenant_id).await?;
-    let inviter_name = inviter
-        .map_or_else(|| "A teammate".into(), |u| u.name);
-    let workspace_name = workspace
-        .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
+    let inviter_name = inviter.map_or_else(|| "A teammate".into(), |u| u.name);
+    let workspace_name = workspace.map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
     spawn_invitation_emails(
         vec![inv_response.clone()],

@@ -378,6 +378,13 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         };
         tasks::create_task(&pool, board_id, input1, tenant_id, user_id)
             .await
@@ -397,6 +404,13 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
             reporting_person_id: None,
+            rate_per_hour: None,
+            budgeted_hours: None,
+            budgeted_hours_threshold: None,
+            cost_budget: None,
+            cost_budget_threshold: None,
+            cost_per_hour: None,
+            revenue_budget: None,
         };
         tasks::create_task(&pool, board_id, input2, tenant_id, user_id)
             .await

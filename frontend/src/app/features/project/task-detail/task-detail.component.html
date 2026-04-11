@@ -103,6 +103,7 @@
                 <p-tabpanel value="3">
                   <app-task-detail-fields
                     [taskId]="taskId()"
+                    [projectId]="boardId()"
                     [dependencies]="dependencies()"
                     [blockingDeps]="blockingDeps()"
                     [blockedByDeps]="blockedByDeps()"

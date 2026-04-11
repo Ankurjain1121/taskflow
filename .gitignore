@@ -40,6 +40,10 @@ nul
 # Generated types
 # frontend/src/app/shared/types/*.ts  # keep for type sharing
 
+# ts-rs generated bindings (build artifacts)
+backend/crates/db/bindings/*.ts
+!backend/crates/db/bindings/serde_json/
+
 # Docker volumes
 docker-data/
 

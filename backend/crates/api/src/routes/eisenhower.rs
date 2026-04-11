@@ -3,10 +3,10 @@
 //! Provides endpoints for the Eisenhower Matrix view (2x2 prioritization grid).
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{get, put},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -16,8 +16,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::eisenhower::{
-    get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
-    EisenhowerFilters, EisenhowerMatrixResponse,
+    EisenhowerFilters, EisenhowerMatrixResponse, get_eisenhower_matrix, reset_eisenhower_overrides,
+    update_eisenhower_overrides,
 };
 use taskbolt_db::queries::get_task_project_id;
 

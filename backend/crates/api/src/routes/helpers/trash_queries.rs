@@ -13,7 +13,7 @@ use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use taskbolt_services::minio::{MinioConfig, MinioService};
 use taskbolt_services::trash_bin::{
-    permanently_delete, restore_from_trash, TrashEntityType, TRASH_RETENTION_DAYS,
+    TRASH_RETENTION_DAYS, TrashEntityType, permanently_delete, restore_from_trash,
 };
 
 // ============================================================================

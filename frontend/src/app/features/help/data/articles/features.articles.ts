@@ -45,6 +45,8 @@ TaskBolt supports color-coding cards by:
 | **N** | New task |
 | **/** | Focus search |
 | **?** | Show all shortcuts |
+| **Ctrl+Shift+↑** | Create task above focused row |
+| **Ctrl+Shift+↓** | Create task below focused row |
 
 ## Tips
 
@@ -54,7 +56,7 @@ TaskBolt supports color-coding cards by:
     `,
     tags: ['kanban', 'board', 'columns', 'drag-drop', 'cards', 'workflow'],
     order: 1,
-    updatedAt: '2026-04-08',
+    updatedAt: '2026-04-11',
     relatedSlugs: ['create-tasks', 'workflow-automation'],
   },
   {
@@ -324,5 +326,256 @@ The Client Portal lets you share project progress with external stakeholders wit
     tags: ['client', 'portal', 'sharing', 'external', 'read-only'],
     order: 8,
     updatedAt: '2026-04-08',
+  },
+  {
+    slug: 'project-groups',
+    categorySlug: 'features',
+    title: 'Project Groups',
+    summary:
+      'Organize projects into named collections like "Q3 Launches" or "Client X" without creating separate workspaces.',
+    content: `
+## Overview
+
+Project Groups let you organize the projects inside a workspace into named
+collections. A group is lighter than a workspace: everyone in the workspace
+still sees all projects, but groups give you a way to slice them into
+meaningful buckets like **Q3 Launches**, **Client X**, or **Internal Tools**.
+
+A project can belong to at most one group, or stay ungrouped.
+
+## Creating a group
+
+1. Open **Manage** from the sidebar
+2. Go to the **Config** tab
+3. Scroll to **Project Groups**
+4. Enter a name, pick a color swatch, and click **+ Add Group**
+
+You'll see the new group appear in the list with a project count of 0.
+
+## Assigning projects to a group
+
+1. Open the project's settings
+2. Under **Project Group**, pick the group from the dropdown
+3. Save
+
+The project now shows up under that group wherever groups are filtered.
+
+## Renaming or deleting a group
+
+From **Manage → Config → Project Groups**:
+
+- **Rename**: click the pencil icon next to the group name, type the new
+  name, press Enter
+- **Delete**: click the trash icon. Projects inside the group are **not**
+  deleted — they become ungrouped. A confirmation dialog warns you how many
+  projects will be affected.
+
+## When to use a group vs a workspace
+
+| Scenario | Use |
+|----------|-----|
+| Separate companies / tenants | **Workspace** |
+| Permissions vary per bucket | **Workspace** |
+| Just visual organization inside one company | **Project Group** |
+| Cross-functional teams sharing projects | **Project Group** |
+
+## Tips
+
+- Use color to encode meaning at a glance: red for client work, blue for
+  internal, amber for experimental
+- Keep group names short — they show up in filter dropdowns
+- An empty group is fine. Create it before you have projects so you can
+  assign from the start
+    `,
+    tags: ['project-groups', 'organize', 'collections', 'workspace', 'filter'],
+    order: 9,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['client-portal'],
+  },
+  {
+    slug: 'status-timeline',
+    categorySlug: 'features',
+    title: 'Task Status Timeline',
+    summary:
+      'See every status transition for a task with who made the change and when.',
+    content: `
+## Overview
+
+The Status Timeline tab on any task detail page shows every time the task moved
+between statuses. It's a chronological record: who moved it, what they changed
+it from, what they changed it to, and exactly when it happened.
+
+## Where to find it
+
+1. Open any task
+2. Scroll to the **Status Timeline** section
+3. Read the entries top-to-bottom
+
+## What gets logged
+
+- Initial creation (the first transition into whatever status the task started in)
+- Every manual status change by any team member
+- Status changes made by automations (the automation shows as the actor)
+- Bulk operations that changed this task's status
+
+## What does NOT get logged here
+
+- Other field changes (assignee, due date, priority) — those live in the
+  **Activity** tab, which shows a broader edit history
+- Comments
+- Status transitions in linked tasks or subtasks
+
+## When it's useful
+
+- **Audit trail** for compliance: "who closed this task and when?"
+- **Diagnosing regressions**: "why was this moved back to In Progress twice?"
+- **Estimating cycle time**: look at the timestamps between Open and Done
+- **Debugging automations**: confirm an automation actually fired the status
+  change you expected
+
+## Tips
+
+- Hover any entry to see the full timestamp
+- Use browser search (Ctrl+F) to find an actor by name
+- If the timeline looks empty on an old task, it means the status hasn't been
+  touched since the feature was added — the log starts recording on first change
+    `,
+    tags: ['status', 'timeline', 'history', 'audit', 'transitions', 'activity'],
+    order: 10,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['project-groups'],
+  },
+  {
+    slug: 'time-logged-column',
+    categorySlug: 'features',
+    title: 'Time Logged column',
+    summary:
+      'See the total hours logged against each task right from the list view, without opening the task.',
+    content: `
+## Overview
+
+Every task has a time tracker. The list view now shows a **Time Logged**
+column summing every completed time entry for each task. No more opening
+each task to check how many hours have been burned.
+
+## Where to find it
+
+- Open any project
+- Switch to **List** view
+- The Time Logged column shows between Priority and Due Date
+
+## What's counted
+
+- Every time entry that has been stopped (you pressed Stop, or entered hours
+  manually)
+- Entries are summed regardless of who logged them
+- Both billable and non-billable entries are included
+
+## What's NOT counted
+
+- **Running timers** are excluded. A timer that's currently running doesn't
+  contribute until you stop it. Check the Timer widget for live elapsed
+  time.
+- Deleted time entries are excluded (as expected)
+- Time logged on **subtasks** is not rolled up to the parent — each task
+  shows only its own hours
+
+## Formatting
+
+- 0 minutes → displayed as "—"
+- 45 minutes → "0h 45m"
+- 90 minutes → "1h 30m"
+- 480 minutes → "8h 0m"
+
+## Tips
+
+- Sort the column descending to find the tasks consuming the most time
+- Combine with a date filter to see "time logged this week"
+- If the number surprises you, open the task's **Time Tracking** section
+  to audit individual entries
+    `,
+    tags: ['time-tracking', 'logged-hours', 'list-view', 'column', 'billing'],
+    order: 11,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['status-timeline', 'kanban-boards'],
+  },
+  {
+    slug: 'task-budgets',
+    categorySlug: 'features',
+    title: 'Task Budgets',
+    summary:
+      'Track billing rate, budgeted hours, cost, and revenue per task. Roll up the numbers to a project-level budget summary.',
+    content: `
+## Overview
+
+Agencies, consultancies, and any team with a cost center need to know:
+is this task on budget, and is the project making money? TaskBolt's
+budget fields let you answer both questions without leaving the task.
+
+Every task has seven optional budget fields. Leave them empty if you
+don't care. Fill them in and TaskBolt rolls them up into a project-level
+**Budget Summary** card at the top of the board.
+
+## The seven fields
+
+Open any task and expand **Budget** in the sidebar. You'll see:
+
+| Field | Meaning |
+|-------|---------|
+| **Rate / hr** | What you bill the client per hour on this task |
+| **Cost / hr** | Your internal cost per hour (salary + overhead) |
+| **Budgeted Hours** | Planned effort for the task |
+| **Hours Warning** | Threshold where we flag logged-hours overrun |
+| **Cost Budget** | Total budgeted cost to execute the task |
+| **Cost Warning** | Threshold where we flag cost overrun |
+| **Revenue Budget** | Expected revenue generated by the task |
+
+Every field is optional and nullable. Blank = "not tracked," not zero.
+
+## Project Budget Summary
+
+Open any project and look above the board header. If at least one task
+has any budget field set, you'll see a **Budget Summary** card with
+four tiles:
+
+- **Budgeted Hours** — sum across all tasks with a budget, with logged
+  hours underneath for instant comparison
+- **Budgeted Cost** — planned cost vs. actual cost (logged hours × cost/hr)
+- **Revenue Budget** — expected revenue across tasks with a revenue number
+- **Net Margin** — Revenue − Actual Cost. Green when positive, red when
+  negative
+
+The card also shows how many tasks out of the total have a budget set,
+so you can tell at a glance whether the numbers reflect the whole project
+or just a sample.
+
+## Who should use this
+
+- **Agencies** billing clients hourly — track profitability per task
+- **Consultancies** working on fixed-price engagements — make sure
+  you're not burning more cost than you budgeted
+- **Internal teams** with chargebacks — measure the true cost of
+  internal work
+
+If you don't bill for work or track internal costs, skip this entirely.
+Leave every field empty and the Budget Summary card never appears.
+
+## Tips
+
+- **Fill in Rate and Cost once per task template**, then copy tasks to
+  save typing. Templates don't yet auto-fill budget fields but you can
+  duplicate an existing budgeted task
+- **Set Hours Warning to 80% of Budgeted Hours** as an early signal,
+  not as the hard stop
+- **Actual Cost uses stopped time entries only** — running timers don't
+  count until you press Stop, same as the Time Logged column
+- **Net Margin is a planning signal, not accounting** — it doesn't know
+  about discounts, reimbursables, or retainers. Treat it as a rough
+  compass, not the P&L
+    `,
+    tags: ['budget', 'billing', 'cost', 'revenue', 'agency', 'margin', 'profitability'],
+    order: 12,
+    updatedAt: '2026-04-11',
+    relatedSlugs: ['time-tracking', 'time-logged-column', 'reports-analytics'],
   },
 ];

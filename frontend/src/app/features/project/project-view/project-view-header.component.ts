@@ -2,12 +2,14 @@ import {
   Component,
   input,
   output,
+  signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
 import { type ViewMode } from '../project-toolbar/project-toolbar.component';
+import { ProjectBudgetSummaryCardComponent } from './project-budget-summary-card.component';
 
 interface ViewTab {
   value: ViewMode;
@@ -25,7 +27,7 @@ const VIEW_TABS: ViewTab[] = [
 @Component({
   selector: 'app-project-view-header',
   standalone: true,
-  imports: [RouterModule, Menu],
+  imports: [RouterModule, Menu, ProjectBudgetSummaryCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -104,6 +106,19 @@ const VIEW_TABS: ViewTab[] = [
             <i class="pi pi-bolt w-4 h-4 text-sm" aria-hidden="true"></i>
             Automations
           </a>
+
+          <!-- Budget Toggle (Phase 2.6) -->
+          <button
+            type="button"
+            (click)="toggleBudget()"
+            [class.active-toggle]="showBudget()"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
+            aria-label="Toggle budget summary"
+            [attr.aria-pressed]="showBudget()"
+          >
+            <i class="pi pi-wallet w-4 h-4 text-sm" aria-hidden="true"></i>
+            Budget
+          </button>
 
           <!-- Settings Button -->
           <a
@@ -191,6 +206,11 @@ const VIEW_TABS: ViewTab[] = [
           </button>
         </div>
       </div>
+      @if (showBudget() && boardId()) {
+        <div class="mt-3">
+          <app-project-budget-summary-card [projectId]="boardId()" />
+        </div>
+      }
     </div>
   `,
 })
@@ -207,4 +227,9 @@ export class ProjectViewHeaderComponent {
   viewModeChanged = output<ViewMode>();
 
   readonly viewTabs = VIEW_TABS;
+  readonly showBudget = signal(false);
+
+  toggleBudget(): void {
+    this.showBudget.update((v) => !v);
+  }
 }

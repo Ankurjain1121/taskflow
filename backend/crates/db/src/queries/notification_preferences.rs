@@ -175,7 +175,9 @@ pub async fn should_notify(
         None => match channel {
             // Default preferences
             NotificationChannel::Slack => false,
-            NotificationChannel::InApp | NotificationChannel::Email | NotificationChannel::WhatsApp => true,
+            NotificationChannel::InApp
+            | NotificationChannel::Email
+            | NotificationChannel::WhatsApp => true,
         },
     })
 }

@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -13,13 +13,13 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::{require_capability, verify_project_membership, Capability};
+use super::common::{Capability, require_capability, verify_project_membership};
 use taskbolt_db::models::Milestone;
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_db::queries::milestones::{
+    CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
     get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
-    CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
 };
 
 /// Request body for creating a milestone (Phase)

@@ -4,10 +4,10 @@
 //! and member-role assignments.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
