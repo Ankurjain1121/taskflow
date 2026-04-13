@@ -232,7 +232,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Discover</span>
         </a>
 
-        <app-sidebar-projects
+        <app-sidebar-projects #starredProjects
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
 
@@ -240,7 +240,8 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
 
         <app-sidebar-all-projects
           [collapsed]="collapsed()"
-          (navClick)="onNavClick()" />
+          (navClick)="onNavClick()"
+          (starChanged)="starredProjects.loadFavorites()" />
 
         <div class="divider my-2 mx-1"></div>
 

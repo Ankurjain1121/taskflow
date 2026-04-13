@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 import { ProjectService, Board } from '../../../core/services/project.service';
+import { FavoritesService, FavoriteItem } from '../../../core/services/favorites.service';
 import { Workspace } from '../../../core/services/workspace.service';
 
 interface WorkspaceWithProjects {
@@ -49,6 +50,16 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
       .project-item.active { background: var(--sidebar-surface-active); }
       .color-dot {
         width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      }
+      .star-btn {
+        opacity: 0;
+        transition: opacity 120ms ease, color 120ms ease;
+        flex-shrink: 0;
+      }
+      .project-item:hover .star-btn { opacity: 1; }
+      .star-btn.is-starred {
+        opacity: 1;
+        color: var(--warning, #d97706) !important;
       }
       .ws-avatar {
         display: flex; align-items: center; justify-content: center;
@@ -119,11 +130,18 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
                 <a [routerLink]="['/workspace', item.workspace.id, 'project', project.id]"
                    routerLinkActive="active"
                    (click)="onProjectClick(item.workspace.id)"
-                   class="project-item flex items-center gap-2 pl-8 pr-3 py-1 rounded-md text-xs cursor-pointer">
+                   class="project-item flex items-center gap-2 pl-8 pr-2 py-1 rounded-md text-xs cursor-pointer">
                   <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
-                  <span class="truncate" style="color: var(--sidebar-text-secondary)">
+                  <span class="truncate flex-1" style="color: var(--sidebar-text-secondary)">
                     {{ project.name }}
                   </span>
+                  <button (click)="toggleStar(project.id); $event.preventDefault(); $event.stopPropagation()"
+                          class="star-btn w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)]"
+                          [class.is-starred]="isStarred(project.id)"
+                          style="color: var(--sidebar-text-muted)"
+                          [attr.aria-label]="isStarred(project.id) ? 'Unstar project' : 'Star project'">
+                    <i [class]="isStarred(project.id) ? 'pi pi-star-fill text-[10px]' : 'pi pi-star text-[10px]'"></i>
+                  </button>
                 </a>
               }
             }
@@ -136,12 +154,15 @@ const LS_KEY = 'taskbolt_all_projects_collapsed';
 export class SidebarAllProjectsComponent {
   collapsed = input(false);
   navClick = output<void>();
+  starChanged = output<void>();
 
   readonly ctx = inject(WorkspaceContextService);
   private readonly projectService = inject(ProjectService);
+  private readonly favoritesService = inject(FavoritesService);
 
   readonly allData = signal<WorkspaceWithProjects[]>([]);
   private readonly collapsedState = signal<Record<string, boolean>>({});
+  private readonly starredIds = signal<Set<string>>(new Set());
 
   constructor() {
     // Load collapsed state from localStorage
@@ -149,6 +170,9 @@ export class SidebarAllProjectsComponent {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) this.collapsedState.set(JSON.parse(raw));
     } catch { /* ignore corrupt data */ }
+
+    // Load starred projects
+    this.loadStarred();
 
     // Watch workspaces signal and load projects for each
     effect(() => {
@@ -206,5 +230,44 @@ export class SidebarAllProjectsComponent {
       this.ctx.syncFromUrl(wsId);
     }
     this.navClick.emit();
+  }
+
+  isStarred(projectId: string): boolean {
+    return this.starredIds().has(projectId);
+  }
+
+  toggleStar(projectId: string): void {
+    if (this.isStarred(projectId)) {
+      // Optimistic removal
+      this.starredIds.update((prev) => {
+        const next = new Set(prev);
+        next.delete(projectId);
+        return next;
+      });
+      this.favoritesService.remove('board', projectId).subscribe({
+        next: () => this.starChanged.emit(),
+        error: () => this.loadStarred(),
+      });
+    } else {
+      // Optimistic add
+      this.starredIds.update((prev) => {
+        const next = new Set(prev);
+        next.add(projectId);
+        return next;
+      });
+      this.favoritesService.add({ entity_type: 'board', entity_id: projectId }).subscribe({
+        next: () => this.starChanged.emit(),
+        error: () => this.loadStarred(),
+      });
+    }
+  }
+
+  private loadStarred(): void {
+    this.favoritesService.list().subscribe((items) => {
+      const ids = new Set(
+        items.filter((f) => f.entity_type === 'board').map((f) => f.entity_id)
+      );
+      this.starredIds.set(ids);
+    });
   }
 }

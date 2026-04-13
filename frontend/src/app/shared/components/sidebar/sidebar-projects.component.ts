@@ -6,16 +6,19 @@ import {
   output,
   signal,
   computed,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import {
   CdkDragDrop,
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
+import { Subject, takeUntil } from 'rxjs';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
-import { FavoritesService } from '../../../core/services/favorites.service';
+import { FavoritesService, FavoriteItem } from '../../../core/services/favorites.service';
 import { Board } from '../../../core/services/project.service';
 
 @Component({
@@ -58,27 +61,6 @@ import { Board } from '../../../core/services/project.service';
         transition: background var(--duration-fast) var(--ease-standard);
       }
       .collapsed-dot:hover { background: var(--sidebar-surface-hover); }
-      .skeleton {
-        background: var(--sidebar-surface-hover);
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-      .menu-overlay {
-        background: var(--sidebar-bg);
-        border: 1px solid var(--sidebar-border);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      }
-      .menu-item:hover { background: var(--sidebar-surface-hover); }
-      .cdk-drag-preview {
-        background: var(--sidebar-bg);
-        border-radius: 0.375rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        opacity: 0.9;
-      }
-      .cdk-drag-placeholder { opacity: 0.3; }
       .sidebar-label {
         transition: opacity 200ms ease, max-width 200ms ease;
         overflow: hidden;
@@ -91,157 +73,134 @@ import { Board } from '../../../core/services/project.service';
         max-width: 0;
         pointer-events: none;
       }
+      .unstar-btn {
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      .group:hover .unstar-btn { opacity: 1; }
+      .empty-hint {
+        color: var(--sidebar-text-muted);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .cdk-drag-preview {
+        background: var(--sidebar-bg);
+        border-radius: 0.375rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0.9;
+      }
+      .cdk-drag-placeholder { opacity: 0.3; }
     `,
   ],
   template: `
     <div class="section-label mt-1 mb-1.5 sidebar-label uppercase tracking-wider">
-      <span>Projects</span>
+      <span>Starred</span>
     </div>
 
-    @if (ctx.loading()) {
-      <div class="px-3 space-y-2 py-1">
-        @for (i of skeletons; track i) {
-          <div class="h-7 rounded bg-[var(--sidebar-surface)] animate-pulse"
-               [class]="skeletonWidths[i - 1]"></div>
-        }
-      </div>
-    } @else if (projects().length === 0) {
-      @if (!collapsed()) {
-        <div class="px-3 py-4 text-center">
-          <p class="text-xs" style="color: var(--sidebar-text-muted)">No projects</p>
-          <button (click)="createProject()"
-                  class="mt-2 text-xs text-primary hover:brightness-90 transition-colors">
-            Create Project
-          </button>
+    @if (!collapsed()) {
+      @if (starredProjects().length === 0) {
+        <div class="px-3 py-3">
+          <p class="empty-hint">
+            Star projects from <span style="font-weight: 600">All Projects</span> below to pin them here.
+          </p>
         </div>
-      }
-    } @else {
-      @if (!collapsed()) {
+      } @else {
         <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-0.5 transition-opacity duration-150">
-          @for (project of projects(); track project.id) {
+          @for (project of starredProjects(); track project.id) {
             <div cdkDrag class="group">
               <a [routerLink]="['/workspace', ctx.activeWorkspaceId(), 'project', project.id]"
                  routerLinkActive="active"
                  (click)="navClick.emit()"
-                 class="project-item flex items-center gap-2.5 px-3 h-10 rounded-md text-sm cursor-pointer w-full">
+                 class="project-item flex items-center gap-2.5 px-3 h-8 rounded-md text-sm cursor-pointer w-full">
                 <span class="nav-indicator"></span>
                 <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
-                <span class="truncate flex-1" style="color: var(--sidebar-text-secondary)">
+                <span class="truncate flex-1 text-[13px]" style="color: var(--sidebar-text-secondary)">
                   {{ project.name }}
                 </span>
-                <!-- Hover actions -->
-                <span class="hidden group-hover:flex items-center gap-1">
-                  <button (click)="toggleFavorite(project); $event.preventDefault(); $event.stopPropagation()"
-                          class="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)] transition-colors"
-                          style="color: var(--sidebar-text-muted)"
-                          aria-label="Toggle favorite">
-                    <i class="pi pi-star text-[10px]"></i>
-                  </button>
-                  <button (click)="openMenu(project, $event)"
-                          class="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)] transition-colors"
-                          style="color: var(--sidebar-text-muted)"
-                          aria-label="Project options">
-                    <i class="pi pi-ellipsis-h text-[10px]"></i>
-                  </button>
-                </span>
+                <button (click)="unstar(project); $event.preventDefault(); $event.stopPropagation()"
+                        class="unstar-btn w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--sidebar-surface-active)] transition-colors"
+                        style="color: var(--warning, #d97706)"
+                        [pTooltip]="'Unstar'" tooltipPosition="right"
+                        aria-label="Remove from starred">
+                  <i class="pi pi-star-fill text-[10px]"></i>
+                </button>
               </a>
             </div>
           }
         </div>
-      } @else {
-        <div class="space-y-0.5">
-          @for (project of projects(); track project.id) {
-            <a [routerLink]="['/workspace', ctx.activeWorkspaceId(), 'project', project.id]"
-               routerLinkActive="active"
-               class="collapsed-dot"
-               [pTooltip]="project.name" tooltipPosition="right">
-              <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
-            </a>
-          }
-        </div>
       }
-    }
-
-    <!-- Context menu -->
-    @if (menuProject()) {
-      <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
-      <div class="menu-overlay fixed z-20 rounded-lg shadow-lg py-1 w-40"
-           [style.top.px]="menuPos().y" [style.left.px]="menuPos().x">
-        <button (click)="openProject(menuProject()!)"
-                class="menu-item w-full flex items-center gap-2 px-3 py-1.5 text-sm"
-                style="color: var(--sidebar-text-secondary)">
-          <i class="pi pi-external-link text-xs"></i> Open
-        </button>
-        <button (click)="copyLink(menuProject()!)"
-                class="menu-item w-full flex items-center gap-2 px-3 py-1.5 text-sm"
-                style="color: var(--sidebar-text-secondary)">
-          <i class="pi pi-copy text-xs"></i> Copy Link
-        </button>
-        <button (click)="archiveProject(menuProject()!)"
-                class="menu-item w-full flex items-center gap-2 px-3 py-1.5 text-sm"
-                style="color: var(--sidebar-text-secondary)">
-          <i class="pi pi-box text-xs"></i> Archive
-        </button>
-      </div>
+    } @else {
+      @for (project of starredProjects(); track project.id) {
+        <a [routerLink]="['/workspace', ctx.activeWorkspaceId(), 'project', project.id]"
+           routerLinkActive="active"
+           class="collapsed-dot"
+           [pTooltip]="project.name" tooltipPosition="right">
+          <span class="color-dot" [style.background]="ctx.getProjectColor(project.id)"></span>
+        </a>
+      }
     }
   `,
 })
-export class SidebarProjectsComponent {
+export class SidebarProjectsComponent implements OnInit, OnDestroy {
   collapsed = input(false);
   navClick = output<void>();
 
   readonly ctx = inject(WorkspaceContextService);
   private readonly favoritesService = inject(FavoritesService);
-  private readonly router = inject(Router);
 
-  readonly skeletons = [1, 2, 3, 4];
-  readonly skeletonWidths = ['w-3/4', 'w-1/2', 'w-2/3', 'w-3/5'];
-  menuProject = signal<Board | null>(null);
-  menuPos = signal({ x: 0, y: 0 });
+  private readonly destroy$ = new Subject<void>();
+  readonly favorites = signal<FavoriteItem[]>([]);
 
-  projects = computed(() => this.ctx.getOrderedProjects());
+  /** Only board-type favorites that exist in current workspace projects */
+  readonly starredProjects = computed(() => {
+    const favs = this.favorites();
+    const projects = this.ctx.getOrderedProjects();
+    const favBoardIds = new Set(
+      favs.filter((f) => f.entity_type === 'board').map((f) => f.entity_id)
+    );
+    return projects.filter((p) => favBoardIds.has(p.id));
+  });
+
+  ngOnInit(): void {
+    this.loadFavorites();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadFavorites(): void {
+    this.favoritesService
+      .list()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((items) => this.favorites.set(items));
+  }
+
+  unstar(project: Board): void {
+    // Optimistic removal
+    this.favorites.update((prev) =>
+      prev.filter((f) => !(f.entity_type === 'board' && f.entity_id === project.id))
+    );
+    this.favoritesService
+      .remove('board', project.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: () => this.loadFavorites(), // revert on failure
+      });
+  }
+
+  /** Called from ALL PROJECTS component when a project is starred */
+  addStarredProject(projectId: string): void {
+    this.favoritesService
+      .add({ entity_type: 'board', entity_id: projectId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadFavorites());
+  }
 
   onDrop(event: CdkDragDrop<Board[]>): void {
-    const items = [...this.projects()];
+    const items = [...this.starredProjects()];
     moveItemInArray(items, event.previousIndex, event.currentIndex);
-    this.ctx.saveProjectOrder(items.map((p) => p.id));
-  }
-
-  toggleFavorite(project: Board): void {
-    this.favoritesService.add({ entity_type: 'board', entity_id: project.id }).subscribe();
-  }
-
-  openMenu(project: Board, event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.menuProject.set(project);
-    this.menuPos.set({ x: event.clientX, y: event.clientY });
-  }
-
-  closeMenu(): void {
-    this.menuProject.set(null);
-  }
-
-  openProject(project: Board): void {
-    this.closeMenu();
-    this.router.navigate(['/workspace', this.ctx.activeWorkspaceId(), 'project', project.id]);
-  }
-
-  copyLink(project: Board): void {
-    this.closeMenu();
-    const url = `${window.location.origin}/workspace/${this.ctx.activeWorkspaceId()}/project/${project.id}`;
-    navigator.clipboard.writeText(url);
-  }
-
-  archiveProject(_project: Board): void {
-    this.closeMenu();
-    // Archive handled by project service — future implementation
-  }
-
-  createProject(): void {
-    const wsId = this.ctx.activeWorkspaceId();
-    if (wsId) {
-      this.router.navigate(['/workspace', wsId], { queryParams: { newProject: true } });
-    }
+    // Persist reorder if needed in the future
   }
 }
