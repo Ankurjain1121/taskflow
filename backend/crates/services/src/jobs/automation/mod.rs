@@ -334,15 +334,20 @@ pub async fn execute_scheduled_automations(
 
 /// Convenience function to spawn automation evaluation as a background task.
 /// Call this from route handlers -- it won't block the response.
+///
+/// `depth` tracks recursion depth for chained automations. Route handlers
+/// should pass `0`; automation actions that re-trigger evaluation should
+/// pass `current_depth + 1` to respect the MAX_DEPTH guard in `safety.rs`.
 pub fn spawn_automation_evaluation(
     pool: PgPool,
     redis: redis::aio::ConnectionManager,
     trigger: AutomationTrigger,
     context: TriggerContext,
+    depth: u8,
 ) {
     tokio::spawn(async move {
         let mut redis = redis;
-        let result = evaluate_trigger(&pool, &mut redis, trigger.clone(), context, 0).await;
+        let result = evaluate_trigger(&pool, &mut redis, trigger.clone(), context, depth).await;
         if result.rules_matched > 0 {
             tracing::info!(
                 trigger = ?trigger,

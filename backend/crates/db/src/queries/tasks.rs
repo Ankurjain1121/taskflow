@@ -113,7 +113,10 @@ pub struct TaskWithDetails {
 /// Basic assignee information
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct AssigneeInfo {
+    #[serde(rename = "id")]
     pub user_id: Uuid,
+    #[serde(rename = "display_name")]
+    #[sqlx(rename = "name")]
     pub name: String,
     pub avatar_url: Option<String>,
     pub assigned_at: DateTime<Utc>,
@@ -518,13 +521,28 @@ pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQu
     Ok(())
 }
 
-/// Move a task to a different status and/or position
+/// Move a task to a different status and/or position.
+/// Uses SELECT ... FOR UPDATE to prevent concurrent position conflicts.
 pub async fn move_task(
     pool: &PgPool,
     task_id: Uuid,
     target_status_id: Uuid,
     new_position: String,
 ) -> Result<Task, TaskQueryError> {
+    let mut tx = pool.begin().await?;
+
+    // Lock the task row to prevent concurrent moves
+    let exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND deleted_at IS NULL FOR UPDATE)",
+    )
+    .bind(task_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    if !exists {
+        return Err(TaskQueryError::NotFound);
+    }
+
     let task = sqlx::query_as::<_, Task>(
         r"
         UPDATE tasks
@@ -546,9 +564,10 @@ pub async fn move_task(
     .bind(task_id)
     .bind(target_status_id)
     .bind(&new_position)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(TaskQueryError::NotFound)?;
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
 
     Ok(task)
 }

@@ -106,6 +106,7 @@ pub async fn list_milestones(
                  m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at,
                  m.owner_id, u.name, m.status, m.start_date, m.flag
         ORDER BY m.start_date ASC NULLS LAST, m.due_date ASC NULLS LAST, m.created_at ASC
+        LIMIT 200
         ",
     )
     .bind(board_id)

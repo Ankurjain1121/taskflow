@@ -90,6 +90,7 @@ pub async fn list_dependencies(
         WHERE (td.source_task_id = $1 OR td.target_task_id = $1)
           AND t.deleted_at IS NULL
         ORDER BY td.created_at DESC
+        LIMIT 200
         ",
     )
     .bind(task_id)
@@ -291,6 +292,7 @@ pub async fn get_board_dependencies(
           AND source_t.deleted_at IS NULL
           AND target_t.deleted_at IS NULL
         ORDER BY td.created_at DESC
+        LIMIT 200
         ",
     )
     .bind(board_id)

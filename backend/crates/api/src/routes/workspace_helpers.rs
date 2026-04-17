@@ -43,6 +43,7 @@ pub fn fire_member_joined_trigger(
                     priority: None,
                     member_user_id: Some(member_user_id),
                 },
+                0,
             );
         }
     });

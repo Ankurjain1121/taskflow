@@ -81,7 +81,7 @@ mod test_helpers;
 // ── Explicit re-exports ────────────────────────────────────────────────────
 
 // membership
-pub use membership::verify_project_membership;
+pub use membership::{filter_project_members, verify_project_membership};
 
 // activity_log
 pub use activity_log::{

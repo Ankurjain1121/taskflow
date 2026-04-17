@@ -521,7 +521,7 @@ mod tests {
             eisenhower_urgency: None,
             eisenhower_importance: None,
             tenant_id: Uuid::new_v4(),
-            created_by_id: Uuid::new_v4(),
+            created_by_id: Some(Uuid::new_v4()),
             deleted_at: None,
             created_at: now,
             updated_at: now,

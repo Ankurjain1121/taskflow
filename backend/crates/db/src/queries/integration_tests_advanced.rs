@@ -124,7 +124,7 @@ async fn test_create_task() {
     assert_eq!(task.project_id, board_id);
     // status_id may be None if no explicit status was set during creation
     assert_eq!(task.tenant_id, tenant_id);
-    assert_eq!(task.created_by_id, user_id);
+    assert_eq!(task.created_by_id, Some(user_id));
     assert!(task.deleted_at.is_none());
     assert!(task.description.is_none());
 }

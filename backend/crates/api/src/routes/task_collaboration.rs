@@ -24,10 +24,13 @@ use taskbolt_db::queries::{
 };
 use taskbolt_services::broadcast::events;
 use taskbolt_services::notifications::NotificationService;
-use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::dispatcher::notify_with_metadata;
 use taskbolt_services::{
-    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
+    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
+    spawn_automation_evaluation,
 };
+
+use crate::services::ActivityLogService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
@@ -138,6 +141,34 @@ pub async fn assign_user_handler(
         .await;
     }
 
+    // Record activity log for assignment (fire-and-forget)
+    {
+        let pool = state.db.clone();
+        let t_id = task_id;
+        let actor = tenant.user_id;
+        let tid = tenant.tenant_id;
+        let assignee = body.user_id;
+        tokio::spawn(async move {
+            let assignee_name = get_user_display_name(&pool, assignee)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Unknown".to_string());
+            if let Err(e) = ActivityLogService::record_assigned(
+                &pool,
+                t_id,
+                actor,
+                tid,
+                assignee,
+                &assignee_name,
+            )
+            .await
+            {
+                tracing::error!(task_id = %t_id, "Failed to record assigned activity: {}", e);
+            }
+        });
+    }
+
     // Trigger automations for TaskAssigned
     spawn_automation_evaluation(
         state.db.clone(),
@@ -153,6 +184,7 @@ pub async fn assign_user_handler(
             priority: None,
             member_user_id: None,
         },
+        0,
     );
 
     // Send persistent TaskAssigned notification (fire-and-forget, skip self-notify)
@@ -169,14 +201,26 @@ pub async fn assign_user_handler(
                 .ok()
                 .flatten()
                 .unwrap_or_else(|| "Someone".to_string());
-            let task_title: String =
-                sqlx::query_scalar("SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL")
-                    .bind(task_id)
-                    .fetch_optional(&db)
-                    .await
-                    .ok()
-                    .flatten()
-                    .unwrap_or_else(|| "a task".to_string());
+
+            // Fetch task details for rich notification
+            #[allow(clippy::type_complexity)]
+            let task_row: Option<(String, Option<chrono::DateTime<chrono::Utc>>, Option<String>, Option<String>)> =
+                sqlx::query_as(
+                    r#"SELECT t.title, t.due_date,
+                              LOWER(t.priority::text) as priority,
+                              p.name as project_name
+                       FROM tasks t
+                       LEFT JOIN projects p ON p.id = t.project_id
+                       WHERE t.id = $1 AND t.deleted_at IS NULL"#,
+                )
+                .bind(task_id)
+                .fetch_optional(&db)
+                .await
+                .ok()
+                .flatten();
+
+            let (task_title, due_date, priority, project_name) = task_row
+                .unwrap_or_else(|| ("a task".to_string(), None, None, None));
 
             let notification_svc = NotificationService::new(
                 db.clone(),
@@ -187,6 +231,16 @@ pub async fn assign_user_handler(
             let title = format!("{} assigned you to a task", assigner_name);
             let body = format!("\"{}\"", task_title);
             let link = format!("/task/{}", task_id);
+
+            let metadata = NotificationMetadata {
+                actor_name: Some(assigner_name.clone()),
+                project_name,
+                task_id: Some(task_id),
+                task_title: Some(task_title.clone()),
+                due_date,
+                priority,
+                ..Default::default()
+            };
 
             let slack_webhook: Option<String> = sqlx::query_scalar(
                 r#"SELECT p.slack_webhook_url FROM projects p
@@ -207,13 +261,14 @@ pub async fn assign_user_handler(
                 slack_webhook_url: slack_webhook.as_deref(),
                 waha_client: waha_client.as_ref(),
             };
-            if let Err(e) = notify(
+            if let Err(e) = notify_with_metadata(
                 &notify_ctx,
                 taskbolt_services::NotificationEvent::TaskAssigned,
                 assignee_id,
                 &title,
                 &body,
                 Some(&link),
+                Some(&metadata),
             )
             .await
             {

@@ -478,6 +478,7 @@ pub async fn accept_handler(
                         priority: None,
                         member_user_id: Some(new_user_id),
                     },
+                    0,
                 );
             }
         });

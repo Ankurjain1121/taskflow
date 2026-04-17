@@ -74,6 +74,7 @@ pub async fn list_comments_by_task(
         JOIN users u ON u.id = c.author_id
         WHERE c.task_id = $1 AND c.deleted_at IS NULL
         ORDER BY c.created_at ASC
+        LIMIT 200
         ",
     )
     .bind(task_id)

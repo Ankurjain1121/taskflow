@@ -167,10 +167,17 @@ pub async fn get_eisenhower_matrix(
         INNER JOIN task_assignees ta ON t.id = ta.task_id
         INNER JOIN projects b ON t.project_id = b.id AND b.deleted_at IS NULL
         INNER JOIN project_statuses c ON t.status_id = c.id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND c.type != 'done'
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
           AND ($3::uuid IS NULL OR t.project_id = $3)
           {daily_clause}
@@ -317,9 +324,15 @@ pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<
             FROM tasks t
             INNER JOIN task_assignees ta ON t.id = ta.task_id
             INNER JOIN projects b ON t.project_id = b.id AND b.deleted_at IS NULL
-            INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+            INNER JOIN workspaces w ON w.id = b.workspace_id
             WHERE ta.user_id = $1
               AND t.deleted_at IS NULL
+              AND (
+                  EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+                  OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+                  OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                      AND w.visibility != 'private')
+              )
         )
         ",
     )

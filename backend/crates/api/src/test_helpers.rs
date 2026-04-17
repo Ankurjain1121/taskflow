@@ -57,7 +57,7 @@ pub mod helpers {
             minio_endpoint: "http://localhost:9000".to_string(),
             minio_public_url: "http://localhost:9000".to_string(),
             minio_access_key: "REDACTED_MINIO_ACCESS_KEY".to_string(),
-            minio_secret_key: "REDACTED_MINIO_SECRET_KEY"
+            minio_secret_key: "test-minio-secret-key-not-for-production-use-only-testing"
                 .to_string(),
             minio_bucket: "task-attachments".to_string(),
             postal_api_url: "http://localhost:5000".to_string(),

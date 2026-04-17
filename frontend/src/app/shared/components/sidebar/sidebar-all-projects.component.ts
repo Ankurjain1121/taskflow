@@ -195,7 +195,10 @@ export class SidebarAllProjectsComponent {
       // Load projects for each workspace in parallel
       const requests = workspaces.map((ws) =>
         this.projectService.listBoards(ws.id).pipe(
-          catchError(() => of(null as Board[] | null))
+          catchError((err) => {
+            console.error(`Failed to load projects for workspace ${ws.id}:`, err);
+            return of(null as Board[] | null);
+          })
         )
       );
 

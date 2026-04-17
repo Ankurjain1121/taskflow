@@ -52,6 +52,10 @@ pub async fn get_due_configs(
             position_id,
             task_template
         FROM recurring_task_configs
+        -- TODO: next_run_at comparison uses server time (UTC). Should convert to
+        -- the user's timezone (from user_preferences.timezone) so recurring tasks
+        -- trigger at the correct local time. Requires joining user_preferences and
+        -- using AT TIME ZONE conversion.
         WHERE next_run_at <= NOW()
           AND is_active = true
           AND creation_mode = 'on_schedule'

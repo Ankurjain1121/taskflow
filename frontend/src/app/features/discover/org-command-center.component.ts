@@ -208,22 +208,34 @@ export class OrgCommandCenterComponent {
     };
 
     const portfolioCalls = workspaces.map((ws) =>
-      this.portfolioService.getPortfolio(ws.id).pipe(catchError(() => of(defaultPortfolio))),
+      this.portfolioService.getPortfolio(ws.id).pipe(catchError((err) => {
+        console.error(`Failed to load portfolio for workspace ${ws.id}:`, err);
+        return of(defaultPortfolio);
+      })),
     );
 
     const dashboardCalls = workspaces.map((ws) =>
       this.dashboardService
         .getWorkspaceDashboard(ws.id, period)
-        .pipe(catchError(() => of(defaultDashboard))),
+        .pipe(catchError((err) => {
+          console.error(`Failed to load dashboard for workspace ${ws.id}:`, err);
+          return of(defaultDashboard);
+        })),
     );
 
     const workloadCalls = workspaces.map((ws) =>
-      this.teamService.getTeamWorkload(ws.id).pipe(catchError(() => of([] as MemberWorkload[]))),
+      this.teamService.getTeamWorkload(ws.id).pipe(catchError((err) => {
+        console.error(`Failed to load workload for workspace ${ws.id}:`, err);
+        return of([] as MemberWorkload[]);
+      })),
     );
 
     const activityCall = this.dashboardService
       .getRecentActivity(15)
-      .pipe(catchError(() => of([] as DashboardActivityEntry[])));
+      .pipe(catchError((err) => {
+        console.error('Failed to load recent activity:', err);
+        return of([] as DashboardActivityEntry[]);
+      }));
 
     forkJoin({
       portfolios: forkJoin(portfolioCalls),

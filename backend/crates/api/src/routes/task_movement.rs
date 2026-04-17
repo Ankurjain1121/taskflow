@@ -17,9 +17,10 @@ use taskbolt_db::queries::{
     move_task, move_task_to_project, strip_task_labels_for_project, validate_transition,
 };
 use taskbolt_services::notifications::NotificationService;
-use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::dispatcher::notify_with_metadata;
 use taskbolt_services::{
-    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
+    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
+    spawn_automation_evaluation,
 };
 
 use crate::services::ActivityLogService;
@@ -158,6 +159,7 @@ pub async fn move_task_handler(
             priority: None,
             member_user_id: None,
         },
+        0,
     );
 
     // Check if the task was moved to a "done" status - trigger TaskCompleted
@@ -180,21 +182,35 @@ pub async fn move_task_handler(
                 priority: None,
                 member_user_id: None,
             },
+            0,
         );
 
-        // Send TaskCompleted notifications to assignees (fire-and-forget, skip completer)
+        // Send TaskCompleted notifications to assignees + admin alert (fire-and-forget)
         let db = state.db.clone();
         let redis = state.redis.clone();
         let waha_client = state.waha_client.clone();
         let app_url = state.config.app_url.clone();
         let completer_id = tenant.user_id;
         let task_title = task.title.clone();
+        let task_due_date = task.due_date;
+        let task_priority = task.priority.clone();
+        let completed_board_id = board_id;
         tokio::spawn(async move {
             let completer_name = get_user_display_name(&db, completer_id)
                 .await
                 .ok()
                 .flatten()
                 .unwrap_or_else(|| "Someone".to_string());
+
+            // Fetch project name for rich notification
+            let project_name: Option<String> = sqlx::query_scalar(
+                "SELECT name FROM projects WHERE id = $1",
+            )
+            .bind(completed_board_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
 
             let assignees = get_task_assignee_ids(&db, task_id)
                 .await
@@ -208,6 +224,16 @@ pub async fn move_task_handler(
             let title = format!("{} completed a task", completer_name);
             let body = format!("\"{}\" has been marked as done", task_title);
             let link = format!("/task/{}", task_id);
+
+            let metadata = NotificationMetadata {
+                actor_name: Some(completer_name.clone()),
+                project_name: project_name.clone(),
+                task_id: Some(task_id),
+                task_title: Some(task_title.clone()),
+                due_date: task_due_date,
+                priority: Some(format!("{:?}", task_priority).to_lowercase()),
+                ..Default::default()
+            };
 
             let slack_webhook: Option<String> = sqlx::query_scalar(
                 r#"SELECT p.slack_webhook_url FROM projects p
@@ -229,15 +255,17 @@ pub async fn move_task_handler(
                 waha_client: waha_client.as_ref(),
             };
 
+            // Notify assignees
             for assignee_id in assignees {
                 if assignee_id != completer_id {
-                    if let Err(e) = notify(
+                    if let Err(e) = notify_with_metadata(
                         &notify_ctx,
                         taskbolt_services::NotificationEvent::TaskCompleted,
                         assignee_id,
                         &title,
                         &body,
                         Some(&link),
+                        Some(&metadata),
                     )
                     .await
                     {
@@ -246,6 +274,138 @@ pub async fn move_task_handler(
                             error = %e,
                             "Failed to dispatch TaskCompleted notification"
                         );
+                    }
+                }
+            }
+
+            // --- Phase 3: Notify workspace admins on task closure ---
+            if let Some(waha) = notify_ctx.waha_client {
+                // Get workspace_id from the board
+                let workspace_id: Option<Uuid> = sqlx::query_scalar(
+                    "SELECT workspace_id FROM projects WHERE id = $1",
+                )
+                .bind(completed_board_id)
+                .fetch_optional(&db)
+                .await
+                .ok()
+                .flatten();
+
+                if let Some(ws_id) = workspace_id {
+                    // Fetch workspace admins with phone numbers
+                    let admins: Vec<(Uuid, String, String)> = sqlx::query_as(
+                        r#"SELECT u.id, u.name, u.phone_number
+                           FROM workspace_members wm
+                           JOIN users u ON u.id = wm.user_id AND u.deleted_at IS NULL
+                           WHERE wm.workspace_id = $1
+                             AND wm.role = 'admin'
+                             AND u.phone_number IS NOT NULL
+                             AND u.phone_number != ''
+                             AND u.id != $2"#,
+                    )
+                    .bind(ws_id)
+                    .bind(completer_id)
+                    .fetch_all(&db)
+                    .await
+                    .unwrap_or_default();
+
+                    let ist = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60)
+                        .expect("valid IST offset");
+                    let now_ist = chrono::Utc::now().with_timezone(&ist);
+                    let time_str = now_ist.format("%I:%M %p IST").to_string();
+
+                    let admin_body = format!(
+                        "\u{2705} *Task Closed*\n\n\
+                         \u{1F464} *Closed by:* {}\n\
+                         \u{1F4CC} *Task:* {}\n\
+                         {}\
+                         \u{23F0} *Time:* {}",
+                        completer_name,
+                        task_title,
+                        project_name
+                            .as_deref()
+                            .map(|p| format!("\u{1F4C1} *Project:* {}\n", p))
+                            .unwrap_or_default(),
+                        time_str,
+                    );
+
+                    let button_url = format!("{}/task/{}", app_url, task_id);
+
+                    for (admin_id, _admin_name, admin_phone) in &admins {
+                        if let Err(e) = waha
+                            .send_button_message(
+                                admin_phone,
+                                &admin_body,
+                                "View Task",
+                                &button_url,
+                                Some("TaskBolt \u{2022} Task Closure Alert"),
+                            )
+                            .await
+                        {
+                            tracing::error!(
+                                admin_id = %admin_id,
+                                error = %e,
+                                "Failed to send task closure alert to admin"
+                            );
+                        }
+                    }
+                }
+            }
+
+            // --- Phase 4: Notify parent task watchers if this is a subtask ---
+            let parent_info: Option<(Uuid, String, i32, i32)> = sqlx::query_as(
+                r#"SELECT pt.id, pt.title, pt.child_count, pt.completed_child_count
+                   FROM tasks t
+                   JOIN tasks pt ON pt.id = t.parent_task_id AND pt.deleted_at IS NULL
+                   WHERE t.id = $1 AND t.parent_task_id IS NOT NULL"#,
+            )
+            .bind(task_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
+
+            if let Some((parent_id, parent_title, child_count, completed_count)) = parent_info {
+                let watcher_ids = get_task_watcher_ids(&db, parent_id)
+                    .await
+                    .unwrap_or_default();
+
+                if !watcher_ids.is_empty() {
+                    let progress_meta = NotificationMetadata {
+                        actor_name: Some(completer_name.clone()),
+                        project_name: project_name.clone(),
+                        task_id: Some(parent_id),
+                        task_title: Some(parent_title.clone()),
+                        subtask_progress: Some((completed_count as i64, child_count as i64)),
+                        ..Default::default()
+                    };
+
+                    let watcher_title = format!("Subtask completed on \"{}\"", parent_title);
+                    let watcher_body = format!(
+                        "{} completed subtask \"{}\"",
+                        completer_name, task_title
+                    );
+                    let parent_link = format!("/task/{}", parent_id);
+
+                    for watcher_id in watcher_ids {
+                        if watcher_id != completer_id {
+                            if let Err(e) = notify_with_metadata(
+                                &notify_ctx,
+                                taskbolt_services::NotificationEvent::TaskUpdatedWatcher,
+                                watcher_id,
+                                &watcher_title,
+                                &watcher_body,
+                                Some(&parent_link),
+                                Some(&progress_meta),
+                            )
+                            .await
+                            {
+                                tracing::error!(
+                                    watcher_id = %watcher_id,
+                                    error = %e,
+                                    "Failed to notify parent task watcher on subtask completion"
+                                );
+                            }
+                        }
                     }
                 }
             }

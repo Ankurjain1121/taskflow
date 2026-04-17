@@ -42,7 +42,47 @@ struct TaskDueInfo {
     assignee_id: Uuid,
 }
 
-/// Scan for approaching deadlines and overdue tasks
+/// Scan for approaching deadlines and overdue tasks, with retry on DB errors.
+///
+/// Wraps `scan_deadlines_inner` with up to 3 attempts and a 5-second delay
+/// between retries to handle transient database failures.
+pub async fn scan_deadlines(
+    pool: &PgPool,
+    notification_service: &NotificationService,
+    novu_client: Option<&NovuClient>,
+    app_url: &str,
+) -> Result<DeadlineScanResult, DeadlineScannerError> {
+    let max_attempts = 3u32;
+    let mut last_err: Option<DeadlineScannerError> = None;
+
+    for attempt in 0..max_attempts {
+        if attempt > 0 {
+            tracing::warn!(
+                attempt = attempt + 1,
+                "Deadline scanner: retrying after failure"
+            );
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        }
+
+        match scan_deadlines_inner(pool, notification_service, novu_client, app_url).await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                tracing::error!(
+                    attempt = attempt + 1,
+                    error = %e,
+                    "Deadline scanner: attempt failed"
+                );
+                last_err = Some(e);
+            }
+        }
+    }
+
+    Err(last_err.unwrap_or_else(|| {
+        DeadlineScannerError::Database(sqlx::Error::RowNotFound)
+    }))
+}
+
+/// Inner implementation of the deadline scanner logic.
 ///
 /// This function:
 /// 1. Finds tasks due within 24 hours (TASK_DUE_SOON)
@@ -52,7 +92,7 @@ struct TaskDueInfo {
 ///
 /// Deduplication is handled by checking if a notification already exists
 /// for the same task/user/event_type within the last 24 hours.
-pub async fn scan_deadlines(
+async fn scan_deadlines_inner(
     pool: &PgPool,
     notification_service: &NotificationService,
     novu_client: Option<&NovuClient>,
@@ -85,7 +125,7 @@ pub async fn scan_deadlines(
                 t.due_date,
                 ta.user_id as assignee_id
             FROM tasks t
-            JOIN projects p ON p.id = t.project_id
+            JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
             JOIN task_assignees ta ON ta.task_id = t.id
             WHERE t.due_date > $1
               AND t.due_date <= $2
@@ -192,7 +232,7 @@ pub async fn scan_deadlines(
                 t.due_date,
                 ta.user_id as assignee_id
             FROM tasks t
-            JOIN projects p ON p.id = t.project_id
+            JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
             JOIN task_assignees ta ON ta.task_id = t.id
             WHERE t.due_date < $1
               AND t.deleted_at IS NULL

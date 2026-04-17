@@ -69,6 +69,7 @@ pub async fn list_webhooks(
         FROM webhooks
         WHERE project_id = $1
         ORDER BY created_at DESC
+        LIMIT 200
         ",
     )
     .bind(board_id)

@@ -58,6 +58,7 @@ pub async fn get_personal_board(
         INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE ptb.user_id = $1
+          AND t.parent_task_id IS NULL
         ORDER BY ptb.column_name, ptb.position
         ",
     )
@@ -109,8 +110,15 @@ pub async fn move_personal_task(
         r"
         SELECT EXISTS(
             SELECT 1 FROM tasks t
-            INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
+            INNER JOIN projects p ON p.id = t.project_id
+            INNER JOIN workspaces w ON w.id = p.workspace_id
             WHERE t.id = $2 AND t.deleted_at IS NULL
+              AND (
+                  EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)
+                  OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+                  OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                      AND w.visibility != 'private')
+              )
         )
         ",
     )

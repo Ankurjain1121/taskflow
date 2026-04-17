@@ -19,9 +19,10 @@ use taskbolt_db::queries::{
 };
 use taskbolt_services::broadcast::events;
 use taskbolt_services::notifications::NotificationService;
-use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::dispatcher::notify_with_metadata;
 use taskbolt_services::{
-    BroadcastService, NotifyContext, TriggerContext, spawn_automation_evaluation,
+    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
+    spawn_automation_evaluation,
 };
 
 use crate::services::ActivityLogService;
@@ -192,6 +193,20 @@ pub async fn create_task_handler(
         .await;
     }
 
+    // Record activity log for task creation (fire-and-forget)
+    {
+        let pool = state.db.clone();
+        let task_id = task.id;
+        let actor_id = tenant.user_id;
+        let tid = tenant.tenant_id;
+        tokio::spawn(async move {
+            if let Err(e) = ActivityLogService::record_created(&pool, task_id, actor_id, tid).await
+            {
+                tracing::error!(task_id = %task_id, "Failed to record created activity: {}", e);
+            }
+        });
+    }
+
     // Trigger automations for TaskCreated
     spawn_automation_evaluation(
         state.db.clone(),
@@ -207,11 +222,14 @@ pub async fn create_task_handler(
             priority: Some(format!("{:?}", task.priority).to_lowercase()),
             member_user_id: None,
         },
+        0,
     );
 
     // Send TaskAssigned notifications to assignees added during creation (skip self)
     let task_id = task.id;
     let task_title = task.title.clone();
+    let task_priority = task.priority.clone();
+    let task_due_date = task.due_date;
     let creator_id = tenant.user_id;
     let notifiable_assignees: Vec<Uuid> = assignee_ids
         .iter()
@@ -224,15 +242,37 @@ pub async fn create_task_handler(
         let redis = state.redis.clone();
         let waha_client = state.waha_client.clone();
         let app_url = state.config.app_url.clone();
+        let notify_board_id = board_id;
         tokio::spawn(async move {
             let creator_name = get_user_display_name(&db, creator_id)
                 .await
                 .ok()
                 .flatten()
                 .unwrap_or_else(|| "Someone".to_string());
+
+            // Fetch project name for rich notification
+            let project_name: Option<String> = sqlx::query_scalar(
+                "SELECT name FROM projects WHERE id = $1",
+            )
+            .bind(notify_board_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
+
             let title = format!("{} assigned you to a task", creator_name);
             let body = format!("\"{}\"", task_title);
             let link = format!("/task/{}", task_id);
+
+            let metadata = NotificationMetadata {
+                actor_name: Some(creator_name.clone()),
+                project_name,
+                task_id: Some(task_id),
+                task_title: Some(task_title.clone()),
+                due_date: task_due_date,
+                priority: Some(format!("{:?}", task_priority).to_lowercase()),
+                ..Default::default()
+            };
 
             let notification_svc = NotificationService::new(
                 db.clone(),
@@ -250,13 +290,14 @@ pub async fn create_task_handler(
             };
 
             for assignee_id in notifiable_assignees {
-                if let Err(e) = notify(
+                if let Err(e) = notify_with_metadata(
                     &notify_ctx,
                     taskbolt_services::NotificationEvent::TaskAssigned,
                     assignee_id,
                     &title,
                     &body,
                     Some(&link),
+                    Some(&metadata),
                 )
                 .await
                 {
@@ -349,6 +390,11 @@ pub async fn update_task_handler(
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
+    // Capture old priority before old_task is consumed
+    let old_priority_str = old_task
+        .as_ref()
+        .map(|t| format!("{:?}", t.priority).to_lowercase());
+
     // Compute changed fields by comparing old and new task
     let changed_fields = old_task.map(|old| {
         let mut fields = Vec::new();
@@ -433,6 +479,30 @@ pub async fn update_task_handler(
         }
     }
 
+    // Record activity log for priority change (fire-and-forget)
+    if priority_changed {
+        let old_priority = old_priority_str.clone().unwrap_or_default();
+        let new_priority = format!("{:?}", task.priority).to_lowercase();
+        let pool = state.db.clone();
+        let t_id = task.id;
+        let actor = tenant.user_id;
+        let tid = tenant.tenant_id;
+        tokio::spawn(async move {
+            if let Err(e) = ActivityLogService::record_priority_changed(
+                &pool,
+                t_id,
+                actor,
+                tid,
+                &old_priority,
+                &new_priority,
+            )
+            .await
+            {
+                tracing::error!(task_id = %t_id, "Failed to record priority_changed activity: {}", e);
+            }
+        });
+    }
+
     // Trigger automations for priority changes
     if priority_changed {
         spawn_automation_evaluation(
@@ -449,6 +519,7 @@ pub async fn update_task_handler(
                 priority: Some(format!("{:?}", task.priority).to_lowercase()),
                 member_user_id: None,
             },
+            0,
         );
     }
 
@@ -487,6 +558,18 @@ pub async fn delete_task_handler(
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
+
+    // Record activity log for task deletion (fire-and-forget)
+    {
+        let pool = state.db.clone();
+        let tid = tenant.tenant_id;
+        let actor = tenant.user_id;
+        tokio::spawn(async move {
+            if let Err(e) = ActivityLogService::record_deleted(&pool, task_id, actor, tid).await {
+                tracing::error!(task_id = %task_id, "Failed to record deleted activity: {}", e);
+            }
+        });
+    }
 
     // Invalidate project tasks cache
     cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;

@@ -486,7 +486,8 @@ async fn execute_set_custom_field(
     Ok(())
 }
 
-/// SendWebhook action: POST to an external URL with task data
+/// SendWebhook action: POST to an external URL with task data.
+/// Retries up to 3 times with exponential backoff (1s, 2s, 4s) on failure.
 async fn execute_send_webhook(
     config: &serde_json::Value,
     context: &TriggerContext,
@@ -505,24 +506,53 @@ async fn execute_send_webhook(
     });
 
     let client = reqwest::Client::new();
-    let resp = client
-        .post(url)
-        .json(&payload)
-        .timeout(std::time::Duration::from_secs(10))
-        .send()
-        .await
-        .map_err(|e| {
-            AutomationExecutorError::ActionFailed(format!("SendWebhook: request failed: {e}"))
-        })?;
+    let max_attempts = 3u32;
+    let mut last_error = String::new();
 
-    if !resp.status().is_success() {
-        return Err(AutomationExecutorError::ActionFailed(format!(
-            "SendWebhook: got status {}",
-            resp.status()
-        )));
+    for attempt in 0..max_attempts {
+        if attempt > 0 {
+            let delay_secs = 1u64 << attempt; // 2s, 4s
+            tracing::warn!(
+                url = url,
+                attempt = attempt + 1,
+                delay_secs = delay_secs,
+                "SendWebhook: retrying after failure"
+            );
+            tokio::time::sleep(std::time::Duration::from_secs(delay_secs)).await;
+        }
+
+        match client
+            .post(url)
+            .json(&payload)
+            .timeout(std::time::Duration::from_secs(10))
+            .send()
+            .await
+        {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    return Ok(());
+                }
+                last_error = format!("SendWebhook: got status {}", resp.status());
+                tracing::warn!(
+                    url = url,
+                    attempt = attempt + 1,
+                    status = %resp.status(),
+                    "SendWebhook: non-success status"
+                );
+            }
+            Err(e) => {
+                last_error = format!("SendWebhook: request failed: {e}");
+                tracing::warn!(
+                    url = url,
+                    attempt = attempt + 1,
+                    error = %e,
+                    "SendWebhook: request error"
+                );
+            }
+        }
     }
 
-    Ok(())
+    Err(AutomationExecutorError::ActionFailed(last_error))
 }
 
 /// AssignToRoleMembers action: assigns all members of a workspace job role to the task

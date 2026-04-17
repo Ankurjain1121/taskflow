@@ -511,7 +511,10 @@ export class MemberDetailComponent implements OnInit {
       wsDetail: this.workspaceService.get(this.workspaceId),
       workload: this.teamService
         .getTeamWorkload(this.workspaceId)
-        .pipe(catchError(() => of([] as MemberWorkload[]))),
+        .pipe(catchError((err) => {
+          console.error('Failed to load team workload:', err);
+          return of([] as MemberWorkload[]);
+        })),
     }).subscribe({
       next: ({ wsDetail, workload }) => {
         // Members are embedded in the workspace detail response
@@ -547,7 +550,10 @@ export class MemberDetailComponent implements OnInit {
 
     this.teamService
       .getMemberTasks(this.workspaceId, this.userId)
-      .pipe(catchError(() => of([] as MemberTask[])))
+      .pipe(catchError((err) => {
+        console.error('Failed to load member tasks:', err);
+        return of([] as MemberTask[]);
+      }))
       .subscribe({
         next: (tasks) => {
           this.tasks.set(tasks);

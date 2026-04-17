@@ -5,6 +5,7 @@
 
 use axum::{Json, Router, extract::State, http::HeaderMap, routing::post};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::env;
 
 use crate::errors::{AppError, Result};
@@ -35,14 +36,15 @@ fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    // Constant-time comparison to prevent timing attacks
-    let a = provided_secret.as_bytes();
-    let b = expected_secret.as_bytes();
-    let matches = a.len() == b.len()
-        && a.iter()
-            .zip(b.iter())
-            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-            == 0;
+    // Constant-time comparison: hash both to fixed-length first to avoid
+    // leaking length information via timing side-channel.
+    let hash_a = Sha256::digest(provided_secret.as_bytes());
+    let hash_b = Sha256::digest(expected_secret.as_bytes());
+    let matches = hash_a
+        .iter()
+        .zip(hash_b.iter())
+        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+        == 0;
     if !matches {
         return Err(AppError::Unauthorized("Invalid cron secret".into()));
     }

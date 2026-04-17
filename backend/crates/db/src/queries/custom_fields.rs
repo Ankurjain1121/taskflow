@@ -105,6 +105,7 @@ pub async fn list_board_custom_fields(
         FROM project_custom_fields
         WHERE project_id = $1
         ORDER BY position ASC, created_at ASC
+        LIMIT 200
         ",
     )
     .bind(board_id)
@@ -302,6 +303,7 @@ pub async fn get_task_custom_field_values(
         LEFT JOIN task_custom_field_values v ON v.field_id = f.id AND v.task_id = $1
         WHERE f.project_id = $2
         ORDER BY f.position ASC, f.created_at ASC
+        LIMIT 200
         ",
     )
     .bind(task_id)

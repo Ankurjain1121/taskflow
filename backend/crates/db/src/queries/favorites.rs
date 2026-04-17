@@ -59,6 +59,7 @@ pub async fn list_favorites(
         LEFT JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'task'
         ORDER BY f.created_at DESC
+        LIMIT 200
         ",
     )
     .bind(user_id)
@@ -79,6 +80,7 @@ pub async fn list_favorites(
         INNER JOIN projects b ON b.id = f.entity_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'board'
         ORDER BY f.created_at DESC
+        LIMIT 200
         ",
     )
     .bind(user_id)

@@ -168,6 +168,12 @@ async fn create_comment_handler(
 
     // Send notifications for mentions via the dispatcher (fire and forget)
     // This routes through in-app, email, and Slack channels based on user preferences.
+    // Only notify mentioned users who are actually members of the task's project.
+    if !mentioned_user_ids.is_empty() {
+        let mentioned_user_ids =
+            taskbolt_db::queries::filter_project_members(&state.db, project_id, &mentioned_user_ids)
+                .await
+                .unwrap_or_default();
     if !mentioned_user_ids.is_empty() {
         let db = state.db.clone();
         let redis = state.redis.clone();
@@ -239,6 +245,7 @@ async fn create_comment_handler(
             }
         });
     }
+    } // outer: mentioned_user_ids not empty after filtering
 
     // Send task-commented notifications to assignees via dispatcher (fire and forget)
     {
