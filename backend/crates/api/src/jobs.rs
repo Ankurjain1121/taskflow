@@ -253,6 +253,183 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                 }
             });
         }
+        // Enhanced daily digest with due time details (replaces basic daily digest)
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                // Calculate delay until next 02:35 UTC (5 min after basic digest)
+                let now = chrono::Utc::now();
+                let today_0235 = now
+                    .date_naive()
+                    .and_hms_opt(2, 35, 0)
+                    .expect("valid time")
+                    .and_utc();
+                let next_run = if now < today_0235 {
+                    today_0235
+                } else {
+                    today_0235 + chrono::Duration::days(1)
+                };
+                let delay = (next_run - now).to_std().unwrap_or(Duration::from_secs(60));
+                tracing::info!(
+                    next_run = %next_run,
+                    delay_secs = delay.as_secs(),
+                    "Enhanced daily digest scheduled (8:05 AM IST)"
+                );
+                tokio::time::sleep(delay).await;
+
+                loop {
+                    match taskbolt_services::jobs::whatsapp_digest::send_enhanced_daily_digests(
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            users = r.users_processed,
+                            sent = r.messages_sent,
+                            errs = r.errors,
+                            "Enhanced daily digest completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "Enhanced daily digest failed"),
+                    }
+                    tokio::time::sleep(Duration::from_secs(86400)).await;
+                }
+            });
+        }
+
+        // Admin daily org report (8:10 AM IST)
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                let now = chrono::Utc::now();
+                let today_0240 = now
+                    .date_naive()
+                    .and_hms_opt(2, 40, 0)
+                    .expect("valid time")
+                    .and_utc();
+                let next_run = if now < today_0240 {
+                    today_0240
+                } else {
+                    today_0240 + chrono::Duration::days(1)
+                };
+                let delay = (next_run - now).to_std().unwrap_or(Duration::from_secs(60));
+                tracing::info!(
+                    next_run = %next_run,
+                    delay_secs = delay.as_secs(),
+                    "Admin daily org report scheduled (8:10 AM IST)"
+                );
+                tokio::time::sleep(delay).await;
+
+                loop {
+                    match taskbolt_services::jobs::whatsapp_digest::send_admin_daily_org_report(
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            admins = r.users_processed,
+                            sent = r.messages_sent,
+                            errs = r.errors,
+                            "Admin daily org report completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "Admin daily org report failed"),
+                    }
+                    tokio::time::sleep(Duration::from_secs(86400)).await;
+                }
+            });
+        }
+        // PDF Morning Agenda Reports (8:15 AM IST = 02:45 UTC)
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                let now = chrono::Utc::now();
+                let today_0245 = now
+                    .date_naive()
+                    .and_hms_opt(2, 45, 0)
+                    .expect("valid time")
+                    .and_utc();
+                let next_run = if now < today_0245 {
+                    today_0245
+                } else {
+                    today_0245 + chrono::Duration::days(1)
+                };
+                let delay = (next_run - now).to_std().unwrap_or(Duration::from_secs(60));
+                tracing::info!(
+                    next_run = %next_run,
+                    delay_secs = delay.as_secs(),
+                    "PDF morning agenda reports scheduled (8:15 AM IST)"
+                );
+                tokio::time::sleep(delay).await;
+
+                loop {
+                    match taskbolt_services::jobs::report_jobs::send_morning_agenda_reports(
+                        &wa_pool, &wa_client, &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            sent = r.reports_sent,
+                            errs = r.errors,
+                            "PDF morning agenda reports completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "PDF morning agenda reports failed"),
+                    }
+                    tokio::time::sleep(Duration::from_secs(86400)).await;
+                }
+            });
+        }
+
+        // PDF Evening Achievement Reports (8:00 PM IST = 14:30 UTC)
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                let now = chrono::Utc::now();
+                let today_1430 = now
+                    .date_naive()
+                    .and_hms_opt(14, 30, 0)
+                    .expect("valid time")
+                    .and_utc();
+                let next_run = if now < today_1430 {
+                    today_1430
+                } else {
+                    today_1430 + chrono::Duration::days(1)
+                };
+                let delay = (next_run - now).to_std().unwrap_or(Duration::from_secs(60));
+                tracing::info!(
+                    next_run = %next_run,
+                    delay_secs = delay.as_secs(),
+                    "PDF evening achievement reports scheduled (8:00 PM IST)"
+                );
+                tokio::time::sleep(delay).await;
+
+                loop {
+                    match taskbolt_services::jobs::report_jobs::send_evening_achievement_reports(
+                        &wa_pool, &wa_client, &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            sent = r.reports_sent,
+                            errs = r.errors,
+                            "PDF evening achievement reports completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "PDF evening achievement reports failed"),
+                    }
+                    tokio::time::sleep(Duration::from_secs(86400)).await;
+                }
+            });
+        }
     } else {
         tracing::info!("WhatsApp digest jobs skipped: WAHA client not configured");
     }

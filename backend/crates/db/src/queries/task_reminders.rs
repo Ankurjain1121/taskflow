@@ -120,7 +120,7 @@ pub async fn get_pending_reminders(
             tr.remind_before_minutes
         FROM task_reminders tr
         JOIN tasks t ON t.id = tr.task_id
-        JOIN projects p ON p.id = t.project_id
+        JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
         WHERE tr.is_sent = FALSE
           AND t.due_date IS NOT NULL
           AND t.deleted_at IS NULL

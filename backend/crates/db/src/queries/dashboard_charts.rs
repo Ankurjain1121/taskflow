@@ -35,9 +35,15 @@ pub async fn get_tasks_by_status(
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         INNER JOIN project_statuses bc ON bc.id = t.status_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
         GROUP BY bc.name, bc.color
         ORDER BY count DESC
@@ -72,9 +78,15 @@ pub async fn get_tasks_by_priority(
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
         GROUP BY t.priority
         ORDER BY
@@ -212,8 +224,14 @@ pub async fn get_focus_tasks(
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
         INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
         INNER JOIN project_statuses ps ON ps.id = t.status_id
-        INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
+        INNER JOIN workspaces w ON w.id = p.workspace_id
         WHERE t.deleted_at IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND t.parent_task_id IS NULL
           AND ps.type != 'done'
           AND ($3::uuid IS NULL OR p.workspace_id = $3)
@@ -403,10 +421,16 @@ pub async fn get_project_pulse(
                AND al.created_at >= $3 AND ps2.type = 'done'
             ) AS completed_this_week
         FROM projects p
-        INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = $1
+        INNER JOIN workspaces w ON w.id = p.workspace_id
         LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE p.deleted_at IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($4::uuid IS NULL OR p.workspace_id = $4)
         GROUP BY p.id, p.name, p.background_color
         ORDER BY p.name ASC

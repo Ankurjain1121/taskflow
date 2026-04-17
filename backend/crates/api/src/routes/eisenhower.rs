@@ -20,6 +20,7 @@ use taskbolt_db::queries::eisenhower::{
     update_eisenhower_overrides,
 };
 use taskbolt_db::queries::get_task_project_id;
+use taskbolt_db::queries::membership::verify_project_membership;
 
 /// Query parameters for filtering the Eisenhower Matrix
 #[derive(Debug, Deserialize)]
@@ -72,19 +73,12 @@ async fn update_task_eisenhower(
     Path(task_id): Path<Uuid>,
     Json(req): Json<UpdateEisenhowerRequest>,
 ) -> Result<Json<()>> {
-    // Verify user has access to the task via board membership
-    let board_id = get_task_project_id(&state.db, task_id)
+    // Verify user has access to the task via project membership
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    let is_member: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
-    )
-    .bind(board_id)
-    .bind(tenant.user_id)
-    .fetch_one(&state.db)
-    .await?;
-
+    let is_member = verify_project_membership(&state.db, project_id, tenant.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }

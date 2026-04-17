@@ -1,11 +1,13 @@
 import {
   Component,
+  computed,
   inject,
   OnInit,
   OnDestroy,
   HostListener,
   signal,
   ChangeDetectionStrategy,
+  effect,
 } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import {
@@ -34,6 +36,7 @@ import { TimerWidgetComponent } from './shared/components/timer-widget/timer-wid
 import { ViewSwitcherComponent, ViewOption } from './shared/components/view-switcher/view-switcher.component';
 import { ShortcutHelpComponent } from './shared/components/shortcut-help/shortcut-help.component';
 import { QuickCreateTaskDialogComponent } from './shared/components/quick-create-task/quick-create-task-dialog.component';
+import { QuickCreateService } from './core/services/quick-create.service';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -105,6 +108,22 @@ export class AppComponent implements OnInit, OnDestroy {
   private wsContext = inject(WorkspaceContextService);
   private swUpdateService = inject(SwUpdateService);
   private easterEggService = inject(EasterEggService);
+  private quickCreateService = inject(QuickCreateService);
+
+  readonly quickCreatePriority = computed(() => this.quickCreateService.request()?.priority ?? null);
+  readonly quickCreateDueDate = computed(() => this.quickCreateService.request()?.dueDate ?? null);
+  readonly quickCreateProjectId = computed(() => this.quickCreateService.request()?.projectId ?? null);
+
+  constructor() {
+    // Watch for QuickCreateService requests (from matrix quick-add, etc.)
+    effect(() => {
+      const req = this.quickCreateService.request();
+      if (req) {
+        this.quickCreateOpen.set(true);
+        this.quickCreateService.clearRequest();
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.swUpdateService.init();
@@ -270,7 +289,7 @@ export class AppComponent implements OnInit, OnDestroy {
       key: 'e',
       description: 'Go to Eisenhower Matrix',
       category: 'Navigation',
-      action: () => this.navigateToWsRoute('eisenhower'),
+      action: () => this.navigateToWsRoute('my-work'),
     });
 
     this.keyboardShortcuts.register('nav-inbox', {

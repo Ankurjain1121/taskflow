@@ -3,9 +3,12 @@
 //! Sends notifications to WhatsApp using the WAHA self-hosted API.
 //! Feature-gated via WAHA_ENABLED environment variable.
 
+use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Serialize;
 use std::env;
+use std::fmt::Write as _;
+use uuid::Uuid;
 
 /// Error type for WhatsApp operations
 #[derive(Debug, thiserror::Error)]
@@ -91,6 +94,42 @@ struct SendMessagePayload<'a> {
     session: &'a str,
 }
 
+/// Payload for sending a button message via WAHA `/api/sendButtons`
+#[derive(Serialize)]
+struct SendButtonPayload<'a> {
+    #[serde(rename = "chatId")]
+    chat_id: String,
+    body: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    footer: Option<&'a str>,
+    buttons: Vec<ButtonItem<'a>>,
+    session: &'a str,
+}
+
+/// A single button in a WAHA button message
+#[derive(Serialize)]
+struct ButtonItem<'a> {
+    #[serde(rename = "type")]
+    button_type: &'a str,
+    text: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    url: Option<&'a str>,
+}
+
+/// Rich metadata for notification messages.
+/// Passed by route handlers to the dispatcher so WhatsApp messages include full context.
+#[derive(Debug, Clone, Default)]
+pub struct NotificationMetadata {
+    pub actor_name: Option<String>,
+    pub project_name: Option<String>,
+    pub task_id: Option<Uuid>,
+    pub task_title: Option<String>,
+    pub due_date: Option<DateTime<Utc>>,
+    pub priority: Option<String>,
+    pub parent_task_title: Option<String>,
+    pub subtask_progress: Option<(i64, i64)>, // (completed, total)
+}
+
 impl WahaClient {
     /// Create a new WAHA client
     ///
@@ -165,6 +204,319 @@ impl WahaClient {
 
         Ok(())
     }
+
+    /// Send a WhatsApp message with a URL button.
+    /// Falls back to plain text with link if the buttons endpoint fails.
+    pub async fn send_button_message(
+        &self,
+        phone_number: &str,
+        body: &str,
+        button_text: &str,
+        button_url: &str,
+        footer: Option<&str>,
+    ) -> Result<(), WhatsAppError> {
+        if !is_whatsapp_enabled() {
+            return Err(WhatsAppError::Disabled);
+        }
+        validate_e164_phone_number(phone_number)?;
+
+        let chat_id = phone_to_chat_id(phone_number);
+        let url = format!("{}/api/sendButtons", self.api_url);
+
+        let payload = SendButtonPayload {
+            chat_id: chat_id.clone(),
+            body,
+            footer,
+            buttons: vec![ButtonItem {
+                button_type: "url",
+                text: button_text,
+                url: Some(button_url),
+            }],
+            session: &self.session_name,
+        };
+
+        let response = self
+            .client
+            .post(&url)
+            .header("X-Api-Key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await;
+
+        // If buttons endpoint fails (deprecated/fragile), fall back to plain text
+        let should_fallback = match &response {
+            Err(_) => true,
+            Ok(resp) => !resp.status().is_success(),
+        };
+
+        if should_fallback {
+            tracing::warn!(
+                phone = phone_number,
+                "sendButtons failed, falling back to sendText"
+            );
+            let fallback_text = format!("{}\n\n{}", body, button_url);
+            return self.send_message(phone_number, &fallback_text).await;
+        }
+
+        tracing::debug!(
+            phone = phone_number,
+            "WhatsApp button message sent successfully"
+        );
+        Ok(())
+    }
+
+    /// Send a file (PDF, image, etc.) via WhatsApp using WAHA's /api/sendFile
+    pub async fn send_file(
+        &self,
+        phone_number: &str,
+        base64_data: &str,
+        filename: &str,
+        mimetype: &str,
+        caption: Option<&str>,
+    ) -> Result<(), WhatsAppError> {
+        if !is_whatsapp_enabled() {
+            return Err(WhatsAppError::Disabled);
+        }
+        validate_e164_phone_number(phone_number)?;
+
+        let chat_id = phone_to_chat_id(phone_number);
+        let url = format!("{}/api/sendFile", self.api_url);
+
+        let mut payload = serde_json::json!({
+            "chatId": chat_id,
+            "session": self.session_name,
+            "file": {
+                "mimetype": mimetype,
+                "filename": filename,
+                "data": format!("data:{};base64,{}", mimetype, base64_data)
+            }
+        });
+
+        if let Some(cap) = caption {
+            payload["caption"] = serde_json::Value::String(cap.to_string());
+        }
+
+        let response = self
+            .client
+            .post(&url)
+            .header("X-Api-Key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let msg = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(WhatsAppError::ApiError {
+                status,
+                message: msg,
+            });
+        }
+
+        tracing::debug!(
+            phone = phone_number,
+            filename = filename,
+            "WhatsApp file sent successfully"
+        );
+        Ok(())
+    }
+
+    /// Send a file via URL reference (WAHA downloads from the URL)
+    pub async fn send_file_url(
+        &self,
+        phone_number: &str,
+        file_url: &str,
+        filename: &str,
+        mimetype: &str,
+        caption: Option<&str>,
+    ) -> Result<(), WhatsAppError> {
+        if !is_whatsapp_enabled() {
+            return Err(WhatsAppError::Disabled);
+        }
+        validate_e164_phone_number(phone_number)?;
+
+        let chat_id = phone_to_chat_id(phone_number);
+        let url = format!("{}/api/sendFile", self.api_url);
+
+        let mut payload = serde_json::json!({
+            "chatId": chat_id,
+            "session": self.session_name,
+            "file": {
+                "mimetype": mimetype,
+                "filename": filename,
+                "url": file_url
+            }
+        });
+
+        if let Some(cap) = caption {
+            payload["caption"] = serde_json::Value::String(cap.to_string());
+        }
+
+        let response = self
+            .client
+            .post(&url)
+            .header("X-Api-Key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let msg = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(WhatsAppError::ApiError {
+                status,
+                message: msg,
+            });
+        }
+
+        tracing::debug!(
+            phone = phone_number,
+            filename = filename,
+            "WhatsApp file (URL) sent successfully"
+        );
+        Ok(())
+    }
+}
+
+/// Format a rich WhatsApp notification message with full context
+pub fn format_rich_notification(
+    event_type: &str,
+    title: &str,
+    body: &str,
+    metadata: Option<&NotificationMetadata>,
+) -> String {
+    let emoji = get_event_emoji(event_type);
+    let mut msg = format!("{} *{}*\n", emoji, title);
+
+    if let Some(meta) = metadata {
+        // Project context
+        if let Some(ref project) = meta.project_name {
+            let _ = write!(msg, "\n\u{1F4C1} *Project:* {}", project);
+        }
+
+        // Task title (if not already in body)
+        if let Some(ref task_title) = meta.task_title {
+            if !body.contains(task_title) {
+                let _ = write!(msg, "\n\u{1F4CC} *Task:* {}", task_title);
+            }
+        }
+
+        // Actor
+        if let Some(ref actor) = meta.actor_name {
+            let action_label = match event_type {
+                "task-assigned" => "Assigned by",
+                "task-completed" => "Completed by",
+                "task-commented" => "Comment by",
+                "mention-in-comment" => "Mentioned by",
+                _ => "By",
+            };
+            let _ = write!(msg, "\n\u{1F464} *{}:* {}", action_label, actor);
+        }
+
+        // Priority
+        if let Some(ref priority) = meta.priority {
+            let priority_emoji = match priority.as_str() {
+                "urgent" => "\u{1F534}",
+                "high" => "\u{1F7E0}",
+                "medium" => "\u{1F7E1}",
+                "low" => "\u{1F7E2}",
+                _ => "\u{26AA}",
+            };
+            let _ = write!(
+                msg,
+                "\n{} *Priority:* {}",
+                priority_emoji,
+                capitalize(priority)
+            );
+        }
+
+        // Due date + time with remaining time
+        if let Some(due) = meta.due_date {
+            let now = Utc::now();
+            let ist = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).expect("valid IST offset");
+            let due_ist = due.with_timezone(&ist);
+            let due_str = due_ist.format("%b %d, %I:%M %p IST").to_string();
+
+            let remaining = due.signed_duration_since(now);
+            let remaining_str = if remaining.num_seconds() < 0 {
+                let overdue = -remaining;
+                if overdue.num_days() > 0 {
+                    format!("\u{26A0}\u{FE0F} *OVERDUE by {} day(s)*", overdue.num_days())
+                } else if overdue.num_hours() > 0 {
+                    format!("\u{26A0}\u{FE0F} *OVERDUE by {}h*", overdue.num_hours())
+                } else {
+                    format!(
+                        "\u{26A0}\u{FE0F} *OVERDUE by {}m*",
+                        overdue.num_minutes()
+                    )
+                }
+            } else if remaining.num_days() > 1 {
+                format!("{} days left", remaining.num_days())
+            } else if remaining.num_hours() > 0 {
+                format!("{}h {}m left", remaining.num_hours(), remaining.num_minutes() % 60)
+            } else {
+                format!("\u{23F3} *{}m left*", remaining.num_minutes())
+            };
+
+            let _ = write!(
+                msg,
+                "\n\u{1F4C5} *Due:* {} ({})",
+                due_str, remaining_str
+            );
+        }
+
+        // Subtask progress (for watcher notifications)
+        if let Some((completed, total)) = meta.subtask_progress {
+            let bar = progress_bar(completed, total);
+            let _ = write!(
+                msg,
+                "\n\u{1F4CA} *Subtasks:* {}/{} {}\n",
+                completed, total, bar
+            );
+        }
+
+        // Parent task context (for subtask notifications)
+        if let Some(ref parent) = meta.parent_task_title {
+            let _ = write!(msg, "\n\u{1F517} *Parent task:* {}", parent);
+        }
+    }
+
+    // Body text (the description/detail)
+    if !body.is_empty() {
+        let _ = write!(msg, "\n\n{}", body);
+    }
+
+    msg
+}
+
+fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+    }
+}
+
+fn progress_bar(completed: i64, total: i64) -> String {
+    if total == 0 {
+        return String::new();
+    }
+    let filled = ((completed as f64 / total as f64) * 10.0).round() as usize;
+    let empty = 10 - filled.min(10);
+    format!(
+        "{}{}",
+        "\u{2588}".repeat(filled),
+        "\u{2591}".repeat(empty)
+    )
 }
 
 /// Send a notification message via WhatsApp

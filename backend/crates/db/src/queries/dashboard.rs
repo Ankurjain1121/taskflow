@@ -81,8 +81,14 @@ pub async fn get_dashboard_stats(
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         INNER JOIN project_statuses bc ON bc.id = t.status_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1 AND t.deleted_at IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND t.parent_task_id IS NULL
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ",
@@ -178,13 +184,19 @@ pub async fn get_overdue_tasks(
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         INNER JOIN project_statuses bc ON bc.id = t.status_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
           AND t.due_date IS NOT NULL
           AND t.due_date < $2
           AND bc.type != 'done'
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT $3
@@ -234,7 +246,7 @@ pub async fn get_upcoming_deadlines(
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         INNER JOIN project_statuses bc ON bc.id = t.status_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN workspaces w ON w.id = b.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
@@ -242,6 +254,12 @@ pub async fn get_upcoming_deadlines(
           AND t.due_date >= $2
           AND t.due_date <= $3
           AND bc.type != 'done'
+          AND (
+              EXISTS (SELECT 1 FROM project_members bm WHERE bm.project_id = t.project_id AND bm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = b.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT 50

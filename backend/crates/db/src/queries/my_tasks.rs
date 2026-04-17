@@ -128,13 +128,19 @@ pub async fn list_my_tasks(
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
-        INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
+        INNER JOIN workspaces w ON w.id = p.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
           AND ($2::uuid IS NULL OR t.project_id = $2)
           AND ($3::uuid IS NULL OR t.id > $3)
+          AND (
+              EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
         ORDER BY {}
         LIMIT $4
         ",
@@ -218,11 +224,17 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
-        INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
+        INNER JOIN workspaces w ON w.id = p.workspace_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
+          AND (
+              EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)
+              OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+              OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                  AND w.visibility != 'private')
+          )
         ",
     )
     .bind(user_id)

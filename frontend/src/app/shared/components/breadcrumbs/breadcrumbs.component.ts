@@ -109,8 +109,6 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
       crumbs.push({ label: 'Dashboard', url: null });
     } else if (segments[0] === 'my-tasks') {
       crumbs.push({ label: 'My Tasks', url: null });
-    } else if (segments[0] === 'eisenhower') {
-      crumbs.push({ label: 'Eisenhower Matrix', url: null });
     } else if (segments[0] === 'favorites') {
       crumbs.push({ label: 'Favorites', url: null });
     } else if (segments[0] === 'archive') {

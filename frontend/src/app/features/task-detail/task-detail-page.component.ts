@@ -24,6 +24,7 @@ import {
   Watcher,
   TaskReminder,
   UpdateTaskRequest,
+  MoveTaskRequest,
 } from '../../core/services/task.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ProjectService, Board, Column } from '../../core/services/project.service';
@@ -304,6 +305,7 @@ import { Toast } from 'primeng/toast';
             [reminders]="reminders()"
             [parentTask]="parentTask()"
             [childrenCount]="childrenCount()"
+            (statusChanged)="onStatusChange($event)"
             (priorityChanged)="onPriorityChange($event)"
             (dueDateChanged)="onDueDateChange($event)"
             (assigneeAdded)="onAssign($event)"
@@ -487,6 +489,42 @@ export class TaskDetailPageComponent {
 
   onPriorityChange(priority: TaskPriority): void {
     this.updateTask({ priority } as UpdateTaskRequest);
+  }
+
+  onStatusChange(statusId: string): void {
+    const t = this.task();
+    if (!t) return;
+
+    const snapshot = { ...t };
+    const newCol = this.columns().find((c) => c.id === statusId);
+    this.task.set({
+      ...t,
+      status_id: statusId,
+      status_name: newCol?.name ?? t.status_name,
+      status_color: newCol?.color ?? t.status_color,
+    });
+
+    this.taskService
+      .moveTask(t.id, { status_id: statusId, position: 'a0' })
+      .subscribe({
+        next: (updated) => {
+          this.task.set({
+            ...this.task()!,
+            ...updated,
+            assignees: updated.assignees ?? t.assignees,
+            labels: updated.labels ?? t.labels,
+          });
+        },
+        error: () => {
+          this.task.set(snapshot);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Update failed',
+            detail: 'Could not change task status.',
+            life: 4000,
+          });
+        },
+      });
   }
 
   onDueDateChange(date: Date | null): void {

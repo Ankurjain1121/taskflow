@@ -68,8 +68,15 @@ pub async fn batch_update_my_tasks(
             r"
             SELECT EXISTS(
                 SELECT 1 FROM tasks t
-                INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
+                INNER JOIN projects p ON p.id = t.project_id
+                INNER JOIN workspaces w ON w.id = p.workspace_id
                 WHERE t.id = $2 AND t.deleted_at IS NULL
+                  AND (
+                      EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)
+                      OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = p.workspace_id AND wm.user_id = $1)
+                      OR (EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role IN ('admin', 'super_admin') AND u.deleted_at IS NULL)
+                          AND w.visibility != 'private')
+                  )
             )
             ",
         )

@@ -101,7 +101,12 @@
 
 <!-- Quick Create Task Dialog (global, deferred to idle) -->
 @defer (on idle) {
-  <app-quick-create-task-dialog [(visible)]="quickCreateOpen" />
+  <app-quick-create-task-dialog
+    [(visible)]="quickCreateOpen"
+    [initialPriority]="quickCreatePriority()"
+    [initialDueDate]="quickCreateDueDate()"
+    [initialProjectId]="quickCreateProjectId()"
+  />
 }
 
 <!-- Workspace Settings Dialog (global, deferred to idle) -->

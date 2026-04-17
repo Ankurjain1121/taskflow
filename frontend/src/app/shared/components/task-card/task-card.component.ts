@@ -2,6 +2,7 @@ import {
   Component,
   input,
   output,
+  signal,
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -42,10 +43,24 @@ import { TaskCardData, TaskCardVariant } from './task-card-data';
 
         <!-- Title row -->
         <div class="flex items-start gap-2">
+          @if (showCheckbox()) {
+            <button
+              class="task-complete-btn flex-shrink-0 mt-0.5"
+              [class.completing]="completing()"
+              (click)="onComplete($event)"
+              [attr.aria-label]="'Complete ' + task().title"
+            >
+              @if (completing()) {
+                <i class="pi pi-check complete-icon"></i>
+              }
+            </button>
+          }
           <p
             class="text-sm font-medium flex-1 min-w-0"
             [class.truncate]="variant() === 'compact'"
             [class.line-clamp-2]="variant() !== 'compact'"
+            [class.line-through]="completing()"
+            [style.opacity]="completing() ? '0.5' : '1'"
             style="color: var(--card-foreground)"
           >
             {{ task().title }}
@@ -118,6 +133,38 @@ import { TaskCardData, TaskCardVariant } from './task-card-data';
   styles: [`
     :host { display: block; }
     /* Never override global CDK drag styles */
+
+    .task-complete-btn {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid color-mix(in srgb, var(--foreground) 20%, transparent);
+      background: none; cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+    .task-complete-btn:hover {
+      border-color: color-mix(in srgb, var(--success, #10b981) 60%, transparent);
+      transform: scale(1.1);
+    }
+    .task-complete-btn.completing {
+      background: var(--success, #10b981);
+      border-color: var(--success, #10b981);
+      animation: cardCheck 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .complete-icon {
+      font-size: 9px; color: white;
+      animation: cardCheck 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      animation-delay: 0.08s;
+    }
+    @keyframes cardCheck {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .task-complete-btn.completing, .complete-icon { animation: none; }
+    }
   `],
 })
 export class UnifiedTaskCardComponent {
@@ -125,10 +172,20 @@ export class UnifiedTaskCardComponent {
   readonly variant = input<TaskCardVariant>('kanban');
   readonly stripeColor = input<string | null>(null);
 
+  readonly showCheckbox = input(false);
+
   readonly clicked = output<string>();
   readonly completed = output<string>();
   readonly snoozed = output<string>();
   readonly priorityChanged = output<{ taskId: string; priority: string }>();
+
+  readonly completing = signal(false);
+
+  onComplete(event: MouseEvent): void {
+    event.stopPropagation();
+    this.completing.set(true);
+    this.completed.emit(this.task().id);
+  }
 
   readonly wrapperClasses = computed(() => {
     const v = this.variant();

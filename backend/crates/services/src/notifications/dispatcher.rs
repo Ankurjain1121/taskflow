@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::jobs::email_queue::{enqueue_email, EmailJob};
 use crate::notifications::events::NotificationEvent;
 use crate::notifications::service::{NotificationService, NotificationServiceError};
-use crate::notifications::whatsapp::WahaClient;
+use crate::notifications::whatsapp::{NotificationMetadata, WahaClient};
 use taskbolt_db::queries::notification_preferences::{
     should_notify, NotificationChannel, NotificationPreferenceError,
 };
@@ -58,6 +58,19 @@ pub async fn notify(
     title: &str,
     body: &str,
     link_url: Option<&str>,
+) -> Result<DispatchResult, DispatchError> {
+    notify_with_metadata(ctx, event, recipient_id, title, body, link_url, None).await
+}
+
+/// Dispatch a notification with rich metadata for WhatsApp button messages.
+pub async fn notify_with_metadata(
+    ctx: &NotifyContext<'_>,
+    event: NotificationEvent,
+    recipient_id: Uuid,
+    title: &str,
+    body: &str,
+    link_url: Option<&str>,
+    metadata: Option<&NotificationMetadata>,
 ) -> Result<DispatchResult, DispatchError> {
     let event_name = event.name();
     let mut result = DispatchResult::default();
@@ -256,26 +269,40 @@ pub async fn notify(
                 .flatten();
 
                 if let Some(phone_number) = phone {
-                    // Format WhatsApp message
-                    let emoji = crate::notifications::whatsapp::get_event_emoji(event_name);
-                    let mut message = format!("{} *{}*\n\n{}", emoji, title, body);
-                    if let Some(url) = link_url {
-                        let full_url = if url.starts_with("http") {
+                    // Format rich WhatsApp message with metadata
+                    let message = crate::notifications::whatsapp::format_rich_notification(
+                        event_name, title, body, metadata,
+                    );
+
+                    let full_url = link_url.map(|url| {
+                        if url.starts_with("http") {
                             url.to_string()
                         } else {
                             format!("{}{}", ctx.app_url, url)
-                        };
-                        use std::fmt::Write as _;
-                        let _ = write!(message, "\n\nView details: {}", full_url);
-                    }
+                        }
+                    });
 
-                    match waha_client.send_message(&phone_number, &message).await {
+                    // Send as button message if we have a link, plain text otherwise
+                    let send_result = if let Some(ref url) = full_url {
+                        waha_client
+                            .send_button_message(
+                                &phone_number,
+                                &message,
+                                "View Details",
+                                url,
+                                Some("TaskBolt"),
+                            )
+                            .await
+                    } else {
+                        waha_client.send_message(&phone_number, &message).await
+                    };
+
+                    match send_result {
                         Ok(()) => {
                             result.whatsapp_sent = true;
-                            // Log successful delivery
                             let _ = taskbolt_db::queries::log_delivery(
                                 ctx.pool,
-                                None, // notification_id not easily available here
+                                None,
                                 recipient_id,
                                 "whatsapp",
                                 "sent",
@@ -292,7 +319,6 @@ pub async fn notify(
                                 error = %e,
                                 "Failed to send WhatsApp notification"
                             );
-                            // Log failed delivery
                             let _ = taskbolt_db::queries::log_delivery(
                                 ctx.pool,
                                 None,

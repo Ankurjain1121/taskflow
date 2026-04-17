@@ -4278,6 +4278,7 @@ name = "taskbolt-services"
 version = "0.1.0"
 dependencies = [
  "aws-sdk-s3",
+ "base64",
  "chrono",
  "mockall",
  "proptest",

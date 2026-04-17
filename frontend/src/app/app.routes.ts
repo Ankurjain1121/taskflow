@@ -92,11 +92,8 @@ export const routes: Routes = [
       },
       {
         path: 'eisenhower',
-        loadComponent: () =>
-          import('./features/my-work/my-work-shell.component').then(
-            (m) => m.MyWorkShellComponent,
-          ),
-        data: { defaultTab: 'matrix' },
+        redirectTo: 'my-work',
+        pathMatch: 'full' as const,
       },
       {
         path: 'all-tasks',
@@ -133,10 +130,8 @@ export const routes: Routes = [
       },
       {
         path: 'people',
-        loadComponent: () =>
-          import('./features/people/people-hub.component').then(
-            (m) => m.PeopleHubComponent,
-          ),
+        redirectTo: 'manage',
+        pathMatch: 'full' as const,
       },
       {
         path: 'team-page',
@@ -223,17 +218,12 @@ export const routes: Routes = [
       },
       {
         path: 'team/balance',
-        loadComponent: () =>
-          import('./features/team/workload-balance/workload-balance.component').then(
-            (m) => m.WorkloadBalanceComponent,
-          ),
+        redirectTo: 'manage',
+        pathMatch: 'full' as const,
       },
       {
         path: 'team/member/:userId',
-        loadComponent: () =>
-          import('./features/team/member-detail/member-detail.component').then(
-            (m) => m.MemberDetailComponent,
-          ),
+        redirectTo: 'manage',
       },
     ],
   },
@@ -243,7 +233,7 @@ export const routes: Routes = [
   { path: 'dashboard', canActivate: [workspaceRedirectGuard('dashboard')], children: [] },
   { path: 'my-tasks', canActivate: [workspaceRedirectGuard('my-work')], children: [] },
   { path: 'inbox', canActivate: [workspaceRedirectGuard('inbox')], children: [] },
-  { path: 'eisenhower', canActivate: [workspaceRedirectGuard('eisenhower')], children: [] },
+  { path: 'eisenhower', canActivate: [workspaceRedirectGuard('my-work')], children: [] },
   { path: 'favorites', canActivate: [workspaceRedirectGuard('favorites')], children: [] },
   { path: 'archive', canActivate: [workspaceRedirectGuard('archive')], children: [] },
   { path: 'team', canActivate: [workspaceRedirectGuard('manage')], children: [] },

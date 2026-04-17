@@ -224,22 +224,66 @@ export type BudgetFieldKey =
     <div class="space-y-3">
       <!-- Status & Priority -->
       <div class="sidebar-card space-y-3">
-        <!-- Column / Status -->
+        <!-- Column / Status: Read/Edit -->
         <div>
           <label class="field-label">Status</label>
-          @if (currentColumn(); as col) {
-            <div class="flex items-center gap-2 mt-1">
+          @if (editingField() === 'status') {
+            <div data-edit-field="status">
+              <p-select
+                [ngModel]="task()!.status_id"
+                (ngModelChange)="statusChanged.emit($event); stopEditing()"
+                [options]="statusOptions()"
+                optionLabel="name"
+                optionValue="id"
+                styleClass="w-full mt-1"
+                [appendTo]="'body'"
+                (onHide)="stopEditing()"
+              >
+                <ng-template #selectedItem let-col>
+                  @if (col) {
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        [style.background-color]="col.color || '#6366f1'"
+                      ></span>
+                      {{ col.name }}
+                    </div>
+                  }
+                </ng-template>
+                <ng-template #item let-col>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      [style.background-color]="col.color || '#6366f1'"
+                    ></span>
+                    {{ col.name }}
+                  </div>
+                </ng-template>
+              </p-select>
+            </div>
+          } @else if (currentColumn()) {
+            <div
+              class="flex items-center gap-2 mt-1"
+              [class.field-editable]="!isStatusLocked()"
+              (click)="isStatusLocked() ? null : startEditing('status')"
+            >
               <span
                 class="w-3 h-3 rounded-full flex-shrink-0"
-                [style.background-color]="col.color || '#6366f1'"
+                [style.background-color]="currentColumn()!.color || '#6366f1'"
               ></span>
-              <span class="field-value">{{ col.name }}</span>
-              @if (col.status_mapping?.done) {
+              <span class="field-value">{{ currentColumn()!.name }}</span>
+              @if (currentColumn()!.status_mapping?.done) {
                 <p-tag value="Done" severity="success" />
+              }
+              @if (isStatusLocked()) {
+                <i class="pi pi-lock text-xs text-[var(--muted-foreground)]"></i>
               }
             </div>
           } @else if (task().status_name) {
-            <div class="flex items-center gap-2 mt-1">
+            <div
+              class="flex items-center gap-2 mt-1 field-editable"
+              (click)="startEditing('status')"
+            >
               <span
                 class="w-3 h-3 rounded-full flex-shrink-0"
                 [style.background-color]="task().status_color || '#6366f1'"
@@ -247,7 +291,10 @@ export type BudgetFieldKey =
               <span class="field-value">{{ task().status_name }}</span>
             </div>
           } @else {
-            <span class="field-value text-[var(--muted-foreground)] mt-1">No status</span>
+            <span
+              class="field-value text-[var(--muted-foreground)] mt-1 field-editable"
+              (click)="startEditing('status')"
+            >No status</span>
           }
         </div>
 
@@ -771,6 +818,7 @@ export class TaskDetailSidebarComponent {
   parentTask = input<Task | null>(null);
   childrenCount = input<number>(0);
 
+  statusChanged = output<string>();
   priorityChanged = output<TaskPriority>();
   dueDateChanged = output<Date | null>();
   assigneeAdded = output<MemberSearchResult>();
@@ -798,6 +846,24 @@ export class TaskDetailSidebarComponent {
     const cols = this.columns();
     if (!t || !cols.length) return null;
     return cols.find((c) => c.id === (t.status_id ?? t.column_id)) ?? null;
+  });
+
+  statusOptions = computed(() => {
+    const cols = this.columns();
+    const current = this.currentColumn() as (Column & { allowed_transitions?: string[] | null }) | null;
+    if (!cols.length) return cols;
+    if (current?.allowed_transitions?.length) {
+      return cols.filter(
+        (c) => c.id === current.id || current.allowed_transitions!.includes(c.id),
+      );
+    }
+    return cols;
+  });
+
+  isStatusLocked = computed(() => {
+    const current = this.currentColumn() as (Column & { allowed_transitions?: string[] | null }) | null;
+    return Array.isArray(current?.allowed_transitions) &&
+      current!.allowed_transitions!.length === 0;
   });
 
   dueDateValue = computed(() => {

@@ -1,50 +1,53 @@
-# Add Due Time for Tasks
+# WhatsApp Notification Enhancement
 
 ## Objective
-Add time picker alongside existing due date so users can set both date and time for task deadlines. The DB column (`due_date TIMESTAMPTZ`) already stores full datetime, and the task detail sidebar already has `[showTime]="true"`. The gap is in: create dialogs (no time picker), display functions (show date only, no time), and the card quick-edit picker (date-only inline calendar).
+Enhance WhatsApp notifications with rich detail, button messages, org-level daily reports, subtask escalation, and real-time task closure alerts to workspace admins.
 
-## Key Insight
-This is a **frontend-only** change. The DB and backend already handle full `DateTime<Utc>`. The frontend sends `.toISOString()` which includes time. The problem is:
-1. Create dialogs don't let users pick a time
-2. Display functions strip time info
-3. Quick-edit date picker is date-only
-
-## Success Criteria
-- [ ] Create task dialog shows time picker alongside due date
-- [ ] Quick-create task dialog shows time picker alongside due date
-- [ ] Card quick-edit due date picker includes time selection
-- [ ] `formatDueDate()` shows time when a non-midnight time is set
-- [ ] `formatShortDate()` shows time when a non-midnight time is set
-- [ ] Task cards show time alongside date (e.g., "Apr 7, 2:30 PM")
-- [ ] List view shows time alongside date
-- [ ] Task detail sidebar already works (has showTime) - verify no regression
-- [ ] `npx tsc --noEmit` passes
-- [ ] `npm run build -- --configuration=production` passes
+## Key Decisions
+- Use WAHA `/api/sendButtons` with URL button type, **with plain-text fallback** (buttons are deprecated/fragile)
+- `NotificationMetadata` struct added to `notify()` for rich context (actor, project, due date/time, priority)
+- Watchers = task-level concept (existing `task_watchers` table)
+- Admin = workspace `admin` role (not super admin), queried from `workspace_members`
+- `TaskUpdatedWatcher` event already exists but unused — activate it
+- Daily org report at 8 AM IST to workspace admins/owners
+- Subtask overdue → escalate to parent task watchers
 
 ## Implementation Plan
 
-### Step 1: Update display functions
-**Files:** `frontend/src/app/shared/utils/task-colors.ts`, `frontend/src/app/features/task-detail/task-detail-helpers.ts`
-- Modify `formatDueDate()` to include time when the time component is non-midnight (00:00)
-- Modify `formatShortDate()` similarly
-- Add helper `hasTimeComponent(dateStr)` to check if time is meaningful
+### Phase 1: WahaClient button support + message builder
+- [ ] Add `SendButtonPayload` struct and `send_button_message()` to `whatsapp.rs`
+- [ ] Fallback: if `/api/sendButtons` fails, retry with `/api/sendText`
+- [ ] Create `WhatsAppMessageBuilder` for formatting rich messages with sections
 
-### Step 2: Update Create Task Dialog
-**File:** `frontend/src/app/features/project/project-view/create-task-dialog.component.ts`
-- Add `[showTime]="true"` and `[hourFormat]="'12'"` to the due date `p-datePicker`
-- Same for start date picker
+### Phase 2: NotificationMetadata + enhanced notify()
+- [ ] Create `NotificationMetadata` struct (actor_name, project_name, due_date, due_time, priority, task_id)
+- [ ] Update `notify()` signature to accept `Option<&NotificationMetadata>`
+- [ ] Update WhatsApp dispatch to format rich messages using metadata
+- [ ] Update all 5 call sites (task_crud, task_movement, task_collaboration, comments x2)
 
-### Step 3: Update Quick-Create Task Dialog
-**File:** `frontend/src/app/shared/components/quick-create-task/quick-create-task-dialog.component.ts`
-- Add `[showTime]="true"` and `[hourFormat]="'12'"` to the due date `p-datePicker`
+### Phase 3: Task closure → workspace admin real-time alert
+- [ ] New DB query: `get_workspace_admin_phones(pool, workspace_id)` → Vec<(user_id, name, phone)>
+- [ ] In `task_movement.rs`: when status type = "done", send instant WhatsApp to workspace admins
+- [ ] Message: who closed it, task name, project, completion time
 
-### Step 4: Update Card Quick-Edit Due Date Picker
-**File:** `frontend/src/app/features/project/project-view/card-quick-edit/pickers/due-date-picker.component.ts`
-- Add time selection below the inline calendar
-- Add `[showTime]="true"` and `[hourFormat]="'12'"` to `p-datePicker`
+### Phase 4: Subtask notifications
+- [ ] On subtask completion: notify parent task watchers with progress (3/5 done)
+- [ ] On subtask overdue (daily digest): escalate to parent task watchers
+- [ ] Include parent task context in subtask assignee reminders
 
-### Step 5: Verify & Build
-- Run `npx tsc --noEmit`
-- Run `npm run build -- --configuration=production`
+### Phase 5: Enhanced daily digest
+- [ ] Org report for workspace admins: tasks completed today (incl subtasks), per-employee breakdown
+- [ ] Assignee daily report: include subtask reminders with parent context, due TIME emphasis
+- [ ] Watcher report: status of watched tasks + subtask progress
+
+## Success Criteria
+- [ ] WhatsApp event notifications include: actor, project, due date+time, remaining time, button link
+- [ ] Task closure sends instant WhatsApp to workspace admins with full context
+- [ ] Subtask completion notifies parent task watchers with progress fraction
+- [ ] Overdue subtasks escalate to parent task watchers in daily digest
+- [ ] Daily org report sent to workspace admins at 8 AM IST with per-employee breakdown
+- [ ] All messages use button format with plain-text fallback
+- [ ] Backend compiles clean (cargo check + clippy)
 
 ## Progress Log
+- 2026-04-13: Plan created. Research complete on WAHA button API, DB schema, notification architecture.

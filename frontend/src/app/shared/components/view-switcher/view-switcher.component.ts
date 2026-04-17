@@ -38,7 +38,6 @@ const WORKSPACE_VIEWS: ViewOption[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'pi-home', section: 'workspace' },
   { id: 'my-work', label: 'My Work', icon: 'pi-check-square', section: 'workspace' },
   { id: 'all-tasks', label: 'All Tasks', icon: 'pi-inbox', section: 'workspace' },
-  { id: 'eisenhower', label: 'Eisenhower Matrix', icon: 'pi-th-large', section: 'workspace' },
 ];
 
 const SELECTED_BG = 'color-mix(in srgb, var(--primary) 10%, transparent)';

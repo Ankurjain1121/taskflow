@@ -54,7 +54,7 @@ export function buildCommandActions(deps: {
       icon: 'th-large',
       label: 'Go to Eisenhower Matrix',
       shortcut: 'G E',
-      action: () => navigateToWsRoute('eisenhower'),
+      action: () => navigateToWsRoute('my-work'),
     },
     {
       id: 'dark-mode',

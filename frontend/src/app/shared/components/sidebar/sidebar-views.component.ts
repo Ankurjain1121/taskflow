@@ -102,8 +102,6 @@ export class SidebarViewsComponent {
     return [
       { icon: 'pi-chart-bar', label: 'Portfolio', path: `${base}/portfolio` },
       { icon: 'pi-users', label: 'Manage', path: `${base}/manage` },
-      { icon: 'pi-user', label: 'People', path: `${base}/people` },
-      { icon: 'pi-th-large', label: 'Eisenhower', path: `${base}/eisenhower` },
       { icon: 'pi-star', label: 'Favorites', path: `${base}/favorites` },
       { icon: 'pi-box', label: 'Archive', path: `${base}/archive` },
     ];

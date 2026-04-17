@@ -22,6 +22,7 @@ import {
 } from '../../core/services/my-work-board.service';
 import { UnifiedTaskCardComponent } from '../../shared/components/task-card/task-card.component';
 import { TaskCardData } from '../../shared/components/task-card/task-card-data';
+import { TaskService } from '../../core/services/task.service';
 
 type BoardColumn = 'backlog' | 'today' | 'in_progress' | 'done';
 
@@ -81,8 +82,10 @@ interface ColumnConfig {
                   <app-unified-task-card
                     [task]="toCard(item)"
                     [variant]="'board'"
+                    [showCheckbox]="true"
                     [class.board-task-landed]="landedTaskId() === item.task_id"
                     (clicked)="onTaskClick($event)"
+                    (completed)="onCompleteTask($event, col.key)"
                   />
                 </div>
               } @empty {
@@ -113,6 +116,7 @@ interface ColumnConfig {
 })
 export class MyWorkBoardComponent implements OnInit {
   private boardService = inject(MyWorkBoardService);
+  private taskService = inject(TaskService);
   private router = inject(Router);
 
   readonly loading = signal(false);
@@ -145,6 +149,21 @@ export class MyWorkBoardComponent implements OnInit {
 
   onTaskClick(taskId: string): void {
     this.router.navigate(['/task', taskId]);
+  }
+
+  onCompleteTask(taskId: string, column: BoardColumn): void {
+    this.taskService.completeTask(taskId).subscribe({
+      next: () => {
+        setTimeout(() => {
+          const b = this.board();
+          if (!b) return;
+          this.board.set({
+            ...b,
+            [column]: b[column].filter(t => t.task_id !== taskId),
+          });
+        }, 600);
+      },
+    });
   }
 
   toCard(item: PersonalBoardItem): TaskCardData {

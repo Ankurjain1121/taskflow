@@ -11,6 +11,7 @@ import {
   CdkDropList,
   CdkDrag,
   CdkDragDrop,
+  CdkDragHandle,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
 import { Router } from '@angular/router';
@@ -20,6 +21,25 @@ import {
   EisenhowerQuadrant,
   EisenhowerMatrixResponse,
 } from '../../core/services/eisenhower.service';
+import { TaskService } from '../../core/services/task.service';
+import { QuickCreateService } from '../../core/services/quick-create.service';
+
+type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+type DueProximity = 'overdue' | 'today' | 'tomorrow' | 'soon' | null;
+
+function getDueProximity(due: string | null | undefined): DueProximity {
+  if (!due) return null;
+  const dueMs = new Date(due).getTime();
+  if (isNaN(dueMs)) return null;
+  const nowMs = Date.now();
+  const diffDays = Math.ceil((dueMs - nowMs) / 86400000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays <= 2) return 'soon';
+  return null;
+}
 
 interface QuadrantConfig {
   key: EisenhowerQuadrant;
@@ -37,10 +57,19 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
   eliminate: { urgency: false, importance: false },
 };
 
+const QUADRANT_PRIORITY_MAP: Record<EisenhowerQuadrant, TaskPriority> = {
+  do_first: 'urgent',
+  schedule: 'high',
+  delegate: 'medium',
+  eliminate: 'low',
+};
+
+const ANIMATION_STORAGE_KEY = 'matrix-animated';
+
 @Component({
   selector: 'app-my-work-matrix',
   standalone: true,
-  imports: [CdkDropList, CdkDrag],
+  imports: [CdkDropList, CdkDrag, CdkDragHandle],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -79,11 +108,13 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
             </div>
           </div>
 
-          <!-- 2x2 grid with crosshair gap -->
+          <!-- 2x2 grid -->
           <div class="matrix-grid">
-            @for (q of quadrants; track q.key) {
+            @for (q of quadrants; track q.key; let qi = $index) {
               <div
                 class="quadrant"
+                [class.animate-scale-in]="shouldAnimate()"
+                [style.animation-delay]="shouldAnimate() ? (qi * 0.08) + 's' : '0s'"
                 [attr.data-quadrant]="q.key"
                 [class.drag-over]="dragOverQuadrant() === q.key"
               >
@@ -93,6 +124,14 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
                     <i [class]="'pi ' + q.icon + ' q-icon'"></i>
                     <span class="q-title">{{ q.title }}</span>
                     <span class="q-badge">{{ tasksByQuadrant()[q.key].length }}</span>
+                    <button
+                      class="q-add-btn"
+                      (click)="onQuickAdd($event, q.key)"
+                      title="Add task"
+                      aria-label="Add task to this quadrant"
+                    >
+                      <i class="pi pi-plus"></i>
+                    </button>
                   </div>
                   <span class="q-subtitle">{{ q.subtitle }}</span>
                 </div>
@@ -108,17 +147,31 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
                   (cdkDropListExited)="dragOverQuadrant.set(null)"
                   class="q-tasks"
                 >
-                  @for (task of tasksByQuadrant()[q.key]; track task.id) {
+                  @for (task of tasksByQuadrant()[q.key]; track task.id; let i = $index) {
                     <div
                       cdkDrag
                       cdkDragPreviewClass="cdk-drag-preview-matrix"
                       class="task-row"
+                      [class.animate-fade-in-up]="shouldAnimate()"
+                      [style.animation-delay]="shouldAnimate() ? (i * 0.04) + 's' : '0s'"
                       [class.task-landed]="landedTaskId() === task.id"
+                      [class.task-completing]="isCompleting(task.id)"
                       [attr.data-quadrant]="q.key"
                       (click)="onTaskClick(task.id)"
                     >
+                      <!-- Completion checkbox -->
+                      <button
+                        class="task-checkbox"
+                        [class.completing]="isCompleting(task.id)"
+                        (click)="onCompleteTask($event, task.id, q.key)"
+                        [attr.aria-label]="'Complete ' + task.title"
+                      >
+                        @if (isCompleting(task.id)) {
+                          <i class="pi pi-check task-check-icon"></i>
+                        }
+                      </button>
                       <div class="task-accent" [attr.data-quadrant]="q.key"></div>
-                      <div class="task-body">
+                      <div class="task-body" cdkDragHandle>
                         <div class="task-main">
                           <span class="task-title">{{ task.title }}</span>
                           @if (task.assignees?.[0]) {
@@ -140,6 +193,20 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
                             <span class="task-due" [class.overdue]="isDueOverdue(task.due_date)">
                               <i class="pi pi-calendar text-[9px]"></i>
                               {{ due }}
+                            </span>
+                          }
+                          @for (hint of (hintsByTaskId().get(task.id) ?? []); track hint) {
+                            <span class="task-hint" [attr.data-hint]="hint">
+                              @switch (hint) {
+                                @case ('manual') { <i class="pi pi-pencil"></i> pinned }
+                                @case ('overdue') { <i class="pi pi-exclamation-triangle"></i> overdue }
+                                @case ('due today') { <i class="pi pi-clock"></i> due today }
+                                @case ('due tomorrow') { <i class="pi pi-clock"></i> due tomorrow }
+                                @case ('due soon') { <i class="pi pi-clock"></i> due soon }
+                                @case ('urgent priority') { <i class="pi pi-bolt"></i> urgent }
+                                @case ('high priority') { <i class="pi pi-arrow-up"></i> high pri }
+                                @case ('low priority') { <i class="pi pi-minus"></i> low pri }
+                              }
                             </span>
                           }
                         </div>
@@ -257,7 +324,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     .matrix-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 6px;
+      gap: 10px;
       flex: 1;
       min-height: 0;
     }
@@ -277,29 +344,33 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
       overflow: hidden;
       min-height: 150px;
       position: relative;
-      transition: box-shadow 200ms ease, border-color 200ms ease;
+      transition: box-shadow 200ms var(--ease-standard, ease);
     }
 
     @media (min-width: 1024px) {
       .quadrant { min-height: 0; }
     }
 
-    /* Quadrant color themes */
+    /* Quadrant color themes — shadows instead of borders */
     .quadrant[data-quadrant="do_first"] {
       background: color-mix(in srgb, var(--destructive) 5%, var(--card));
-      border: 1px solid color-mix(in srgb, var(--destructive) 20%, var(--border));
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent),
+                  0 0 0 1px color-mix(in srgb, var(--destructive) 6%, transparent);
     }
     .quadrant[data-quadrant="schedule"] {
       background: color-mix(in srgb, var(--warning, #d97706) 4%, var(--card));
-      border: 1px solid color-mix(in srgb, var(--warning, #d97706) 15%, var(--border));
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent),
+                  0 0 0 1px color-mix(in srgb, var(--warning, #d97706) 6%, transparent);
     }
     .quadrant[data-quadrant="delegate"] {
       background: color-mix(in srgb, var(--primary) 4%, var(--card));
-      border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--border));
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent),
+                  0 0 0 1px color-mix(in srgb, var(--primary) 6%, transparent);
     }
     .quadrant[data-quadrant="eliminate"] {
       background: var(--card);
-      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent),
+                  0 0 0 1px color-mix(in srgb, var(--foreground) 4%, transparent);
     }
 
     .quadrant.drag-over {
@@ -309,7 +380,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
 
     /* ─── Quadrant header ─── */
     .q-header {
-      padding: 10px 12px 8px;
+      padding: 12px 14px 8px;
       flex-shrink: 0;
     }
 
@@ -327,7 +398,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     .q-header[data-quadrant="eliminate"] .q-icon { color: var(--muted-foreground); }
 
     .q-title {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--card-foreground);
       letter-spacing: -0.01em;
@@ -363,8 +434,35 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
       color: var(--muted-foreground);
     }
 
+    /* Quick-add button */
+    .q-add-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: none;
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 150ms ease, background 150ms ease;
+      font-size: 11px;
+    }
+
+    .quadrant:hover .q-add-btn,
+    .q-add-btn:focus-visible {
+      opacity: 1;
+    }
+
+    .q-add-btn:hover {
+      background: color-mix(in srgb, var(--foreground) 10%, transparent);
+      color: var(--foreground);
+    }
+
     .q-subtitle {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted-foreground);
       margin-top: 1px;
       display: block;
@@ -374,7 +472,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     .q-tasks {
       flex: 1;
       overflow-y: auto;
-      padding: 2px 8px 8px;
+      padding: 4px 10px 10px;
       min-height: 36px;
       scrollbar-width: thin;
       scrollbar-color: color-mix(in srgb, var(--foreground) 10%, transparent) transparent;
@@ -382,36 +480,25 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
 
     /* ─── Scroll fade overlay ─── */
     .q-scroll-fade {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 28px;
-      pointer-events: none;
-      border-radius: 0 0 10px 10px;
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 28px; pointer-events: none; border-radius: 0 0 10px 10px;
     }
-    .q-scroll-fade[data-quadrant="do_first"] {
-      background: linear-gradient(to top, color-mix(in srgb, var(--destructive) 5%, var(--card)), transparent);
-    }
-    .q-scroll-fade[data-quadrant="schedule"] {
-      background: linear-gradient(to top, color-mix(in srgb, var(--warning, #d97706) 4%, var(--card)), transparent);
-    }
-    .q-scroll-fade[data-quadrant="delegate"] {
-      background: linear-gradient(to top, color-mix(in srgb, var(--primary) 4%, var(--card)), transparent);
-    }
-    .q-scroll-fade[data-quadrant="eliminate"] {
-      background: linear-gradient(to top, var(--card), transparent);
-    }
+    .q-scroll-fade[data-quadrant="do_first"] { background: linear-gradient(to top, color-mix(in srgb, var(--destructive) 5%, var(--card)), transparent); }
+    .q-scroll-fade[data-quadrant="schedule"] { background: linear-gradient(to top, color-mix(in srgb, var(--warning, #d97706) 4%, var(--card)), transparent); }
+    .q-scroll-fade[data-quadrant="delegate"] { background: linear-gradient(to top, color-mix(in srgb, var(--primary) 4%, var(--card)), transparent); }
+    .q-scroll-fade[data-quadrant="eliminate"] { background: linear-gradient(to top, var(--card), transparent); }
 
     /* ─── Task row ─── */
     .task-row {
       display: flex;
       align-items: stretch;
       border-radius: 7px;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
       overflow: hidden;
       cursor: pointer;
-      transition: background 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+      transition: background 150ms var(--ease-standard, ease),
+                  box-shadow 150ms var(--ease-standard, ease),
+                  transform 120ms var(--ease-standard, ease);
     }
 
     .task-row[data-quadrant="do_first"] { background: color-mix(in srgb, var(--destructive) 3%, var(--background)); }
@@ -420,29 +507,108 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     .task-row[data-quadrant="eliminate"] { background: var(--muted); }
 
     .task-row:hover {
-      box-shadow: 0 1px 4px color-mix(in srgb, var(--foreground) 6%, transparent);
-      transform: translateY(-1px);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 8%, transparent);
+      transform: scale(1.015);
+      position: relative;
+      z-index: 1;
+      transition: background 200ms var(--ease-out-expo, ease),
+                  box-shadow 200ms var(--ease-out-expo, ease),
+                  transform 200ms var(--ease-out-expo, ease);
     }
 
     .task-row:active {
-      transform: scale(0.99) translateY(0);
-      box-shadow: none;
+      transform: scale(0.985);
+      box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 4%, transparent);
     }
 
-    /* Left accent bar */
-    .task-accent {
-      width: 3px;
+    /* ─── Completion checkbox ─── */
+    .task-checkbox {
+      width: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      position: relative;
     }
-    .task-accent[data-quadrant="do_first"] { background: var(--destructive); }
-    .task-accent[data-quadrant="schedule"] { background: var(--warning, #d97706); }
-    .task-accent[data-quadrant="delegate"] { background: var(--primary); }
-    .task-accent[data-quadrant="eliminate"] { background: var(--muted-foreground); opacity: 0.4; }
+
+    .task-checkbox::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid color-mix(in srgb, var(--foreground) 20%, transparent);
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .task-checkbox:hover::before {
+      border-color: color-mix(in srgb, var(--foreground) 40%, transparent);
+      transform: scale(1.1);
+    }
+
+    .task-checkbox.completing::before {
+      background: var(--success, #10b981);
+      border-color: var(--success, #10b981);
+      animation: celebrateCheck 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .task-checkbox .task-check-icon {
+      position: absolute;
+      font-size: 9px;
+      color: white;
+      animation: celebrateCheck 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      animation-delay: 0.1s;
+    }
+
+    @keyframes celebrateCheck {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .task-row.task-completing {
+      animation: taskCompleteOut 0.5s ease-out 0.3s both;
+    }
+    @keyframes taskCompleteOut {
+      to {
+        opacity: 0;
+        transform: translateX(20px) scale(0.95);
+        max-height: 0;
+        margin-bottom: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    }
+
+    /* ─── Left accent bar ─── */
+    .task-accent {
+      width: 4px;
+      flex-shrink: 0;
+      border-radius: 4px 0 0 4px;
+      opacity: 0.8;
+    }
+    .task-accent[data-quadrant="do_first"] {
+      background: linear-gradient(to bottom, var(--destructive), color-mix(in srgb, var(--destructive) 50%, transparent));
+    }
+    .task-accent[data-quadrant="schedule"] {
+      background: linear-gradient(to bottom, var(--warning, #d97706), color-mix(in srgb, var(--warning, #d97706) 50%, transparent));
+    }
+    .task-accent[data-quadrant="delegate"] {
+      background: linear-gradient(to bottom, var(--primary), color-mix(in srgb, var(--primary) 50%, transparent));
+    }
+    .task-accent[data-quadrant="eliminate"] {
+      background: linear-gradient(to bottom, var(--muted-foreground), transparent);
+      opacity: 0.35;
+    }
 
     .task-body {
       flex: 1;
       min-width: 0;
-      padding: 5px 10px;
+      padding: 6px 10px 7px;
+      cursor: grab;
     }
 
     .task-main {
@@ -452,7 +618,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     }
 
     .task-title {
-      font-size: 12.5px;
+      font-size: 13.5px;
       font-weight: 500;
       color: var(--card-foreground);
       white-space: nowrap;
@@ -460,7 +626,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
       text-overflow: ellipsis;
       flex: 1;
       min-width: 0;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .task-avatar {
@@ -486,7 +652,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     }
 
     .task-project {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted-foreground);
       max-width: 110px;
       overflow: hidden;
@@ -495,7 +661,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     }
 
     .task-priority {
-      font-size: 9px;
+      font-size: 9.5px;
       font-weight: 650;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -522,13 +688,46 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     }
 
     .task-due {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted-foreground);
       display: flex;
       align-items: center;
       gap: 3px;
     }
     .task-due.overdue { color: var(--destructive); font-weight: 600; }
+
+    /* ─── Hint tags ─── */
+    .task-hint {
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      white-space: nowrap;
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
+      color: var(--muted-foreground);
+    }
+
+    .task-hint .pi { font-size: 8px; }
+
+    .task-hint[data-hint="manual"] {
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+      color: var(--primary);
+    }
+
+    .task-hint[data-hint="overdue"] {
+      background: color-mix(in srgb, var(--destructive) 10%, transparent);
+      color: var(--destructive);
+    }
+
+    .task-hint[data-hint="due today"],
+    .task-hint[data-hint="due tomorrow"],
+    .task-hint[data-hint="due soon"] {
+      background: color-mix(in srgb, var(--warning, #d97706) 10%, transparent);
+      color: var(--warning, #d97706);
+    }
 
     /* ─── Empty state ─── */
     .q-empty {
@@ -561,7 +760,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
     .quadrant-skeleton {
       border-radius: 10px;
       background: var(--card);
-      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent);
       padding: 14px;
     }
 
@@ -580,23 +779,36 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
       border: 1.5px dashed color-mix(in srgb, var(--primary) 30%, var(--border));
       border-radius: 7px;
       min-height: 36px;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
     }
 
     @media (prefers-reduced-motion: reduce) {
       .task-landed { animation: none; }
       .task-row { transition: none; }
+      .task-row.task-completing { animation: none; opacity: 0.5; }
+      .task-checkbox.completing::before { animation: none; }
+      .task-checkbox .task-check-icon { animation: none; }
+      .quadrant.animate-scale-in { animation: none !important; }
+      .task-row.animate-fade-in-up { animation: none !important; }
     }
   `],
 })
 export class MyWorkMatrixComponent implements OnInit {
   private eisenhowerService = inject(EisenhowerService);
+  private taskService = inject(TaskService);
+  private quickCreateService = inject(QuickCreateService);
   private router = inject(Router);
 
   readonly loading = signal(false);
   readonly matrix = signal<EisenhowerMatrixResponse | null>(null);
   readonly dragOverQuadrant = signal<EisenhowerQuadrant | null>(null);
   readonly landedTaskId = signal<string | null>(null);
+  readonly completingTaskIds = signal<Set<string>>(new Set());
+  readonly animationDone = signal(
+    typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem(ANIMATION_STORAGE_KEY) === 'true'
+      : true,
+  );
 
   readonly allDropListIds = [
     'matrix-do_first', 'matrix-schedule', 'matrix-delegate', 'matrix-eliminate',
@@ -635,29 +847,155 @@ export class MyWorkMatrixComponent implements OnInit {
     };
   });
 
+  readonly hintsByTaskId = computed(() => {
+    const m = this.matrix();
+    const map = new Map<string, string[]>();
+    if (!m) return map;
+
+    const allTasks = [
+      ...m.do_first,
+      ...m.schedule,
+      ...m.delegate,
+      ...m.eliminate,
+    ];
+
+    for (const task of allTasks) {
+      const hints: string[] = [];
+
+      if (task.eisenhower_urgency !== null || task.eisenhower_importance !== null) {
+        hints.push('manual');
+        map.set(task.id, hints);
+        continue;
+      }
+
+      const proximity = getDueProximity(task.due_date);
+      if (proximity === 'overdue') hints.push('overdue');
+      else if (proximity === 'today') hints.push('due today');
+      else if (proximity === 'tomorrow') hints.push('due tomorrow');
+      else if (proximity === 'soon') hints.push('due soon');
+
+      if (task.priority === 'urgent') hints.push('urgent priority');
+      else if (task.priority === 'high') hints.push('high priority');
+
+      if (hints.length === 0) {
+        if (task.priority === 'low' || task.priority === 'medium' || !task.priority) {
+          hints.push('low priority');
+        }
+      }
+
+      map.set(task.id, hints);
+    }
+
+    return map;
+  });
+
+  shouldAnimate(): boolean {
+    return !this.animationDone();
+  }
+
   ngOnInit() {
     this.loadMatrix();
+  }
+
+  isCompleting(taskId: string): boolean {
+    return this.completingTaskIds().has(taskId);
   }
 
   onTaskClick(taskId: string): void {
     this.router.navigate(['/task', taskId]);
   }
 
+  onCompleteTask(event: MouseEvent, taskId: string, quadrant: EisenhowerQuadrant): void {
+    event.stopPropagation();
+
+    this.completingTaskIds.update(ids => {
+      const next = new Set(ids);
+      next.add(taskId);
+      return next;
+    });
+
+    this.taskService.completeTask(taskId).subscribe({
+      next: () => {
+        setTimeout(() => {
+          const currentMatrix = this.matrix();
+          if (!currentMatrix) return;
+          const updated = {
+            ...currentMatrix,
+            [quadrant]: currentMatrix[quadrant].filter(t => t.id !== taskId),
+          };
+          this.matrix.set(updated);
+          this.completingTaskIds.update(ids => {
+            const next = new Set(ids);
+            next.delete(taskId);
+            return next;
+          });
+        }, 600);
+      },
+      error: () => {
+        this.completingTaskIds.update(ids => {
+          const next = new Set(ids);
+          next.delete(taskId);
+          return next;
+        });
+      },
+    });
+  }
+
+  onQuickAdd(event: MouseEvent, quadrant: EisenhowerQuadrant): void {
+    event.stopPropagation();
+
+    const priority = QUADRANT_PRIORITY_MAP[quadrant];
+    const isUrgentQuadrant = quadrant === 'do_first' || quadrant === 'delegate';
+    const dueDate = isUrgentQuadrant ? new Date() : null;
+
+    // Find most common project in this quadrant
+    const tasks = this.tasksByQuadrant()[quadrant];
+    const projectCounts = new Map<string, number>();
+    for (const task of tasks) {
+      if (task.project_id) {
+        projectCounts.set(task.project_id, (projectCounts.get(task.project_id) ?? 0) + 1);
+      }
+    }
+    let suggestedProjectId: string | undefined;
+    let maxCount = 0;
+    for (const [pid, count] of projectCounts) {
+      if (count > maxCount) {
+        maxCount = count;
+        suggestedProjectId = pid;
+      }
+    }
+
+    this.quickCreateService.openQuickCreate({
+      priority,
+      dueDate,
+      projectId: suggestedProjectId,
+    });
+
+    // Reload matrix when dialog closes (give it a moment)
+    setTimeout(() => this.loadMatrix(), 1000);
+  }
+
   formatDue(due: string | null | undefined): string {
     if (!due) return '';
+    const proximity = getDueProximity(due);
+    if (proximity === 'overdue') {
+      const diffDays = Math.ceil((Date.now() - new Date(due).getTime()) / 86400000);
+      return `${diffDays}d overdue`;
+    }
+    if (proximity === 'today') return 'Today';
+    if (proximity === 'tomorrow') return 'Tomorrow';
+    if (proximity === 'soon') {
+      const diffDays = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
+      return `In ${diffDays}d`;
+    }
     const dueDate = new Date(due);
-    const now = new Date();
-    const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
-    if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Tomorrow';
+    const diffDays = Math.ceil((dueDate.getTime() - Date.now()) / 86400000);
     if (diffDays <= 7) return `In ${diffDays}d`;
     return dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   isDueOverdue(due: string | null | undefined): boolean {
-    if (!due) return false;
-    return new Date(due).getTime() < Date.now();
+    return getDueProximity(due) === 'overdue';
   }
 
   onDrop(event: CdkDragDrop<EisenhowerTask[]>, targetQuadrant: EisenhowerQuadrant) {
@@ -685,7 +1023,7 @@ export class MyWorkMatrixComponent implements OnInit {
 
     const { urgency, importance } = QUADRANT_MAP[targetQuadrant];
     this.eisenhowerService.updateTaskOverride(task.id, urgency, importance).subscribe({
-      error: () => this.matrix.set(currentMatrix),
+      error: () => this.loadMatrix(),
     });
   }
 
@@ -694,6 +1032,18 @@ export class MyWorkMatrixComponent implements OnInit {
     try {
       const result = await firstValueFrom(this.eisenhowerService.getMatrix());
       this.matrix.set(result ?? null);
+
+      // Mark entrance animation as done after first load
+      if (!this.animationDone()) {
+        setTimeout(() => {
+          this.animationDone.set(true);
+          try {
+            sessionStorage.setItem(ANIMATION_STORAGE_KEY, 'true');
+          } catch {
+            // sessionStorage may be unavailable
+          }
+        }, 600);
+      }
     } catch {
       // empty state
     } finally {

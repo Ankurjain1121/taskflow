@@ -6,6 +6,7 @@ pub mod jobs;
 pub mod minio;
 pub mod notifications;
 pub mod novu;
+pub mod reports;
 pub mod presence;
 pub mod sample_board;
 #[cfg(test)]
@@ -22,7 +23,10 @@ pub use jobs::{
     TrashCleanupResult, TriggerContext, WeeklyDigestResult,
 };
 pub use minio::{MinioConfig, MinioError, MinioService};
-pub use notifications::dispatcher::{notify, DispatchError, DispatchResult, NotifyContext};
+pub use notifications::dispatcher::{
+    notify, notify_with_metadata, DispatchError, DispatchResult, NotifyContext,
+};
+pub use notifications::whatsapp::NotificationMetadata;
 pub use notifications::{
     build_email_provider, generate_invitation_html, generate_weekly_digest_html, is_slack_enabled,
     is_whatsapp_enabled, send_slack_notification, send_whatsapp_notification, AnyEmailProvider,
