@@ -744,11 +744,14 @@ export class QuickCreateTaskDialogComponent {
       next: (task) => {
         this.saving.set(false);
         this.visible.set(false);
+        const isOffline = !navigator.onLine;
         this.messageService.add({
-          severity: 'success',
-          summary: 'Task Created',
-          detail: `"${task.title}" has been created`,
-          life: 3000,
+          severity: isOffline ? 'warn' : 'success',
+          summary: isOffline ? 'Saved Offline' : 'Task Created',
+          detail: isOffline
+            ? `"${task.title}" will sync when you're back online`
+            : `"${task.title}" has been created`,
+          life: 4000,
         });
       },
       error: () => {

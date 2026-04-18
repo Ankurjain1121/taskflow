@@ -28,6 +28,7 @@ import {
   WorkspaceService,
 } from '../../core/services/workspace.service';
 import { PRIORITY_COLORS } from '../../shared/utils/task-colors';
+import { NativeShareService } from '../../core/services/native-share.service';
 import {
   formatDate,
   formatShortDate,
@@ -791,8 +792,18 @@ export type BudgetFieldKey =
           </p>
         </div>
 
-        <!-- Delete -->
-        <div class="pt-3 border-t" style="border-color: var(--border)">
+        <!-- Actions -->
+        <div class="pt-3 border-t flex gap-2" style="border-color: var(--border)">
+          <button
+            pButton
+            label="Share"
+            icon="pi pi-share-alt"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (click)="onShare()"
+            class="flex-1"
+          ></button>
           <button
             pButton
             label="Delete Task"
@@ -801,7 +812,7 @@ export type BudgetFieldKey =
             [outlined]="true"
             size="small"
             (click)="deleteRequested.emit()"
-            class="w-full"
+            class="flex-1"
           ></button>
         </div>
       </div>
@@ -810,6 +821,7 @@ export type BudgetFieldKey =
 })
 export class TaskDetailSidebarComponent {
   private workspaceService = inject(WorkspaceService);
+  private shareService = inject(NativeShareService);
 
   task = input.required<Task>();
   columns = input<Column[]>([]);
@@ -980,6 +992,16 @@ export class TaskDetailSidebarComponent {
 
   stopEditing(): void {
     this.editingField.set(null);
+  }
+
+  onShare(): void {
+    const t = this.task();
+    if (!t) return;
+    this.shareService.shareTask({
+      title: t.title,
+      id: t.id,
+      boardId: t.project_id,
+    });
   }
 
   saveEstimatedHours(event: Event): void {

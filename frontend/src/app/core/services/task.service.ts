@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { CacheService } from './cache.service';
+import { OfflineQueueService } from './offline-queue.service';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -260,6 +261,7 @@ export interface BulkDeleteRequest {
 export class TaskService {
   private readonly apiUrl = '/api';
   private cache = inject(CacheService);
+  private offlineQueue = inject(OfflineQueueService);
 
   constructor(private http: HttpClient) {}
 
@@ -280,6 +282,11 @@ export class TaskService {
   }
 
   createTask(projectId: string, request: CreateTaskRequest): Observable<Task> {
+    if (!navigator.onLine) {
+      const optimistic = this.offlineQueue.enqueue(projectId, request);
+      return of(optimistic);
+    }
+
     return this.http
       .post<Task>(`${this.apiUrl}/projects/${projectId}/tasks`, request)
       .pipe(

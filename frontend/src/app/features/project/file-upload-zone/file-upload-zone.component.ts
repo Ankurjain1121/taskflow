@@ -19,6 +19,8 @@ import {
   Attachment,
   UploadProgress,
 } from '../../../core/services/attachment.service';
+import { NativeCameraService } from '../../../core/services/native-camera.service';
+import { Capacitor } from '@capacitor/core';
 import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
 
 export interface UploadState {
@@ -48,7 +50,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        (click)="fileInput.click()"
+        (click)="onZoneClick(fileInput)"
         [style.border-color]="isDragging() ? 'var(--color-primary)' : ''"
         [style.background]="
           isDragging()
@@ -72,6 +74,32 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         </p>
         <p class="text-sm text-[var(--muted-foreground)]">Maximum file size: 10 MB</p>
       </div>
+
+      <!-- Native camera/gallery buttons (mobile only) -->
+      @if (isNativePlatform) {
+        <div class="flex gap-2">
+          <button
+            pButton
+            icon="pi pi-camera"
+            label="Camera"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (click)="onCameraCapture()"
+            class="flex-1"
+          ></button>
+          <button
+            pButton
+            icon="pi pi-images"
+            label="Photo Library"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (click)="onGalleryPick()"
+            class="flex-1"
+          ></button>
+        </div>
+      }
 
       <!-- Active uploads -->
       @if (uploads().length > 0) {
@@ -191,6 +219,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 })
 export class FileUploadZoneComponent implements OnDestroy {
   private attachmentService = inject(AttachmentService);
+  private cameraService = inject(NativeCameraService);
   private messageService = inject(MessageService);
   private destroy$ = new Subject<void>();
 
@@ -200,6 +229,8 @@ export class FileUploadZoneComponent implements OnDestroy {
 
   uploads = signal<UploadState[]>([]);
   isDragging = signal(false);
+
+  readonly isNativePlatform = Capacitor.isNativePlatform();
 
   private uploadIdCounter = 0;
 
@@ -304,6 +335,45 @@ export class FileUploadZoneComponent implements OnDestroy {
 
   removeFromList(uploadId: string): void {
     this.uploads.update((uploads) => uploads.filter((u) => u.id !== uploadId));
+  }
+
+  onZoneClick(fileInput: HTMLInputElement): void {
+    // On native, the zone click still opens file picker (camera buttons are separate)
+    fileInput.click();
+  }
+
+  async onCameraCapture(): Promise<void> {
+    try {
+      const photo = await this.cameraService.takePhoto();
+      this.uploadFile(photo.file);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Camera capture failed';
+      if (!message.includes('cancelled') && !message.includes('User cancelled')) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Camera Error',
+          detail: message,
+        });
+      }
+    }
+  }
+
+  async onGalleryPick(): Promise<void> {
+    try {
+      const photo = await this.cameraService.pickFromGallery();
+      this.uploadFile(photo.file);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Photo selection failed';
+      if (!message.includes('cancelled') && !message.includes('User cancelled')) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Gallery Error',
+          detail: message,
+        });
+      }
+    }
   }
 
   getFileIcon(fileName: string): string {

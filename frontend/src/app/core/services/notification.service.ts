@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { NotificationSoundService } from './notification-sound.service';
 import { PushNotificationService } from './push-notification.service';
+import { BadgeService } from './badge.service';
 
 import type { NotificationEventType } from './notification.types';
 export type { NotificationEventType } from './notification.types';
@@ -71,6 +72,7 @@ export class NotificationService implements OnDestroy {
   private toastService = inject(ToastService);
   private soundService = inject(NotificationSoundService);
   private pushService = inject(PushNotificationService);
+  private badgeService = inject(BadgeService);
   private document = inject(DOCUMENT);
 
   constructor(
@@ -103,7 +105,11 @@ export class NotificationService implements OnDestroy {
           notification,
           ...notifications,
         ]);
-        this._unreadCount.update((count) => count + 1);
+        this._unreadCount.update((count) => {
+          const next = count + 1;
+          this.badgeService.set(next);
+          return next;
+        });
 
         // Show toast and play sound only when the page is visible
         if (!this.document.hidden) {
@@ -206,7 +212,10 @@ export class NotificationService implements OnDestroy {
    */
   private fetchUnreadCount(): Observable<UnreadCountResponse> {
     return this.getUnreadCount().pipe(
-      tap((response) => this._unreadCount.set(response.count)),
+      tap((response) => {
+        this._unreadCount.set(response.count);
+        this.badgeService.set(response.count);
+      }),
     );
   }
 
@@ -234,6 +243,7 @@ export class NotificationService implements OnDestroy {
           notifications.map((n) => ({ ...n, is_read: true })),
         );
         this._unreadCount.set(0);
+        this.badgeService.clear();
       }),
     );
   }
@@ -260,6 +270,7 @@ export class NotificationService implements OnDestroy {
     this._nextCursor.set(null);
     this._hasMore.set(true);
     this._unreadCount.set(0);
+    this.badgeService.clear();
   }
 
   ngOnDestroy(): void {

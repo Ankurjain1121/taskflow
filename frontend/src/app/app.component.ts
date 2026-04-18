@@ -43,6 +43,9 @@ import { OfflineIndicatorComponent } from './shared/components/offline-indicator
 import { LockScreenComponent } from './shared/components/lock-screen/lock-screen.component';
 import { QuickCreateService } from './core/services/quick-create.service';
 import { BiometricService } from './core/services/biometric.service';
+import { BadgeService } from './core/services/badge.service';
+import { MessageService } from 'primeng/api';
+import { OfflineQueueService } from './core/services/offline-queue.service';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -118,7 +121,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private swUpdateService = inject(SwUpdateService);
   private easterEggService = inject(EasterEggService);
   private quickCreateService = inject(QuickCreateService);
+  private messageService = inject(MessageService);
+  private offlineQueue = inject(OfflineQueueService);
   readonly biometricService = inject(BiometricService);
+  private badgeService = inject(BadgeService);
 
   readonly quickCreatePriority = computed(() => this.quickCreateService.request()?.priority ?? null);
   readonly quickCreateDueDate = computed(() => this.quickCreateService.request()?.dueDate ?? null);
@@ -135,12 +141,25 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  private readonly onOfflineSynced = (e: Event): void => {
+    const count = (e as CustomEvent).detail?.count ?? 0;
+    if (count > 0) {
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Synced',
+        detail: `${count} offline task${count > 1 ? 's' : ''} synced successfully`,
+        life: 4000,
+      });
+    }
+  };
+
   ngOnInit(): void {
     this.swUpdateService.init();
     this.easterEggService.init();
     initConsoleEasterEgg();
     this.registerGlobalShortcuts();
     this.initCapacitorListeners();
+    window.addEventListener('taskbolt:offline-synced', this.onOfflineSynced);
 
     // Workspace context init is deferred to NavigationEnd so that route guards
     // have resolved — at ngOnInit time, router.url is still '/' before the
@@ -175,6 +194,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.keyboardShortcuts.unregisterByCategory('Navigation');
     this.easterEggService.destroy();
+    window.removeEventListener('taskbolt:offline-synced', this.onOfflineSynced);
   }
 
   @HostListener('window:resize')
@@ -278,8 +298,11 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Biometric lock: lock app when it goes to background, prompt on resume
+    // App state: clear badge on resume, lock on background
     CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        this.badgeService.clear();
+      }
       if (!isActive && this.biometricService.enabled()) {
         this.biometricService.lock();
       }

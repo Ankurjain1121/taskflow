@@ -1,5 +1,6 @@
 import {
   Component,
+  inject,
   input,
   output,
   signal,
@@ -10,6 +11,7 @@ import { CardComponent } from '../card/card.component';
 import { BadgeComponent } from '../badge/badge.component';
 import { TaskCardData, TaskCardVariant } from './task-card-data';
 import { SwipeableDirective } from '../../directives/swipeable.directive';
+import { OfflineQueueService } from '../../../core/services/offline-queue.service';
 
 @Component({
   selector: 'app-unified-task-card',
@@ -72,6 +74,21 @@ import { SwipeableDirective } from '../../directives/swipeable.directive';
           >
             {{ task().title }}
           </p>
+          @if (isPending()) {
+            <span
+              class="flex-shrink-0 text-[var(--warning-text,#92400e)]"
+              title="Queued offline — will sync when online"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 20h20" /><path d="M5.5 13h3" /><path d="M15.5 13h3" />
+                <path d="M6.5 9.5 8 13" /><path d="M17.5 9.5 16 13" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M4.1 4.1A10 10 0 0 0 2 12a10 10 0 0 0 .8 4" />
+                <path d="M22 12a10 10 0 0 0-18-6" />
+              </svg>
+            </span>
+          }
           @if (variant() === 'compact' && task().task_number) {
             <span class="text-[10px] flex-shrink-0" style="color: var(--muted-foreground)">
               #{{ task().task_number }}
@@ -183,9 +200,13 @@ import { SwipeableDirective } from '../../directives/swipeable.directive';
   `],
 })
 export class UnifiedTaskCardComponent {
+  private readonly offlineQueue = inject(OfflineQueueService);
+
   readonly task = input.required<TaskCardData>();
   readonly variant = input<TaskCardVariant>('kanban');
   readonly stripeColor = input<string | null>(null);
+
+  readonly isPending = computed(() => this.offlineQueue.isPending(this.task().id));
 
   readonly showCheckbox = input(false);
 
