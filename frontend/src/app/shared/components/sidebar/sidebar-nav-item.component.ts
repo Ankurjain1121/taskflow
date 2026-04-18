@@ -20,7 +20,7 @@ import { TooltipModule } from 'primeng/tooltip';
         transition: background var(--duration-fast) var(--ease-standard),
                     color var(--duration-fast) var(--ease-standard);
         position: relative;
-        height: 40px;
+        height: 44px;
         border-radius: 0.5rem;
       }
       .nav-item:hover { background: var(--sidebar-surface-hover); }

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { generateKeyBetween } from 'fractional-indexing';
 import { Task, TaskService } from '../../../core/services/task.service';
+import { HapticService } from '../../../core/services/haptic.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
 import { ProjectStateService } from './project-state.service';
 import { SwimlaneTaskMoveEvent } from './swimlane.types';
@@ -10,6 +11,7 @@ import { NONE_KEY } from './swimlane-utils';
 @Injectable()
 export class ProjectDragDropHandler {
   private taskService = inject(TaskService);
+  private hapticService = inject(HapticService);
   private router = inject(Router);
   private state = inject(ProjectStateService);
 
@@ -65,6 +67,7 @@ export class ProjectDragDropHandler {
     ) {
       this.state.celebratingTaskId.set(event.task.id);
       setTimeout(() => this.state.celebratingTaskId.set(null), 1200);
+      this.hapticService.success();
     }
 
     this.taskService

@@ -3,6 +3,8 @@ import {
   signal,
   computed,
   inject,
+  input,
+  effect,
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -115,6 +117,8 @@ interface ColumnConfig {
   `],
 })
 export class MyWorkBoardComponent implements OnInit {
+  readonly refreshTrigger = input(0);
+
   private boardService = inject(MyWorkBoardService);
   private taskService = inject(TaskService);
   private router = inject(Router);
@@ -142,6 +146,15 @@ export class MyWorkBoardComponent implements OnInit {
       done: b?.done ?? [],
     };
   });
+
+  constructor() {
+    effect(() => {
+      const trigger = this.refreshTrigger();
+      if (trigger > 0) {
+        this.loadBoard();
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadBoard();

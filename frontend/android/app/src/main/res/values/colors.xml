@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm Earth brand colors -->
+    <color name="colorPrimary">#A0663E</color>
+    <color name="colorPrimaryDark">#7A4D2E</color>
+    <color name="colorAccent">#BF7B54</color>
+
+    <!-- Splash screen -->
+    <color name="splash_background">#1C1A17</color>
+</resources>

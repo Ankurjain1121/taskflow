@@ -3,6 +3,8 @@ import {
   signal,
   computed,
   inject,
+  input,
+  effect,
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
@@ -106,6 +108,8 @@ interface GroupConfig {
   `,
 })
 export class MyWorkTimelineComponent implements OnInit, OnDestroy {
+  readonly refreshTrigger = input(0);
+
   private myTasksService = inject(MyTasksService);
   private taskService = inject(TaskService);
   private authService = inject(AuthService);
@@ -127,6 +131,15 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
   ];
 
   readonly groupedTasks = computed(() => this.groupByTimeline(this.allTasks()));
+
+  constructor() {
+    effect(() => {
+      const trigger = this.refreshTrigger();
+      if (trigger > 0) {
+        this.loadTasks();
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadTasks();

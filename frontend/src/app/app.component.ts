@@ -19,6 +19,8 @@ import {
   group,
 } from '@angular/animations';
 import { filter } from 'rxjs/operators';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
@@ -36,7 +38,11 @@ import { TimerWidgetComponent } from './shared/components/timer-widget/timer-wid
 import { ViewSwitcherComponent, ViewOption } from './shared/components/view-switcher/view-switcher.component';
 import { ShortcutHelpComponent } from './shared/components/shortcut-help/shortcut-help.component';
 import { QuickCreateTaskDialogComponent } from './shared/components/quick-create-task/quick-create-task-dialog.component';
+import { MobileBottomNavComponent } from './shared/components/mobile-bottom-nav/mobile-bottom-nav.component';
+import { OfflineIndicatorComponent } from './shared/components/offline-indicator/offline-indicator.component';
+import { LockScreenComponent } from './shared/components/lock-screen/lock-screen.component';
 import { QuickCreateService } from './core/services/quick-create.service';
+import { BiometricService } from './core/services/biometric.service';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -76,6 +82,9 @@ const routeTransition = trigger('routeAnimations', [
     ViewSwitcherComponent,
     ShortcutHelpComponent,
     QuickCreateTaskDialogComponent,
+    MobileBottomNavComponent,
+    OfflineIndicatorComponent,
+    LockScreenComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
@@ -109,6 +118,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private swUpdateService = inject(SwUpdateService);
   private easterEggService = inject(EasterEggService);
   private quickCreateService = inject(QuickCreateService);
+  readonly biometricService = inject(BiometricService);
 
   readonly quickCreatePriority = computed(() => this.quickCreateService.request()?.priority ?? null);
   readonly quickCreateDueDate = computed(() => this.quickCreateService.request()?.dueDate ?? null);
@@ -130,6 +140,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.easterEggService.init();
     initConsoleEasterEgg();
     this.registerGlobalShortcuts();
+    this.initCapacitorListeners();
 
     // Workspace context init is deferred to NavigationEnd so that route guards
     // have resolved — at ngOnInit time, router.url is still '/' before the
@@ -251,6 +262,40 @@ export class AppComponent implements OnInit, OnDestroy {
       outlet.activatedRoute?.snapshot?.url?.toString() ||
       ''
     );
+  }
+
+  private initCapacitorListeners(): void {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    // Android back button: navigate back or minimize app
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        CapacitorApp.minimizeApp();
+      }
+    });
+
+    // Biometric lock: lock app when it goes to background, prompt on resume
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive && this.biometricService.enabled()) {
+        this.biometricService.lock();
+      }
+    });
+
+    // Deep linking: open app URLs in Angular router
+    CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const path = new URL(url).pathname;
+        if (path) {
+          this.router.navigateByUrl(path);
+        }
+      } catch {
+        // Invalid URL — ignore
+      }
+    });
   }
 
   private extractWorkspaceId(url: string): string | null {

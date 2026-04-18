@@ -13,6 +13,7 @@ import { MyTasksService, MyTasksSummary } from '../../core/services/my-tasks.ser
 import { MyWorkTimelineComponent } from './my-work-timeline.component';
 import { MyWorkMatrixComponent } from './my-work-matrix.component';
 import { MyWorkBoardComponent } from './my-work-board.component';
+import { PullToRefreshComponent } from '../../shared/components/pull-to-refresh/pull-to-refresh.component';
 
 type MyWorkTab = 'timeline' | 'matrix' | 'board';
 
@@ -21,9 +22,10 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
 @Component({
   selector: 'app-my-work-shell',
   standalone: true,
-  imports: [MyWorkTimelineComponent, MyWorkMatrixComponent, MyWorkBoardComponent],
+  imports: [MyWorkTimelineComponent, MyWorkMatrixComponent, MyWorkBoardComponent, PullToRefreshComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-pull-to-refresh (refresh)="onPullRefresh($event)">
     <div class="min-h-screen">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Summary bar -->
@@ -89,12 +91,13 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
 
         <!-- Tab content -->
         @switch (activeTab()) {
-          @case ('timeline') { <app-my-work-timeline /> }
-          @case ('matrix') { <app-my-work-matrix /> }
-          @case ('board') { <app-my-work-board /> }
+          @case ('timeline') { <app-my-work-timeline [refreshTrigger]="refreshCounter()" /> }
+          @case ('matrix') { <app-my-work-matrix [refreshTrigger]="refreshCounter()" /> }
+          @case ('board') { <app-my-work-board [refreshTrigger]="refreshCounter()" /> }
         }
       </div>
     </div>
+    </app-pull-to-refresh>
   `,
 })
 export class MyWorkShellComponent implements OnInit {
@@ -109,6 +112,7 @@ export class MyWorkShellComponent implements OnInit {
 
   readonly activeTab = signal<MyWorkTab>(this.loadSavedTab());
   readonly summary = signal<MyTasksSummary | null>(null);
+  readonly refreshCounter = signal(0);
 
   constructor() {
     effect(() => {
@@ -122,6 +126,11 @@ export class MyWorkShellComponent implements OnInit {
 
   ngOnInit() {
     this.loadSummary();
+  }
+
+  onPullRefresh(event: { complete: () => void }): void {
+    this.refreshCounter.update((c) => c + 1);
+    this.loadSummary().then(() => event.complete());
   }
 
   onMobileTabChange(event: Event) {

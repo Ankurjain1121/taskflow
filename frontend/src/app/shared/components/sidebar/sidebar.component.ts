@@ -14,6 +14,7 @@ import { SidebarProjectsComponent } from './sidebar-projects.component';
 import { SidebarViewsComponent } from './sidebar-views.component';
 import { SidebarAllProjectsComponent } from './sidebar-all-projects.component';
 import { SidebarFooterComponent } from './sidebar-footer.component';
+import { WorkspaceSwitcherComponent } from './workspace-switcher.component';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
@@ -26,6 +27,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
     SidebarAllProjectsComponent,
     SidebarViewsComponent,
     SidebarFooterComponent,
+    WorkspaceSwitcherComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
@@ -205,6 +207,11 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
 
       <!-- Abstract background overlay (styled per theme group via :host-context) -->
       <div class="sidebar-overlay"></div>
+
+      <!-- Workspace switcher (mobile only — desktop has it in top-nav) -->
+      <div class="md:hidden px-2 pt-2 pb-1">
+        <app-workspace-switcher [collapsed]="false" layout="topbar" />
+      </div>
 
       <!-- Projects + Views (scrollable) -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-2">

@@ -7,6 +7,9 @@
   />
 }
 
+<!-- Offline Indicator -->
+<app-offline-indicator />
+
 <!-- Main Layout -->
 <div
   class="flex h-screen overflow-hidden bg-mesh"
@@ -40,15 +43,23 @@
   }
 
   <!-- Page Content -->
-  <div class="flex-1 overflow-auto min-w-0">
+  <div class="flex-1 overflow-auto min-w-0 safe-bottom">
     <div
-      class="route-transition-wrapper"
+      class="route-transition-wrapper pb-[56px] md:pb-0"
       [@routeAnimations]="getRouteAnimationData(outlet)"
     >
       <router-outlet #outlet="outlet" />
     </div>
   </div>
 </div>
+
+<!-- Mobile Bottom Navigation (authenticated routes only) -->
+@if (showSidebar()) {
+  <app-mobile-bottom-nav
+    (quickCreate)="onQuickCreate()"
+    (openSidebar)="openMobileSidebar()"
+  />
+}
 
 <!-- Command Palette (deferred until idle, pre-loaded on interaction) -->
 @defer (on idle) {
@@ -112,4 +123,9 @@
 <!-- Workspace Settings Dialog (global, deferred to idle) -->
 @defer (on idle) {
   <app-workspace-settings-dialog />
+}
+
+<!-- Biometric Lock Screen -->
+@if (biometricService.locked()) {
+  <app-lock-screen />
 }

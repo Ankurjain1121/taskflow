@@ -105,13 +105,13 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
   ],
   template: `
     <nav
-      class="top-nav fixed top-0 left-0 right-0 flex items-center px-4 gap-3"
+      class="top-nav safe-top fixed top-0 left-0 right-0 flex items-center px-4 gap-3"
     >
       <!-- Left: hamburger (mobile), Logo, WS Switcher, Nav links -->
       <div class="flex items-center gap-3 min-w-0">
         <!-- Mobile hamburger -->
         <button
-          class="nav-icon-btn lg:hidden p-2.5 rounded-md"
+          class="nav-icon-btn hidden md:block lg:hidden p-2.5 rounded-md"
           (click)="menuToggle.emit()"
           aria-label="Toggle sidebar"
         >
@@ -141,12 +141,12 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           <a
             [routerLink]="myWorkRoute()"
             routerLinkActive="nav-link-active"
-            class="nav-link text-sm px-2.5 py-1.5 rounded-md"
+            class="nav-link text-sm px-3 py-2.5 rounded-md"
           >My Work</a>
           <a
             [routerLink]="reportsRoute()"
             routerLinkActive="nav-link-active"
-            class="nav-link text-sm px-2.5 py-1.5 rounded-md"
+            class="nav-link text-sm px-3 py-2.5 rounded-md"
           >Reports</a>
         </div>
       </div>

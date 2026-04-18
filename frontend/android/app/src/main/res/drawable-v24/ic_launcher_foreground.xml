@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportHeight="108"
+    android:viewportWidth="108">
+
+    <!-- Lightning bolt icon centered in the safe zone (18dp inset on each side) -->
+    <!-- Safe zone: 18,18 to 90,90 (72x72dp area) -->
+    <!-- Bolt centered at 54,54 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,28 L38,56 L50,56 L44,80 L70,48 L56,48 L64,28 Z"
+        android:strokeWidth="0" />
+
+    <!-- "TB" text below the bolt -->
+    <!-- T letter -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,84 L34,87 L40,87 L40,96 L43,96 L43,87 L49,87 L49,84 Z"
+        android:strokeWidth="0" />
+
+    <!-- B letter -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,84 L54,96 L63,96 Q67,96 67,93 Q67,90.5 64,90 Q67,89.5 67,87 Q67,84 63,84 Z
+                          M57,87 L62,87 Q64,87 64,88.5 Q64,90 62,90 L57,90 Z
+                          M57,91 L62.5,91 Q64,91 64,92.5 Q64,94 62.5,94 L57,94 Z"
+        android:strokeWidth="0"
+        android:fillType="evenOdd" />
+</vector>

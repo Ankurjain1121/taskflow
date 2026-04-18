@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { PullToRefreshComponent } from '../../shared/components/pull-to-refresh/pull-to-refresh.component';
 import {
   NotificationService,
   Notification,
@@ -30,7 +31,7 @@ interface NotificationGroup {
   selector: 'app-inbox',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe],
+  imports: [DatePipe, PullToRefreshComponent],
   styles: [
     `
       :host {
@@ -107,6 +108,7 @@ interface NotificationGroup {
     `,
   ],
   template: `
+    <app-pull-to-refresh (refresh)="onPullRefresh($event)">
     <div class="max-w-3xl mx-auto px-4 py-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
@@ -233,6 +235,7 @@ interface NotificationGroup {
         }
       </div>
     </div>
+    </app-pull-to-refresh>
   `,
 })
 export class InboxComponent implements OnInit {
@@ -309,6 +312,13 @@ export class InboxComponent implements OnInit {
     if (notif.link_url) {
       this.router.navigateByUrl(notif.link_url);
     }
+  }
+
+  onPullRefresh(event: { complete: () => void }): void {
+    this.notificationService.listNotifications().subscribe({
+      next: () => event.complete(),
+      error: () => event.complete(),
+    });
   }
 
   markAllRead(): void {

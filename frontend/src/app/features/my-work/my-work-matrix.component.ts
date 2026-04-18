@@ -3,6 +3,8 @@ import {
   signal,
   computed,
   inject,
+  input,
+  effect,
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -794,6 +796,8 @@ const ANIMATION_STORAGE_KEY = 'matrix-animated';
   `],
 })
 export class MyWorkMatrixComponent implements OnInit {
+  readonly refreshTrigger = input(0);
+
   private eisenhowerService = inject(EisenhowerService);
   private taskService = inject(TaskService);
   private quickCreateService = inject(QuickCreateService);
@@ -891,6 +895,15 @@ export class MyWorkMatrixComponent implements OnInit {
 
   shouldAnimate(): boolean {
     return !this.animationDone();
+  }
+
+  constructor() {
+    effect(() => {
+      const trigger = this.refreshTrigger();
+      if (trigger > 0) {
+        this.loadMatrix();
+      }
+    });
   }
 
   ngOnInit() {

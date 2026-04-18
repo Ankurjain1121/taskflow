@@ -7,6 +7,7 @@ import {
   TaskListItem,
   UpdateTaskRequest,
 } from '../../../core/services/task.service';
+import { HapticService } from '../../../core/services/haptic.service';
 import { ProjectStateService } from './project-state.service';
 
 export type CreateDirection = 'above' | 'below';
@@ -14,6 +15,7 @@ export type CreateDirection = 'above' | 'below';
 @Injectable()
 export class ProjectListEditHandler {
   private readonly taskService = inject(TaskService);
+  private readonly hapticService = inject(HapticService);
   private readonly state = inject(ProjectStateService);
 
   /** IDs of optimistic tasks created via Ctrl+Shift+Up/Down that haven't been named yet. */
@@ -258,6 +260,10 @@ export class ProjectListEditHandler {
             : t,
         ),
       );
+
+      if (targetColumn.status_mapping?.done) {
+        this.hapticService.success();
+      }
     }
 
     this.taskService

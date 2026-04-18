@@ -9,13 +9,20 @@ import {
 import { CardComponent } from '../card/card.component';
 import { BadgeComponent } from '../badge/badge.component';
 import { TaskCardData, TaskCardVariant } from './task-card-data';
+import { SwipeableDirective } from '../../directives/swipeable.directive';
 
 @Component({
   selector: 'app-unified-task-card',
   standalone: true,
-  imports: [CardComponent, BadgeComponent],
+  imports: [CardComponent, BadgeComponent, SwipeableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <div
+      appSwipeable
+      [swipeRightEnabled]="showCheckbox()"
+      (swipedRight)="onSwipeComplete()"
+      (swipedLeft)="onSwipeSnooze()"
+    >
     <app-card
       [variant]="'nav'"
       (click)="clicked.emit(task().id)"
@@ -129,10 +136,18 @@ import { TaskCardData, TaskCardVariant } from './task-card-data';
         <ng-content />
       </div>
     </app-card>
+    </div>
   `,
   styles: [`
     :host { display: block; }
     /* Never override global CDK drag styles */
+
+    .swipeable-content {
+      position: relative;
+      z-index: 1;
+      background: inherit;
+      will-change: transform;
+    }
 
     .task-complete-btn {
       width: 18px; height: 18px;
@@ -185,6 +200,15 @@ export class UnifiedTaskCardComponent {
     event.stopPropagation();
     this.completing.set(true);
     this.completed.emit(this.task().id);
+  }
+
+  onSwipeComplete(): void {
+    this.completing.set(true);
+    this.completed.emit(this.task().id);
+  }
+
+  onSwipeSnooze(): void {
+    this.snoozed.emit(this.task().id);
   }
 
   readonly wrapperClasses = computed(() => {

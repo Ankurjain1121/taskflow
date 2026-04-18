@@ -11,6 +11,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -21,6 +22,7 @@ import { TaskService } from '../../core/services/task.service';
 import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { PullToRefreshComponent } from '../../shared/components/pull-to-refresh/pull-to-refresh.component';
 import { CountUpDirective } from '../../shared/directives/count-up.directive';
 import { SmartGreetingComponent } from './components/smart-greeting.component';
 import { StreakCounterComponent } from './components/streak-counter.component';
@@ -53,8 +55,10 @@ interface WorkspaceOption {
     DashboardAct2Component,
     DashboardAct3Component,
     FocusModeComponent,
+    PullToRefreshComponent,
   ],
   template: `
+    <app-pull-to-refresh (refresh)="onPullRefresh($event)">
     <div class="min-h-screen" style="background-color: transparent">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 view-enter">
         <!-- Act 1: Header + Focus Board -->
@@ -220,6 +224,7 @@ interface WorkspaceOption {
         (taskCompleted)="onFocusTaskCompleted($event)"
       />
     </div>
+    </app-pull-to-refresh>
   `,
 })
 export class DashboardComponent implements OnInit {
@@ -354,6 +359,24 @@ export class DashboardComponent implements OnInit {
 
   closeFocusMode(): void {
     this.focusModeOpen.set(false);
+  }
+
+  onPullRefresh(event: { complete: () => void }): void {
+    const wsId = this.selectedWorkspaceId() ?? undefined;
+    this.dashboardService.invalidateCache();
+    forkJoin([
+      this.dashboardService.getStats(wsId),
+      this.dashboardService.getFocusTasks(wsId),
+      this.dashboardService.getStreak(),
+    ]).subscribe({
+      next: ([stats, tasks, streak]) => {
+        this.stats.set(stats);
+        this.focusTasks.set(tasks);
+        this.streak.set(streak);
+        event.complete();
+      },
+      error: () => event.complete(),
+    });
   }
 
   navigateToOnboarding(): void {
