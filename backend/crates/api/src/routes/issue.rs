@@ -10,7 +10,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -42,7 +42,7 @@ fn map_issue_error(e: IssueQueryError) -> AppError {
 // Request bodies
 // ============================================
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateIssueRequest {
     pub title: String,
     pub description: Option<String>,
@@ -80,7 +80,7 @@ pub struct UpdateIssueRequest {
     pub flag: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct ResolveIssueRequest {
     pub resolution_type: IssueResolutionType,
     pub resolution_notes: Option<String>,
@@ -141,7 +141,7 @@ async fn create_issue_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(project_id): Path<Uuid>,
-    Json(body): Json<CreateIssueRequest>,
+    StrictJson(body): StrictJson<CreateIssueRequest>,
 ) -> Result<Json<Issue>> {
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("title cannot be empty".into()));
@@ -228,7 +228,7 @@ async fn resolve_issue_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(issue_id): Path<Uuid>,
-    Json(body): Json<ResolveIssueRequest>,
+    StrictJson(body): StrictJson<ResolveIssueRequest>,
 ) -> Result<Json<Issue>> {
     let project_id = get_issue_project_id(&state.db, issue_id)
         .await?

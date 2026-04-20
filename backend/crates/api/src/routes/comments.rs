@@ -10,13 +10,13 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use std::sync::LazyLock;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::ActivityLogService;
 use crate::state::AppState;
@@ -45,14 +45,14 @@ pub struct ListCommentsResponse {
 }
 
 /// Request body for creating a comment
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateCommentRequest {
     pub content: String,
     pub parent_id: Option<Uuid>,
 }
 
 /// Request body for updating a comment
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct UpdateCommentRequest {
     pub content: String,
 }
@@ -94,7 +94,7 @@ async fn create_comment_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<CreateCommentRequest>,
+    StrictJson(body): StrictJson<CreateCommentRequest>,
 ) -> Result<(StatusCode, Json<CommentWithAuthor>)> {
     // Verify user has access to the task's project
     let project_id = get_task_project_id(&state.db, task_id)
@@ -340,7 +340,7 @@ async fn update_comment_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(comment_id): Path<Uuid>,
-    Json(body): Json<UpdateCommentRequest>,
+    StrictJson(body): StrictJson<UpdateCommentRequest>,
 ) -> Result<Json<CommentWithAuthor>> {
     // Verify ownership
     let author_id = get_comment_author_id(&state.db, comment_id)

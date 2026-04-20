@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AdminUser, TenantContext};
+use crate::extractors::{AdminUser, StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::archive::{PaginatedArchive, list_archive};
@@ -30,7 +30,8 @@ fn default_page_size() -> i64 {
 }
 
 /// Request body for restore operation
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct RestoreRequest {
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -78,7 +79,7 @@ async fn list_archive_handler(
 async fn restore_archive_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(body): Json<RestoreRequest>,
+    StrictJson(body): StrictJson<RestoreRequest>,
 ) -> Result<Json<ArchiveOperationResponse>> {
     let entity_type = TrashEntityType::from_str(&body.entity_type).ok_or_else(|| {
         AppError::BadRequest(format!("Invalid entity type: {}", body.entity_type))

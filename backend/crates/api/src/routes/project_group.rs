@@ -9,7 +9,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -36,7 +36,7 @@ fn map_group_error(e: ProjectGroupQueryError) -> AppError {
 // Request bodies
 // ============================================
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateGroupRequest {
     pub name: String,
     pub color: Option<String>,
@@ -51,7 +51,7 @@ pub struct UpdateGroupRequest {
     pub description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct AssignGroupRequest {
     /// Null to unassign the project from any group.
     pub group_id: Option<Uuid>,
@@ -78,7 +78,7 @@ async fn create_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(workspace_id): Path<Uuid>,
-    Json(body): Json<CreateGroupRequest>,
+    StrictJson(body): StrictJson<CreateGroupRequest>,
 ) -> Result<Json<ProjectGroup>> {
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name cannot be empty".into()));
@@ -162,7 +162,7 @@ async fn assign_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(project_id): Path<Uuid>,
-    Json(body): Json<AssignGroupRequest>,
+    StrictJson(body): StrictJson<AssignGroupRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Load the project to check workspace + membership
     let project = get_project_internal(&state.db, project_id)

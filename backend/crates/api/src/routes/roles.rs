@@ -8,14 +8,14 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{get, put},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use taskbolt_db::models::{BoardMemberRole, Capabilities, WorkspaceRole};
 use taskbolt_db::queries::{projects, workspace_roles, workspaces};
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -25,7 +25,8 @@ use super::common::MessageResponse;
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateRoleRequest {
     pub name: String,
     pub description: Option<String>,
@@ -33,7 +34,8 @@ pub struct CreateRoleRequest {
     pub position: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateRoleRequest {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -70,7 +72,8 @@ impl From<WorkspaceRole> for WorkspaceRoleResponse {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateProjectVisibilityRequest {
     pub visibility: Option<String>,
 }
@@ -149,7 +152,7 @@ async fn create_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<CreateRoleRequest>,
+    StrictJson(payload): StrictJson<CreateRoleRequest>,
 ) -> Result<(axum::http::StatusCode, Json<WorkspaceRoleResponse>)> {
     require_manage_roles(&state.db, workspace_id, auth.0.user_id).await?;
 
@@ -187,7 +190,7 @@ async fn update_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((workspace_id, role_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateRoleRequest>,
+    StrictJson(payload): StrictJson<UpdateRoleRequest>,
 ) -> Result<Json<WorkspaceRoleResponse>> {
     require_manage_roles(&state.db, workspace_id, auth.0.user_id).await?;
 
@@ -276,7 +279,7 @@ async fn update_project_visibility(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(project_id): Path<Uuid>,
-    Json(payload): Json<UpdateProjectVisibilityRequest>,
+    StrictJson(payload): StrictJson<UpdateProjectVisibilityRequest>,
 ) -> Result<Json<ProjectVisibilityResponse>> {
     // Validate the visibility value
     if let Some(ref v) = payload.visibility {

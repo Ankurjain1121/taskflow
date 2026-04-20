@@ -22,7 +22,7 @@ use taskbolt_services::{
 };
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -30,7 +30,8 @@ use crate::state::AppState;
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateInvitationRequest {
     pub email: String,
     pub workspace_id: Uuid,
@@ -40,7 +41,8 @@ pub struct CreateInvitationRequest {
     pub job_title: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct BulkCreateInvitationRequest {
     pub emails: Vec<String>,
     pub workspace_id: Uuid,
@@ -62,7 +64,8 @@ pub struct BulkCreateInvitationResponse {
     pub errors: Vec<BulkInvitationError>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AcceptInvitationRequest {
     pub token: Uuid,
     pub name: String,
@@ -220,7 +223,7 @@ fn spawn_invitation_emails(
 pub async fn create_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<CreateInvitationRequest>,
+    StrictJson(payload): StrictJson<CreateInvitationRequest>,
 ) -> Result<Json<InvitationResponse>> {
     // Reject SuperAdmin role in invitations
     if payload.role == UserRole::SuperAdmin {
@@ -345,7 +348,7 @@ pub async fn validate_handler(
 /// Creates the user account and returns authentication tokens.
 pub async fn accept_handler(
     State(state): State<AppState>,
-    Json(payload): Json<AcceptInvitationRequest>,
+    StrictJson(payload): StrictJson<AcceptInvitationRequest>,
 ) -> Result<Json<AcceptInvitationResponse>> {
     // Validate input
     if payload.name.is_empty() {
@@ -578,7 +581,7 @@ pub async fn list_handler(
 pub async fn bulk_create_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<BulkCreateInvitationRequest>,
+    StrictJson(payload): StrictJson<BulkCreateInvitationRequest>,
 ) -> Result<Json<BulkCreateInvitationResponse>> {
     // Reject SuperAdmin role in bulk invitations
     if payload.role == UserRole::SuperAdmin {

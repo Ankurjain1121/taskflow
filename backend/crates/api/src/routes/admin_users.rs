@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AdminUser, SuperAdminOnly};
+use crate::extractors::{AdminUser, StrictJson, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::UserRole;
@@ -45,7 +45,8 @@ pub struct AdminUserView {
 }
 
 /// Request body for role update
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateRoleRequest {
     pub role: UserRole,
 }
@@ -193,7 +194,7 @@ async fn update_user_role(
     State(state): State<AppState>,
     admin: AdminUser,
     Path(user_id): Path<Uuid>,
-    Json(body): Json<UpdateRoleRequest>,
+    StrictJson(body): StrictJson<UpdateRoleRequest>,
 ) -> Result<Json<UserOperationResponse>> {
     let tenant_id = admin.0.tenant_id;
     let admin_id = admin.0.user_id;
@@ -370,7 +371,8 @@ async fn delete_user(
 }
 
 /// Request body for transferring the SuperAdmin role
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct TransferSuperAdminRequest {
     pub target_user_id: Uuid,
 }
@@ -383,7 +385,7 @@ pub struct TransferSuperAdminRequest {
 async fn transfer_super_admin(
     State(state): State<AppState>,
     super_admin: SuperAdminOnly,
-    Json(body): Json<TransferSuperAdminRequest>,
+    StrictJson(body): StrictJson<TransferSuperAdminRequest>,
 ) -> Result<Json<UserOperationResponse>> {
     let tenant_id = super_admin.0.tenant_id;
     let current_user_id = super_admin.0.user_id;

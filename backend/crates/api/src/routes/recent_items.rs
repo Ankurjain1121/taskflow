@@ -8,7 +8,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::recent_items;
@@ -23,7 +23,7 @@ fn default_limit() -> i64 {
     20
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct UpsertRecentItemRequest {
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -45,7 +45,7 @@ async fn list_recent_items_handler(
 async fn upsert_recent_item_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(body): Json<UpsertRecentItemRequest>,
+    StrictJson(body): StrictJson<UpsertRecentItemRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Validate entity_type (accept both "project" and legacy "board")
     if body.entity_type != "task" && body.entity_type != "project" && body.entity_type != "board" {

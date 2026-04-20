@@ -8,7 +8,7 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, put},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use taskbolt_db::models::BoardMemberRole;
@@ -16,7 +16,7 @@ use taskbolt_db::queries::{project_statuses, projects};
 use taskbolt_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
@@ -28,7 +28,8 @@ use super::validation::{MAX_SHORT_NAME_LEN, validate_required_string};
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateStatusRequest {
     pub name: String,
     pub color: Option<String>,
@@ -37,33 +38,39 @@ pub struct CreateStatusRequest {
     pub insert_at: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct RenameStatusRequest {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ReorderStatusRequest {
     pub new_index: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateStatusTypeRequest {
     #[serde(rename = "type")]
     pub status_type: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateStatusColorRequest {
     pub color: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct DeleteStatusRequest {
     pub replace_with_status_id: Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateTransitionsRequest {
     pub allowed: Option<Vec<Uuid>>,
 }
@@ -160,7 +167,7 @@ async fn create_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(project_id): Path<Uuid>,
-    Json(payload): Json<CreateStatusRequest>,
+    StrictJson(payload): StrictJson<CreateStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
     require_editor_access(&state, project_id, auth.0.user_id).await?;
     require_capability(
@@ -225,7 +232,7 @@ async fn rename_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<RenameStatusRequest>,
+    StrictJson(payload): StrictJson<RenameStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
     validate_required_string("Status name", &payload.name, MAX_SHORT_NAME_LEN)?;
 
@@ -257,7 +264,7 @@ async fn reorder_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<ReorderStatusRequest>,
+    StrictJson(payload): StrictJson<ReorderStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
     let all_statuses_result = sqlx::query_as::<_, taskbolt_db::models::ProjectStatus>(
         r#"
@@ -341,7 +348,7 @@ async fn update_status_type(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateStatusTypeRequest>,
+    StrictJson(payload): StrictJson<UpdateStatusTypeRequest>,
 ) -> Result<Json<StatusResponse>> {
     // Auth BEFORE write
     let project_id = get_project_id_for_status(&state, id).await?;
@@ -377,7 +384,7 @@ async fn update_color(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateStatusColorRequest>,
+    StrictJson(payload): StrictJson<UpdateStatusColorRequest>,
 ) -> Result<Json<StatusResponse>> {
     // Auth BEFORE write
     let project_id = get_project_id_for_status(&state, id).await?;
@@ -424,7 +431,7 @@ async fn update_transitions(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateTransitionsRequest>,
+    StrictJson(payload): StrictJson<UpdateTransitionsRequest>,
 ) -> Result<Json<StatusResponse>> {
     let project_id = get_project_id_for_status(&state, id).await?;
     require_editor_access(&state, project_id, auth.0.user_id).await?;
@@ -449,7 +456,7 @@ async fn delete_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<DeleteStatusRequest>,
+    StrictJson(payload): StrictJson<DeleteStatusRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Look up status to find project_id
     let statuses = sqlx::query_as::<_, taskbolt_db::models::ProjectStatus>(

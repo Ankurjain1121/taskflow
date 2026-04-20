@@ -4,12 +4,11 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, put},
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValue};
@@ -29,7 +28,8 @@ fn map_cf_error(e: CustomFieldQueryError) -> AppError {
 }
 
 /// Request body for creating a custom field
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateCustomFieldRequest {
     pub name: String,
     pub field_type: CustomFieldType,
@@ -39,7 +39,8 @@ pub struct CreateCustomFieldRequest {
 }
 
 /// Request body for updating a custom field
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateCustomFieldRequest {
     pub name: Option<String>,
     pub options: Option<serde_json::Value>,
@@ -48,7 +49,8 @@ pub struct UpdateCustomFieldRequest {
 }
 
 /// Request body for setting task custom field values
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SetTaskFieldValuesRequest {
     pub values: Vec<SetFieldValue>,
 }
@@ -73,7 +75,7 @@ async fn create_custom_field_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateCustomFieldRequest>,
+    StrictJson(body): StrictJson<CreateCustomFieldRequest>,
 ) -> Result<Json<BoardCustomField>> {
     let input = CreateCustomFieldInput {
         board_id,
@@ -98,7 +100,7 @@ async fn update_custom_field_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(field_id): Path<Uuid>,
-    Json(body): Json<UpdateCustomFieldRequest>,
+    StrictJson(body): StrictJson<UpdateCustomFieldRequest>,
 ) -> Result<Json<BoardCustomField>> {
     let input = UpdateCustomFieldInput {
         name: body.name,
@@ -148,7 +150,7 @@ async fn set_task_field_values_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<SetTaskFieldValuesRequest>,
+    StrictJson(body): StrictJson<SetTaskFieldValuesRequest>,
 ) -> Result<Json<Vec<TaskCustomFieldValue>>> {
     let values = set_task_custom_field_values(&state.db, task_id, tenant.user_id, body.values)
         .await

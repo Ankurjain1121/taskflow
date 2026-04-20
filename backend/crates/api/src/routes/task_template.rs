@@ -8,7 +8,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::task_template::TaskTemplate;
@@ -24,13 +24,15 @@ pub struct ListTemplatesQuery {
     pub board_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SaveAsTemplateRequest {
     pub name: String,
     pub scope: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateFromTemplateRequest {
     pub board_id: Uuid,
     pub column_id: Uuid,
@@ -143,7 +145,7 @@ async fn save_as_template(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<SaveAsTemplateRequest>,
+    StrictJson(body): StrictJson<SaveAsTemplateRequest>,
 ) -> Result<Json<TaskTemplate>> {
     let template = save_task_as_template(
         &state.db,
@@ -168,7 +170,7 @@ async fn create_from_template(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(template_id): Path<Uuid>,
-    Json(body): Json<CreateFromTemplateRequest>,
+    StrictJson(body): StrictJson<CreateFromTemplateRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let task_id = create_task_from_template(
         &state.db,

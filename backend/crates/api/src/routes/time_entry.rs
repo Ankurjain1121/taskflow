@@ -10,7 +10,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::get_task_project_id;
@@ -21,14 +21,14 @@ use taskbolt_db::queries::time_entries::{
 };
 
 /// Request body for starting a timer
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct StartTimerRequest {
     pub description: Option<String>,
     pub is_billable: Option<bool>,
 }
 
 /// Request body for creating a manual time entry
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateManualEntryRequest {
     pub description: Option<String>,
     pub started_at: DateTime<Utc>,
@@ -38,7 +38,7 @@ pub struct CreateManualEntryRequest {
 }
 
 /// Request body for updating a time entry
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct UpdateEntryRequest {
     pub description: Option<String>,
     pub started_at: Option<DateTime<Utc>>,
@@ -89,7 +89,7 @@ async fn start_timer_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<StartTimerRequest>,
+    StrictJson(body): StrictJson<StartTimerRequest>,
 ) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let board_id = get_task_project_id(&state.db, task_id)
         .await?
@@ -129,7 +129,7 @@ async fn create_manual_entry_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<CreateManualEntryRequest>,
+    StrictJson(body): StrictJson<CreateManualEntryRequest>,
 ) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let board_id = get_task_project_id(&state.db, task_id)
         .await?
@@ -159,7 +159,7 @@ async fn update_entry_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-    Json(body): Json<UpdateEntryRequest>,
+    StrictJson(body): StrictJson<UpdateEntryRequest>,
 ) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let input = UpdateEntryInput {
         description: body.description,

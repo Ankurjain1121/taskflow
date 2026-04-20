@@ -9,11 +9,11 @@ use axum::{
     routing::{get, put},
 };
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -23,13 +23,15 @@ use super::validation::{MAX_SHORT_NAME_LEN, validate_hex_color, validate_require
 // DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateLabelRequest {
     pub name: String,
     pub color: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateLabelRequest {
     pub name: String,
     pub color: String,
@@ -91,7 +93,7 @@ async fn create_label(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<CreateLabelRequest>,
+    StrictJson(payload): StrictJson<CreateLabelRequest>,
 ) -> Result<Json<LabelResponse>> {
     // Verify workspace membership
     let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
@@ -144,7 +146,7 @@ async fn update_label_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((workspace_id, label_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateLabelRequest>,
+    StrictJson(payload): StrictJson<UpdateLabelRequest>,
 ) -> Result<Json<LabelResponse>> {
     // Verify workspace membership
     let is_member = taskbolt_db::queries::workspaces::is_workspace_member(

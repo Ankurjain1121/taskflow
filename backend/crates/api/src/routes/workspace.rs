@@ -19,7 +19,7 @@ use taskbolt_db::queries::workspaces;
 use super::common::resolve_effective_permissions;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, SuperAdminOnly};
+use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, StrictJson, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
@@ -34,13 +34,15 @@ use super::workspace_helpers::fire_member_joined_trigger;
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateWorkspaceRequest {
     pub name: String,
     pub description: Option<String>,
@@ -58,12 +60,14 @@ fn default_limit() -> i64 {
     10
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AddMemberRequest {
     pub user_id: Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateMemberRoleRequest {
     pub role: WorkspaceMemberRole,
 }
@@ -119,7 +123,8 @@ pub struct UserSearchResult {
     pub avatar_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct BulkAddMembersRequest {
     pub user_ids: Vec<Uuid>,
 }
@@ -265,7 +270,7 @@ async fn get_workspace(
 async fn create_workspace(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<CreateWorkspaceRequest>,
+    StrictJson(payload): StrictJson<CreateWorkspaceRequest>,
 ) -> Result<Json<WorkspaceResponse>> {
     // Validate string lengths
     validate_required_string("Workspace name", &payload.name, MAX_NAME_LEN)?;
@@ -308,7 +313,7 @@ async fn update_workspace(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateWorkspaceRequest>,
+    StrictJson(payload): StrictJson<UpdateWorkspaceRequest>,
 ) -> Result<Json<WorkspaceResponse>> {
     // Check membership
     let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
@@ -461,7 +466,7 @@ async fn add_member(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<AddMemberRequest>,
+    StrictJson(payload): StrictJson<AddMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Check if auth user is a member
     let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
@@ -534,7 +539,7 @@ async fn update_member_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((workspace_id, target_user_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateMemberRoleRequest>,
+    StrictJson(payload): StrictJson<UpdateMemberRoleRequest>,
 ) -> Result<Json<MemberInfo>> {
     // Cannot change own role
     if auth.0.user_id == target_user_id {
@@ -702,7 +707,7 @@ async fn bulk_add_members(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<BulkAddMembersRequest>,
+    StrictJson(payload): StrictJson<BulkAddMembersRequest>,
 ) -> Result<Json<BulkAddMembersResponse>> {
     if payload.user_ids.is_empty() {
         return Err(AppError::BadRequest("No user IDs provided".into()));

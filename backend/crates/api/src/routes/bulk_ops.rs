@@ -7,12 +7,11 @@ use axum::{
     routing::{get, post},
 };
 use redis::AsyncCommands;
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
@@ -21,7 +20,7 @@ use taskbolt_db::queries::bulk_operations::{self, BulkAction, TaskSnapshot};
 const MAX_BULK_TASK_IDS: usize = 200;
 
 /// Request body shared by preview and execute endpoints.
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct BulkOperationRequest {
     pub task_ids: Vec<Uuid>,
     pub action: BulkAction,
@@ -32,7 +31,7 @@ async fn preview_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkOperationRequest>,
+    StrictJson(req): StrictJson<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if req.task_ids.len() > MAX_BULK_TASK_IDS {
         return Err(AppError::BadRequest(format!(
@@ -59,7 +58,7 @@ async fn execute_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkOperationRequest>,
+    StrictJson(req): StrictJson<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if req.task_ids.len() > MAX_BULK_TASK_IDS {
         return Err(AppError::BadRequest(format!(

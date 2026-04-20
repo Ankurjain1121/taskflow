@@ -8,14 +8,13 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post},
 };
-use serde::Deserialize;
 use uuid::Uuid;
 
 use taskbolt_db::models::{PositionWithHolders, RecurringTaskConfig};
 use taskbolt_db::queries::{positions, projects};
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
+use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -25,7 +24,8 @@ use super::common::MessageResponse;
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AddHolderRequest {
     pub user_id: Uuid,
 }
@@ -229,7 +229,7 @@ async fn add_holder(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<AddHolderRequest>,
+    StrictJson(payload): StrictJson<AddHolderRequest>,
 ) -> Result<Json<MessageResponse>> {
     let position = positions::get_position(&state.db, id)
         .await?

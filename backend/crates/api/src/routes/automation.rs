@@ -9,7 +9,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
@@ -29,7 +29,8 @@ fn map_automation_error(e: AutomationQueryError) -> AppError {
 }
 
 /// Request body for creating an automation rule
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateRuleRequest {
     pub name: String,
     pub trigger: AutomationTrigger,
@@ -55,7 +56,8 @@ fn default_action_config() -> serde_json::Value {
 }
 
 /// Request body for updating an automation rule
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateRuleRequest {
     pub name: Option<String>,
     pub trigger: Option<AutomationTrigger>,
@@ -125,7 +127,7 @@ async fn create_rule_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateRuleRequest>,
+    StrictJson(body): StrictJson<CreateRuleRequest>,
 ) -> Result<Json<AutomationRuleWithActions>> {
     let input = CreateRuleInput {
         name: body.name,
@@ -168,7 +170,7 @@ async fn update_rule_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(rule_id): Path<Uuid>,
-    Json(body): Json<UpdateRuleRequest>,
+    StrictJson(body): StrictJson<UpdateRuleRequest>,
 ) -> Result<Json<AutomationRuleWithActions>> {
     let input = UpdateRuleInput {
         name: body.name,

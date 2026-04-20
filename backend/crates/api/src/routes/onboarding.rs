@@ -24,7 +24,7 @@ use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::sample_board::generate_sample_board;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -48,7 +48,8 @@ pub struct InvitationContextResponse {
     pub board_ids: Vec<Uuid>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
     pub description: Option<String>,
@@ -59,7 +60,8 @@ pub struct CreateWorkspaceResponse {
     pub workspace_id: Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct InviteMembersRequest {
     pub workspace_id: Uuid,
     pub emails: Vec<String>,
@@ -73,7 +75,8 @@ pub struct InviteMembersResponse {
     pub invited: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct GenerateSampleBoardRequest {
     pub workspace_id: Uuid,
     pub use_case: Option<String>,
@@ -171,7 +174,7 @@ async fn get_invitation_context(
 async fn create_workspace(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<CreateWorkspaceRequest>,
+    StrictJson(payload): StrictJson<CreateWorkspaceRequest>,
 ) -> Result<Json<CreateWorkspaceResponse>> {
     // Validate input
     validate_required_string("Workspace name", &payload.name, MAX_NAME_LEN)?;
@@ -204,7 +207,7 @@ async fn create_workspace(
 async fn invite_members(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<InviteMembersRequest>,
+    StrictJson(payload): StrictJson<InviteMembersRequest>,
 ) -> Result<Json<InviteMembersResponse>> {
     // Validate max 10 emails
     if payload.emails.len() > 10 {
@@ -321,7 +324,7 @@ async fn invite_members(
 async fn generate_sample_board_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<GenerateSampleBoardRequest>,
+    StrictJson(payload): StrictJson<GenerateSampleBoardRequest>,
 ) -> Result<Json<GenerateSampleBoardResponse>> {
     // Verify user is a workspace member
     let is_member =

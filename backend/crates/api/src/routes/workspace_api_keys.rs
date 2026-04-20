@@ -4,18 +4,19 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::ManagerOrAdmin;
+use crate::extractors::{StrictJson, ManagerOrAdmin};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use taskbolt_db::queries::{api_keys, is_workspace_member};
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateApiKeyRequest {
     pub name: String,
 }
@@ -44,7 +45,7 @@ async fn create_api_key(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
     Path(workspace_id): Path<Uuid>,
-    Json(body): Json<CreateApiKeyRequest>,
+    StrictJson(body): StrictJson<CreateApiKeyRequest>,
 ) -> Result<Json<CreateApiKeyResponse>> {
     let name = body.name.trim();
     if name.is_empty() || name.len() > 100 {

@@ -4,11 +4,10 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post},
 };
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::favorites::{
@@ -16,7 +15,8 @@ use taskbolt_db::queries::favorites::{
 };
 
 /// Request body for adding a favorite
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AddFavoriteRequest {
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -42,7 +42,7 @@ async fn list_favorites_handler(
 async fn add_favorite_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(body): Json<AddFavoriteRequest>,
+    StrictJson(body): StrictJson<AddFavoriteRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Validate entity_type (accept both "project" and legacy "board")
     if body.entity_type != "task" && body.entity_type != "project" && body.entity_type != "board" {

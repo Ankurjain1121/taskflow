@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::ManagerOrAdmin;
+use crate::extractors::{StrictJson, ManagerOrAdmin};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::is_workspace_member;
@@ -34,7 +34,8 @@ fn default_threshold() -> i64 {
 }
 
 /// Request body for task reassignment
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ReassignTasksRequest {
     pub task_ids: Vec<Uuid>,
     pub from_user_id: Uuid,
@@ -124,7 +125,7 @@ async fn reassign_tasks_handler(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<ReassignTasksRequest>,
+    StrictJson(payload): StrictJson<ReassignTasksRequest>,
 ) -> Result<Json<ReassignTasksResponse>> {
     let auth = manager.0;
 

@@ -9,7 +9,7 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use taskbolt_db::models::WorkspaceJobRole;
@@ -19,7 +19,7 @@ use taskbolt_db::queries::workspace_job_roles::{
 use taskbolt_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -29,14 +29,16 @@ use super::common::MessageResponse;
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateJobRoleRequest {
     pub name: String,
     pub color: Option<String>,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateJobRoleRequest {
     pub name: Option<String>,
     pub color: Option<String>,
@@ -54,7 +56,8 @@ pub struct JobRoleResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AssignRoleRequest {
     pub job_role_id: Uuid,
 }
@@ -136,7 +139,7 @@ async fn create_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<CreateJobRoleRequest>,
+    StrictJson(payload): StrictJson<CreateJobRoleRequest>,
 ) -> Result<Json<JobRoleResponse>> {
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
@@ -168,7 +171,7 @@ async fn update_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((workspace_id, role_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateJobRoleRequest>,
+    StrictJson(payload): StrictJson<UpdateJobRoleRequest>,
 ) -> Result<Json<JobRoleResponse>> {
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
@@ -231,7 +234,7 @@ async fn assign_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((workspace_id, user_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<AssignRoleRequest>,
+    StrictJson(payload): StrictJson<AssignRoleRequest>,
 ) -> Result<Json<MessageResponse>> {
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;

@@ -4,12 +4,11 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -23,7 +22,7 @@ use taskbolt_db::queries::milestones::{
 };
 
 /// Request body for creating a milestone (Phase)
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateMilestoneRequest {
     pub name: String,
     pub description: Option<String>,
@@ -35,7 +34,7 @@ pub struct CreateMilestoneRequest {
 }
 
 /// Request body for updating a milestone (Phase)
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct UpdateMilestoneRequest {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -48,7 +47,7 @@ pub struct UpdateMilestoneRequest {
 }
 
 /// Request body for assigning a task to a milestone
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct AssignMilestoneRequest {
     pub milestone_id: Uuid,
 }
@@ -82,7 +81,7 @@ async fn create_milestone_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateMilestoneRequest>,
+    StrictJson(body): StrictJson<CreateMilestoneRequest>,
 ) -> Result<Json<Milestone>> {
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("Name cannot be empty".into()));
@@ -135,7 +134,7 @@ async fn update_milestone_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(milestone_id): Path<Uuid>,
-    Json(body): Json<UpdateMilestoneRequest>,
+    StrictJson(body): StrictJson<UpdateMilestoneRequest>,
 ) -> Result<Json<Milestone>> {
     // Verify board membership through milestone -> board
     let board_id = get_milestone_board_id(&state.db, milestone_id)
@@ -205,7 +204,7 @@ async fn assign_milestone_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<AssignMilestoneRequest>,
+    StrictJson(body): StrictJson<AssignMilestoneRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Verify board membership through task -> board
     let board_id = get_task_project_id(&state.db, task_id)

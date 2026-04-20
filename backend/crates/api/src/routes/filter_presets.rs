@@ -9,11 +9,11 @@ use axum::{
     routing::get,
 };
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -21,13 +21,15 @@ use crate::state::AppState;
 // DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateFilterPresetRequest {
     pub name: String,
     pub filters: serde_json::Value,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateFilterPresetRequest {
     pub name: Option<String>,
     pub filters: Option<serde_json::Value>,
@@ -80,7 +82,7 @@ async fn create_preset(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(project_id): Path<Uuid>,
-    Json(payload): Json<CreateFilterPresetRequest>,
+    StrictJson(payload): StrictJson<CreateFilterPresetRequest>,
 ) -> Result<Json<FilterPresetResponse>> {
     let name = payload.name.trim();
     if name.is_empty() {
@@ -128,7 +130,7 @@ async fn update_preset(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((project_id, preset_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateFilterPresetRequest>,
+    StrictJson(payload): StrictJson<UpdateFilterPresetRequest>,
 ) -> Result<Json<FilterPresetResponse>> {
     // Verify ownership
     let existing: Option<FilterPresetResponse> = sqlx::query_as(

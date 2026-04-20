@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::eisenhower::{
@@ -31,7 +31,8 @@ pub struct EisenhowerQueryParams {
 }
 
 /// Request body for updating Eisenhower overrides
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateEisenhowerRequest {
     pub urgency: Option<bool>,
     pub importance: Option<bool>,
@@ -71,7 +72,7 @@ async fn update_task_eisenhower(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(req): Json<UpdateEisenhowerRequest>,
+    StrictJson(req): StrictJson<UpdateEisenhowerRequest>,
 ) -> Result<Json<()>> {
     // Verify user has access to the task via project membership
     let project_id = get_task_project_id(&state.db, task_id)

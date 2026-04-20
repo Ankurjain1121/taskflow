@@ -1,9 +1,9 @@
 use axum::{Json, Router, extract::State, middleware::from_fn_with_state, routing::post};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
+use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_services::{MinioConfig, MinioService};
@@ -11,7 +11,8 @@ use taskbolt_services::{MinioConfig, MinioService};
 const MAX_AVATAR_SIZE: i64 = 5_242_880; // 5MB
 const ALLOWED_IMAGE_MIMES: &[&str] = &["image/jpeg", "image/png", "image/webp"];
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UploadRequest {
     pub file_name: String,
     pub file_size: i64,
@@ -24,7 +25,8 @@ pub struct UploadResponse {
     pub storage_key: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ConfirmRequest {
     pub storage_key: String,
 }
@@ -48,7 +50,7 @@ fn validate_image_upload(body: &UploadRequest) -> Result<()> {
 async fn upload_avatar(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(body): Json<UploadRequest>,
+    StrictJson(body): StrictJson<UploadRequest>,
 ) -> Result<Json<UploadResponse>> {
     validate_image_upload(&body)?;
 
@@ -71,7 +73,7 @@ async fn upload_avatar(
 async fn confirm_avatar(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(body): Json<ConfirmRequest>,
+    StrictJson(body): StrictJson<ConfirmRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Ownership check: storage_key MUST start with avatars/{user_id}/
     let expected_prefix = format!("avatars/{}/", auth.0.user_id);
@@ -108,7 +110,7 @@ async fn confirm_avatar(
 async fn upload_workspace_logo(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
-    Json(body): Json<UploadLogoRequest>,
+    StrictJson(body): StrictJson<UploadLogoRequest>,
 ) -> Result<Json<UploadResponse>> {
     validate_image_upload(&body.upload)?;
 
@@ -139,7 +141,7 @@ async fn upload_workspace_logo(
 async fn confirm_workspace_logo(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
-    Json(body): Json<ConfirmLogoRequest>,
+    StrictJson(body): StrictJson<ConfirmLogoRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Ownership check: storage_key MUST start with logos/{workspace_id}/
     let expected_prefix = format!("logos/{}/", body.workspace_id);
@@ -177,14 +179,16 @@ async fn confirm_workspace_logo(
     Ok(Json(serde_json::json!({ "logo_url": logo_url })))
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UploadLogoRequest {
     pub workspace_id: Uuid,
     #[serde(flatten)]
     pub upload: UploadRequest,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ConfirmLogoRequest {
     pub workspace_id: Uuid,
     pub storage_key: String,

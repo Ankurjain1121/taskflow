@@ -4,12 +4,11 @@ use axum::{
     middleware::from_fn_with_state,
     routing::get,
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -32,7 +31,7 @@ fn map_err(e: TaskIssueLinkError) -> AppError {
     }
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct LinkIssueRequest {
     pub issue_id: Uuid,
 }
@@ -42,7 +41,7 @@ async fn link_issue_to_task(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<LinkIssueRequest>,
+    StrictJson(body): StrictJson<LinkIssueRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let project_id = get_task_project_id(&state.db, task_id)
         .await?

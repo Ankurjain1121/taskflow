@@ -8,11 +8,10 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{get, patch, put},
 };
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::saved_views::{
@@ -104,7 +103,8 @@ async fn delete_saved_view_handler(
 }
 
 /// Request body for pin/unpin
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct PinRequest {
     pub pinned: bool,
 }
@@ -114,7 +114,7 @@ async fn toggle_pin_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-    Json(input): Json<PinRequest>,
+    StrictJson(input): StrictJson<PinRequest>,
 ) -> Result<Json<SavedView>> {
     let view = saved_views::toggle_pin(&state.db, id, tenant.user_id, input.pinned)
         .await
