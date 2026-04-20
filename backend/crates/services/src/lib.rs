@@ -6,8 +6,8 @@ pub mod jobs;
 pub mod minio;
 pub mod notifications;
 pub mod novu;
-pub mod reports;
 pub mod presence;
+pub mod reports;
 pub mod sample_board;
 #[cfg(test)]
 pub(crate) mod sample_data;

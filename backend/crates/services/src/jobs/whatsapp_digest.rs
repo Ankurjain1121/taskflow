@@ -451,16 +451,8 @@ fn format_weekly_message(
         greeting, name
     );
 
-    let _ = writeln!(
-        msg,
-        "\n\u{2705} *Completed this week:* {}",
-        completed_week
-    );
-    let _ = writeln!(
-        msg,
-        "\u{1F4DD} *Created this week:* {}",
-        created_week
-    );
+    let _ = writeln!(msg, "\n\u{2705} *Completed this week:* {}", completed_week);
+    let _ = writeln!(msg, "\u{1F4DD} *Created this week:* {}", created_week);
     let _ = writeln!(msg, "\u{1F4CB} *Still pending:* {}", pending);
 
     if overdue > 0 {
@@ -624,22 +616,17 @@ pub async fn send_admin_daily_org_report(
         }
 
         // Get workspace name
-        let workspace_name: String = sqlx::query_scalar(
-            "SELECT name FROM workspaces WHERE id = $1",
-        )
-        .bind(workspace_id)
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_else(|| "Workspace".to_string());
+        let workspace_name: String =
+            sqlx::query_scalar("SELECT name FROM workspaces WHERE id = $1")
+                .bind(workspace_id)
+                .fetch_optional(pool)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Workspace".to_string());
 
-        let message = format_admin_org_report(
-            admin_name,
-            &workspace_name,
-            &employee_stats,
-            app_url,
-        );
+        let message =
+            format_admin_org_report(admin_name, &workspace_name, &employee_stats, app_url);
 
         match waha_client.send_message(admin_phone, &message).await {
             Ok(()) => {
@@ -709,11 +696,7 @@ fn format_admin_org_report(
             if total_overdue == 1 { "" } else { "s" }
         );
     }
-    let _ = writeln!(
-        msg,
-        "\u{1F4CB} *Total pending:* {}",
-        total_pending
-    );
+    let _ = writeln!(msg, "\u{1F4CB} *Total pending:* {}", total_pending);
 
     // Per-employee breakdown
     let _ = writeln!(msg, "\n\u{1F465} *Team Breakdown:*");
@@ -807,9 +790,14 @@ pub async fn send_enhanced_daily_digests(
     // Fetch ALL users with phone numbers (not just opted-in for digest)
     // Admin requested all assignees get reminders
     #[allow(clippy::type_complexity)]
-    let users: Vec<(Uuid, String, String, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>)> =
-        sqlx::query_as(
-            r#"
+    let users: Vec<(
+        Uuid,
+        String,
+        String,
+        Option<chrono::NaiveTime>,
+        Option<chrono::NaiveTime>,
+    )> = sqlx::query_as(
+        r#"
             SELECT u.id, u.name, u.phone_number, up.quiet_hours_start, up.quiet_hours_end
             FROM users u
             LEFT JOIN user_preferences up ON up.user_id = u.id
@@ -818,9 +806,9 @@ pub async fn send_enhanced_daily_digests(
               AND u.phone_number != ''
             ORDER BY u.id
             "#,
-        )
-        .fetch_all(pool)
-        .await?;
+    )
+    .fetch_all(pool)
+    .await?;
 
     if users.is_empty() {
         tracing::info!("Enhanced daily digest: no users with phone numbers");
@@ -926,7 +914,11 @@ fn format_enhanced_daily_message(
 
     // Summary stats
     if completed_yesterday > 0 {
-        let _ = writeln!(msg, "\u{2705} *Completed yesterday:* {}", completed_yesterday);
+        let _ = writeln!(
+            msg,
+            "\u{2705} *Completed yesterday:* {}",
+            completed_yesterday
+        );
     }
 
     if overdue > 0 {
@@ -958,9 +950,17 @@ fn format_enhanced_daily_message(
                     if remaining.num_seconds() < 0 {
                         format!("{} \u{26A0}\u{FE0F} OVERDUE", dt_ist.format("%I:%M %p"))
                     } else if remaining.num_hours() < 2 {
-                        format!("{} \u{23F3} *{}m left*", dt_ist.format("%I:%M %p"), remaining.num_minutes())
+                        format!(
+                            "{} \u{23F3} *{}m left*",
+                            dt_ist.format("%I:%M %p"),
+                            remaining.num_minutes()
+                        )
                     } else {
-                        format!("{} ({}h left)", dt_ist.format("%I:%M %p"), remaining.num_hours())
+                        format!(
+                            "{} ({}h left)",
+                            dt_ist.format("%I:%M %p"),
+                            remaining.num_hours()
+                        )
                     }
                 }
                 None => "No time set".to_string(),

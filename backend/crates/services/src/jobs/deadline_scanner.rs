@@ -77,9 +77,7 @@ pub async fn scan_deadlines(
         }
     }
 
-    Err(last_err.unwrap_or_else(|| {
-        DeadlineScannerError::Database(sqlx::Error::RowNotFound)
-    }))
+    Err(last_err.unwrap_or_else(|| DeadlineScannerError::Database(sqlx::Error::RowNotFound)))
 }
 
 /// Inner implementation of the deadline scanner logic.

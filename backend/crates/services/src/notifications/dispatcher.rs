@@ -282,16 +282,11 @@ pub async fn notify_with_metadata(
                         }
                     });
 
-                    // Send as button message if we have a link, plain text otherwise
+                    // Meta deprecated interactive buttons on unofficial WhatsApp APIs.
+                    // Use sendText with linkPreview: true (auto-scrapes OG tags from URL).
                     let send_result = if let Some(ref url) = full_url {
                         waha_client
-                            .send_button_message(
-                                &phone_number,
-                                &message,
-                                "View Details",
-                                url,
-                                Some("TaskBolt"),
-                            )
+                            .send_link_message(&phone_number, &message, url)
                             .await
                     } else {
                         waha_client.send_message(&phone_number, &message).await

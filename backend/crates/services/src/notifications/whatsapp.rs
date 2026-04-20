@@ -45,11 +45,7 @@ pub fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
     }
 
     // Must be between 8 and 15 digits (plus the +)
-    let digits: String = phone
-        .chars()
-        .skip(1)
-        .filter(char::is_ascii_digit)
-        .collect();
+    let digits: String = phone.chars().skip(1).filter(char::is_ascii_digit).collect();
 
     if digits.len() < 7 || digits.len() > 15 {
         return Err(WhatsAppError::InvalidPhoneNumber(format!(
@@ -85,35 +81,51 @@ pub struct WahaClient {
     session_name: String,
 }
 
-/// Payload for sending a text message via WAHA
+/// Payload for sending a text message via WAHA.
+/// Includes link preview flags so URLs in the text auto-scrape OG tags.
 #[derive(Serialize)]
 struct SendMessagePayload<'a> {
     #[serde(rename = "chatId")]
     chat_id: String,
     text: &'a str,
     session: &'a str,
+    #[serde(rename = "linkPreview", skip_serializing_if = "Option::is_none")]
+    link_preview: Option<bool>,
+    #[serde(
+        rename = "linkPreviewHighQuality",
+        skip_serializing_if = "Option::is_none"
+    )]
+    link_preview_high_quality: Option<bool>,
 }
 
-/// Payload for sending a button message via WAHA `/api/sendButtons`
+/// Payload for `/api/send/link-custom-preview` (WAHA Plus only).
+/// Lets us override the scraped OG preview with branded title/description/image.
 #[derive(Serialize)]
-struct SendButtonPayload<'a> {
+struct LinkCustomPreviewPayload<'a> {
     #[serde(rename = "chatId")]
     chat_id: String,
-    body: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    footer: Option<&'a str>,
-    buttons: Vec<ButtonItem<'a>>,
+    text: &'a str,
     session: &'a str,
+    #[serde(
+        rename = "linkPreviewHighQuality",
+        skip_serializing_if = "Option::is_none"
+    )]
+    link_preview_high_quality: Option<bool>,
+    preview: LinkCustomPreview<'a>,
 }
 
-/// A single button in a WAHA button message
 #[derive(Serialize)]
-struct ButtonItem<'a> {
-    #[serde(rename = "type")]
-    button_type: &'a str,
-    text: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<&'a str>,
+struct LinkCustomPreview<'a> {
+    url: &'a str,
+    title: &'a str,
+    description: &'a str,
+    image: LinkCustomPreviewImage<'a>,
+}
+
+#[derive(Serialize)]
+struct LinkCustomPreviewImage<'a> {
+    mimetype: &'a str,
+    url: &'a str,
 }
 
 /// Rich metadata for notification messages.
@@ -180,6 +192,8 @@ impl WahaClient {
             chat_id,
             text: message,
             session: &self.session_name,
+            link_preview: Some(true),
+            link_preview_high_quality: Some(true),
         };
 
         let response = self
@@ -205,15 +219,41 @@ impl WahaClient {
         Ok(())
     }
 
-    /// Send a WhatsApp message with a URL button.
-    /// Falls back to plain text with link if the buttons endpoint fails.
-    pub async fn send_button_message(
+    /// Send a WhatsApp message with a link.
+    ///
+    /// Appends the URL to the body and relies on `linkPreview: true` in the
+    /// `/api/sendText` payload to auto-scrape OG tags from the link target.
+    /// Works on all WAHA engines/tiers (no interactive buttons — Meta
+    /// deprecated those on unofficial APIs in 2023–2024).
+    pub async fn send_link_message(
         &self,
         phone_number: &str,
         body: &str,
-        button_text: &str,
-        button_url: &str,
-        footer: Option<&str>,
+        link_url: &str,
+    ) -> Result<(), WhatsAppError> {
+        let message = if body.is_empty() {
+            link_url.to_string()
+        } else {
+            format!("{}\n\n{}", body, link_url)
+        };
+        self.send_message(phone_number, &message).await
+    }
+
+    /// Send a link with a custom preview card (title, description, image)
+    /// via WAHA's `/api/send/link-custom-preview` endpoint.
+    ///
+    /// Requires WAHA Plus tier. Falls back to `send_link_message` (plain
+    /// text with URL + auto-scraped preview) on any failure.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn send_link_custom_preview(
+        &self,
+        phone_number: &str,
+        body: &str,
+        link_url: &str,
+        preview_title: &str,
+        preview_description: &str,
+        image_url: &str,
+        image_mimetype: &str,
     ) -> Result<(), WhatsAppError> {
         if !is_whatsapp_enabled() {
             return Err(WhatsAppError::Disabled);
@@ -221,18 +261,28 @@ impl WahaClient {
         validate_e164_phone_number(phone_number)?;
 
         let chat_id = phone_to_chat_id(phone_number);
-        let url = format!("{}/api/sendButtons", self.api_url);
+        let url = format!("{}/api/send/link-custom-preview", self.api_url);
 
-        let payload = SendButtonPayload {
-            chat_id: chat_id.clone(),
-            body,
-            footer,
-            buttons: vec![ButtonItem {
-                button_type: "url",
-                text: button_text,
-                url: Some(button_url),
-            }],
+        let text = if body.is_empty() {
+            link_url.to_string()
+        } else {
+            format!("{}\n\n{}", body, link_url)
+        };
+
+        let payload = LinkCustomPreviewPayload {
+            chat_id,
+            text: &text,
             session: &self.session_name,
+            link_preview_high_quality: Some(true),
+            preview: LinkCustomPreview {
+                url: link_url,
+                title: preview_title,
+                description: preview_description,
+                image: LinkCustomPreviewImage {
+                    mimetype: image_mimetype,
+                    url: image_url,
+                },
+            },
         };
 
         let response = self
@@ -244,7 +294,6 @@ impl WahaClient {
             .send()
             .await;
 
-        // If buttons endpoint fails (deprecated/fragile), fall back to plain text
         let should_fallback = match &response {
             Err(_) => true,
             Ok(resp) => !resp.status().is_success(),
@@ -253,15 +302,14 @@ impl WahaClient {
         if should_fallback {
             tracing::warn!(
                 phone = phone_number,
-                "sendButtons failed, falling back to sendText"
+                "link-custom-preview failed (not Plus tier?), falling back to sendText"
             );
-            let fallback_text = format!("{}\n\n{}", body, button_url);
-            return self.send_message(phone_number, &fallback_text).await;
+            return self.send_link_message(phone_number, body, link_url).await;
         }
 
         tracing::debug!(
             phone = phone_number,
-            "WhatsApp button message sent successfully"
+            "WhatsApp custom-preview link message sent successfully"
         );
         Ok(())
     }
@@ -450,28 +498,28 @@ pub fn format_rich_notification(
             let remaining_str = if remaining.num_seconds() < 0 {
                 let overdue = -remaining;
                 if overdue.num_days() > 0 {
-                    format!("\u{26A0}\u{FE0F} *OVERDUE by {} day(s)*", overdue.num_days())
+                    format!(
+                        "\u{26A0}\u{FE0F} *OVERDUE by {} day(s)*",
+                        overdue.num_days()
+                    )
                 } else if overdue.num_hours() > 0 {
                     format!("\u{26A0}\u{FE0F} *OVERDUE by {}h*", overdue.num_hours())
                 } else {
-                    format!(
-                        "\u{26A0}\u{FE0F} *OVERDUE by {}m*",
-                        overdue.num_minutes()
-                    )
+                    format!("\u{26A0}\u{FE0F} *OVERDUE by {}m*", overdue.num_minutes())
                 }
             } else if remaining.num_days() > 1 {
                 format!("{} days left", remaining.num_days())
             } else if remaining.num_hours() > 0 {
-                format!("{}h {}m left", remaining.num_hours(), remaining.num_minutes() % 60)
+                format!(
+                    "{}h {}m left",
+                    remaining.num_hours(),
+                    remaining.num_minutes() % 60
+                )
             } else {
                 format!("\u{23F3} *{}m left*", remaining.num_minutes())
             };
 
-            let _ = write!(
-                msg,
-                "\n\u{1F4C5} *Due:* {} ({})",
-                due_str, remaining_str
-            );
+            let _ = write!(msg, "\n\u{1F4C5} *Due:* {} ({})", due_str, remaining_str);
         }
 
         // Subtask progress (for watcher notifications)
@@ -512,11 +560,7 @@ fn progress_bar(completed: i64, total: i64) -> String {
     }
     let filled = ((completed as f64 / total as f64) * 10.0).round() as usize;
     let empty = 10 - filled.min(10);
-    format!(
-        "{}{}",
-        "\u{2588}".repeat(filled),
-        "\u{2591}".repeat(empty)
-    )
+    format!("{}{}", "\u{2588}".repeat(filled), "\u{2591}".repeat(empty))
 }
 
 /// Send a notification message via WhatsApp
@@ -648,6 +692,58 @@ mod tests {
         // api_url should be trimmed of trailing slash
         assert_eq!(client.api_url, "http://localhost:3000");
         assert_eq!(client.session_name, "default");
+    }
+
+    #[test]
+    fn test_send_message_payload_serializes_link_preview_flags() {
+        let payload = SendMessagePayload {
+            chat_id: "12345@c.us".to_string(),
+            text: "hi",
+            session: "default",
+            link_preview: Some(true),
+            link_preview_high_quality: Some(true),
+        };
+        let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains("\"linkPreview\":true"));
+        assert!(json.contains("\"linkPreviewHighQuality\":true"));
+        assert!(json.contains("\"chatId\":\"12345@c.us\""));
+    }
+
+    #[test]
+    fn test_send_message_payload_omits_link_preview_when_none() {
+        let payload = SendMessagePayload {
+            chat_id: "12345@c.us".to_string(),
+            text: "hi",
+            session: "default",
+            link_preview: None,
+            link_preview_high_quality: None,
+        };
+        let json = serde_json::to_string(&payload).unwrap();
+        assert!(!json.contains("linkPreview"));
+    }
+
+    #[test]
+    fn test_link_custom_preview_payload_structure() {
+        let payload = LinkCustomPreviewPayload {
+            chat_id: "12345@c.us".to_string(),
+            text: "body\n\nhttps://x.io",
+            session: "default",
+            link_preview_high_quality: Some(true),
+            preview: LinkCustomPreview {
+                url: "https://x.io",
+                title: "TaskBolt",
+                description: "A task",
+                image: LinkCustomPreviewImage {
+                    mimetype: "image/png",
+                    url: "https://x.io/img.png",
+                },
+            },
+        };
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(json["preview"]["title"], "TaskBolt");
+        assert_eq!(json["preview"]["url"], "https://x.io");
+        assert_eq!(json["preview"]["image"]["mimetype"], "image/png");
+        assert_eq!(json["preview"]["image"]["url"], "https://x.io/img.png");
     }
 
     #[test]

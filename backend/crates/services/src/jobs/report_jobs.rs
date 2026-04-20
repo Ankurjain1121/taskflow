@@ -11,8 +11,8 @@ use uuid::Uuid;
 use crate::notifications::whatsapp::WahaClient;
 use crate::reports::pdf::{generate_and_send_pdf, PdfError};
 use crate::reports::templates::{
-    morning_agenda_admin, morning_agenda_employee, evening_achievement_admin,
-    evening_achievement_employee, EmployeeStats, ReportTask,
+    evening_achievement_admin, evening_achievement_employee, morning_agenda_admin,
+    morning_agenda_employee, EmployeeStats, ReportTask,
 };
 
 #[derive(Debug)]
@@ -30,7 +30,10 @@ pub async fn send_morning_agenda_reports(
     waha_client: &WahaClient,
     app_url: &str,
 ) -> Result<ReportJobResult, PdfError> {
-    let mut result = ReportJobResult { reports_sent: 0, errors: 0 };
+    let mut result = ReportJobResult {
+        reports_sent: 0,
+        errors: 0,
+    };
     let now = Utc::now();
 
     // 1. Get all workspaces that have admins with phone numbers
@@ -73,15 +76,20 @@ pub async fn send_morning_agenda_reports(
             let open_tasks = fetch_open_tasks(pool, *user_id, *workspace_id).await;
             let (overdue, pending) = count_task_stats(&open_tasks, now);
 
-            let completed_yesterday = count_completed_period(
-                pool, *user_id, *workspace_id, now - Duration::days(1), now,
-            ).await;
-            let completed_late = count_completed_late(
-                pool, *user_id, *workspace_id, now - Duration::days(1), now,
-            ).await;
+            let completed_yesterday =
+                count_completed_period(pool, *user_id, *workspace_id, now - Duration::days(1), now)
+                    .await;
+            let completed_late =
+                count_completed_late(pool, *user_id, *workspace_id, now - Duration::days(1), now)
+                    .await;
             let subtasks_done = count_subtasks_completed(
-                pool, *user_id, *workspace_id, now - Duration::days(1), now,
-            ).await;
+                pool,
+                *user_id,
+                *workspace_id,
+                now - Duration::days(1),
+                now,
+            )
+            .await;
 
             let stats = EmployeeStats {
                 name: user_name.clone(),
@@ -95,9 +103,7 @@ pub async fn send_morning_agenda_reports(
 
             // Send individual employee agenda PDF
             if !open_tasks.is_empty() || overdue > 0 {
-                let html = morning_agenda_employee(
-                    user_name, &open_tasks, pending, overdue,
-                );
+                let html = morning_agenda_employee(user_name, &open_tasks, pending, overdue);
                 let filename = format!(
                     "agenda_{}_{}.pdf",
                     sanitize_filename(user_name),
@@ -111,9 +117,15 @@ pub async fn send_morning_agenda_reports(
                 );
 
                 match generate_and_send_pdf(
-                    waha_client, phone, &html, &filename,
-                    Some(&caption), app_url,
-                ).await {
+                    waha_client,
+                    phone,
+                    &html,
+                    &filename,
+                    Some(&caption),
+                    app_url,
+                )
+                .await
+                {
                     Ok(()) => result.reports_sent += 1,
                     Err(e) => {
                         tracing::error!(user = %user_name, error = %e, "Failed to send morning agenda");
@@ -148,8 +160,12 @@ pub async fn send_morning_agenda_reports(
 
             for (_, admin_name, admin_phone, _) in &admins {
                 let html = morning_agenda_admin(
-                    admin_name, workspace_name, &all_employee_stats,
-                    total_due_today, total_overdue, total_pending,
+                    admin_name,
+                    workspace_name,
+                    &all_employee_stats,
+                    total_due_today,
+                    total_overdue,
+                    total_pending,
                 );
                 let filename = format!(
                     "company_agenda_{}_{}.pdf",
@@ -162,9 +178,15 @@ pub async fn send_morning_agenda_reports(
                 );
 
                 match generate_and_send_pdf(
-                    waha_client, admin_phone, &html, &filename,
-                    Some(&caption), app_url,
-                ).await {
+                    waha_client,
+                    admin_phone,
+                    &html,
+                    &filename,
+                    Some(&caption),
+                    app_url,
+                )
+                .await
+                {
                     Ok(()) => result.reports_sent += 1,
                     Err(e) => {
                         tracing::error!(admin = %admin_name, error = %e, "Failed to send admin agenda");
@@ -177,7 +199,11 @@ pub async fn send_morning_agenda_reports(
         }
     }
 
-    tracing::info!(sent = result.reports_sent, errors = result.errors, "Morning agenda reports done");
+    tracing::info!(
+        sent = result.reports_sent,
+        errors = result.errors,
+        "Morning agenda reports done"
+    );
     Ok(result)
 }
 
@@ -190,7 +216,10 @@ pub async fn send_evening_achievement_reports(
     waha_client: &WahaClient,
     app_url: &str,
 ) -> Result<ReportJobResult, PdfError> {
-    let mut result = ReportJobResult { reports_sent: 0, errors: 0 };
+    let mut result = ReportJobResult {
+        reports_sent: 0,
+        errors: 0,
+    };
     let now = Utc::now();
     let day_start = now - Duration::hours(12); // roughly today
 
@@ -227,10 +256,13 @@ pub async fn send_evening_achievement_reports(
         let mut all_employee_stats = Vec::new();
 
         for (user_id, user_name, phone, _role) in &members {
-            let completed_tasks = fetch_completed_tasks(pool, *user_id, *workspace_id, day_start).await;
+            let completed_tasks =
+                fetch_completed_tasks(pool, *user_id, *workspace_id, day_start).await;
             let remaining_tasks = fetch_open_tasks(pool, *user_id, *workspace_id).await;
-            let completed_late = count_completed_late(pool, *user_id, *workspace_id, day_start, now).await;
-            let subtasks_done = count_subtasks_completed(pool, *user_id, *workspace_id, day_start, now).await;
+            let completed_late =
+                count_completed_late(pool, *user_id, *workspace_id, day_start, now).await;
+            let subtasks_done =
+                count_subtasks_completed(pool, *user_id, *workspace_id, day_start, now).await;
             let (overdue, pending) = count_task_stats(&remaining_tasks, now);
 
             let total_completed = i64::try_from(completed_tasks.len()).unwrap_or(0);
@@ -249,8 +281,11 @@ pub async fn send_evening_achievement_reports(
             // Send individual employee achievement PDF
             if total_completed > 0 || !remaining_tasks.is_empty() {
                 let html = evening_achievement_employee(
-                    user_name, &completed_tasks, &remaining_tasks,
-                    total_completed, total_remaining,
+                    user_name,
+                    &completed_tasks,
+                    &remaining_tasks,
+                    total_completed,
+                    total_remaining,
                 );
                 let filename = format!(
                     "achievement_{}_{}.pdf",
@@ -263,9 +298,15 @@ pub async fn send_evening_achievement_reports(
                 );
 
                 match generate_and_send_pdf(
-                    waha_client, phone, &html, &filename,
-                    Some(&caption), app_url,
-                ).await {
+                    waha_client,
+                    phone,
+                    &html,
+                    &filename,
+                    Some(&caption),
+                    app_url,
+                )
+                .await
+                {
                     Ok(()) => result.reports_sent += 1,
                     Err(e) => {
                         tracing::error!(user = %user_name, error = %e, "Failed to send achievement report");
@@ -292,8 +333,12 @@ pub async fn send_evening_achievement_reports(
 
             for (_, admin_name, admin_phone, _) in &admins {
                 let html = evening_achievement_admin(
-                    admin_name, workspace_name, &all_employee_stats,
-                    total_completed, total_overdue, total_pending,
+                    admin_name,
+                    workspace_name,
+                    &all_employee_stats,
+                    total_completed,
+                    total_overdue,
+                    total_pending,
                 );
                 let filename = format!(
                     "eod_report_{}_{}.pdf",
@@ -306,9 +351,15 @@ pub async fn send_evening_achievement_reports(
                 );
 
                 match generate_and_send_pdf(
-                    waha_client, admin_phone, &html, &filename,
-                    Some(&caption), app_url,
-                ).await {
+                    waha_client,
+                    admin_phone,
+                    &html,
+                    &filename,
+                    Some(&caption),
+                    app_url,
+                )
+                .await
+                {
                     Ok(()) => result.reports_sent += 1,
                     Err(e) => {
                         tracing::error!(admin = %admin_name, error = %e, "Failed to send admin EOD report");
@@ -321,7 +372,11 @@ pub async fn send_evening_achievement_reports(
         }
     }
 
-    tracing::info!(sent = result.reports_sent, errors = result.errors, "Evening achievement reports done");
+    tracing::info!(
+        sent = result.reports_sent,
+        errors = result.errors,
+        "Evening achievement reports done"
+    );
     Ok(result)
 }
 
@@ -354,15 +409,17 @@ async fn fetch_open_tasks(pool: &PgPool, user_id: Uuid, workspace_id: Uuid) -> V
     .unwrap_or_default();
 
     rows.into_iter()
-        .map(|(title, project_name, due_date, priority, status, is_subtask)| ReportTask {
-            title,
-            project_name,
-            due_date,
-            priority,
-            status,
-            is_subtask,
-            completed_at: None,
-        })
+        .map(
+            |(title, project_name, due_date, priority, status, is_subtask)| ReportTask {
+                title,
+                project_name,
+                due_date,
+                priority,
+                status,
+                is_subtask,
+                completed_at: None,
+            },
+        )
         .collect()
 }
 
@@ -397,15 +454,17 @@ async fn fetch_completed_tasks(
     .unwrap_or_default();
 
     rows.into_iter()
-        .map(|(title, project_name, due_date, priority, status, is_subtask)| ReportTask {
-            title,
-            project_name,
-            due_date,
-            priority,
-            status,
-            is_subtask,
-            completed_at: None,
-        })
+        .map(
+            |(title, project_name, due_date, priority, status, is_subtask)| ReportTask {
+                title,
+                project_name,
+                due_date,
+                priority,
+                status,
+                is_subtask,
+                completed_at: None,
+            },
+        )
         .collect()
 }
 
@@ -496,7 +555,10 @@ async fn count_subtasks_completed(
 
 fn count_task_stats(tasks: &[ReportTask], now: DateTime<Utc>) -> (i64, i64) {
     let overdue = i64::try_from(
-        tasks.iter().filter(|t| t.due_date.is_some_and(|d| d < now)).count(),
+        tasks
+            .iter()
+            .filter(|t| t.due_date.is_some_and(|d| d < now))
+            .count(),
     )
     .unwrap_or(0);
     let pending = i64::try_from(tasks.len()).unwrap_or(0);
@@ -504,7 +566,8 @@ fn count_task_stats(tasks: &[ReportTask], now: DateTime<Utc>) -> (i64, i64) {
 }
 
 fn is_due_today(task: &ReportTask, now: DateTime<Utc>) -> bool {
-    task.due_date.is_some_and(|d| d.date_naive() == now.date_naive())
+    task.due_date
+        .is_some_and(|d| d.date_naive() == now.date_naive())
 }
 
 fn sanitize_filename(name: &str) -> String {
