@@ -2,25 +2,25 @@
 //!
 //! Provides user profile retrieval and update.
 
-use axum::{Json, extract::State};
-use serde::Deserialize;
+use axum::{extract::State, Json};
 
 use taskbolt_db::queries::auth;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
-use super::validation::{MAX_BIO_LEN, MAX_NAME_LEN, validate_optional_string};
+use super::validation::{validate_optional_string, MAX_BIO_LEN, MAX_NAME_LEN};
 
-use super::auth::{AuthResponse, SESSION_TTL_SECS, UserResponse};
+use super::auth::{AuthResponse, UserResponse, SESSION_TTL_SECS};
 
 // ============================================================================
 // Request DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateProfileRequest {
     pub name: Option<String>,
     pub phone_number: Option<String>,
@@ -77,7 +77,7 @@ pub async fn me_handler(
 pub async fn update_profile_handler(
     State(state): State<AppState>,
     auth_ext: AuthUserExtractor,
-    Json(payload): Json<UpdateProfileRequest>,
+    StrictJson(payload): StrictJson<UpdateProfileRequest>,
 ) -> Result<Json<UserResponse>> {
     let user_id = auth_ext.0.user_id;
 

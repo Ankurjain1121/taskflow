@@ -5,24 +5,24 @@
 //! `user_2fa` table. Recovery codes are hashed with SHA-256 before storage.
 
 use axum::{
-    Json, Router,
     extract::State,
     http::HeaderMap,
     response::{IntoResponse, Response},
     routing::post,
+    Json, Router,
 };
 use chrono::Utc;
 use data_encoding::BASE32;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::state::AppState;
 
-use super::auth_session::{SessionParams, build_auth_session, extract_session_metadata};
+use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
 use super::common::MessageResponse;
 
 /// Max TOTP verification attempts before rate limiting (5 per 5 minutes)
@@ -39,7 +39,8 @@ pub struct TwoFactorSetupResponse {
     pub otpauth_uri: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct VerifyCodeRequest {
     pub code: String,
 }
@@ -49,13 +50,15 @@ pub struct VerifyResponse {
     pub recovery_codes: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct DisableRequest {
     pub code: Option<String>,
     pub recovery_code: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ChallengeRequest {
     pub temp_token: String,
     pub code: Option<String>,
@@ -250,7 +253,7 @@ pub async fn setup_handler(
 pub async fn verify_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<VerifyCodeRequest>,
+    StrictJson(payload): StrictJson<VerifyCodeRequest>,
 ) -> Result<Json<VerifyResponse>> {
     let user_id = auth.0.user_id;
 
@@ -313,7 +316,7 @@ pub async fn verify_handler(
 pub async fn disable_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<DisableRequest>,
+    StrictJson(payload): StrictJson<DisableRequest>,
 ) -> Result<Json<MessageResponse>> {
     let user_id = auth.0.user_id;
 
@@ -379,7 +382,7 @@ pub async fn disable_handler(
 pub async fn challenge_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(payload): Json<ChallengeRequest>,
+    StrictJson(payload): StrictJson<ChallengeRequest>,
 ) -> Result<Response> {
     // Resolve temp token from Redis (stores JSON with user_id + persistent flag)
     let temp_key = format!("2fa_temp:{}", payload.temp_token);

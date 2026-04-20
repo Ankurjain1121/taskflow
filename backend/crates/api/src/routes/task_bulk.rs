@@ -4,12 +4,11 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::services::cache;
 use crate::services::ActivityLogService;
 use crate::state::AppState;
@@ -24,7 +23,7 @@ use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerCo
 const MAX_BULK_TASK_IDS: usize = 200;
 
 /// Request body for bulk update
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct BulkUpdateRequest {
     pub task_ids: Vec<Uuid>,
     pub status_id: Option<Uuid>,
@@ -36,7 +35,7 @@ pub struct BulkUpdateRequest {
 }
 
 /// Request body for bulk delete
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct BulkDeleteRequest {
     pub task_ids: Vec<Uuid>,
 }
@@ -46,7 +45,7 @@ pub async fn bulk_update_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkUpdateRequest>,
+    StrictJson(req): StrictJson<BulkUpdateRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if req.task_ids.len() > MAX_BULK_TASK_IDS {
         return Err(AppError::BadRequest(format!(
@@ -236,7 +235,7 @@ pub async fn bulk_delete_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkDeleteRequest>,
+    StrictJson(req): StrictJson<BulkDeleteRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if req.task_ids.len() > MAX_BULK_TASK_IDS {
         return Err(AppError::BadRequest(format!(

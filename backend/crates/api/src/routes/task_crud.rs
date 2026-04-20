@@ -94,7 +94,7 @@ pub async fn create_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateTaskRequest>,
+    StrictJson(body): StrictJson<CreateTaskRequest>,
 ) -> Result<Json<Task>> {
     // Verify board membership first
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;

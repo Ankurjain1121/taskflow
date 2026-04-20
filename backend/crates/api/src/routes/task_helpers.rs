@@ -1,11 +1,10 @@
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::Result;
 use taskbolt_db::models::{TaskPriority, UserRole};
-use taskbolt_services::BroadcastService;
 use taskbolt_services::broadcast::events;
+use taskbolt_services::BroadcastService;
 
 /// Sanitize HTML content from rich text editor.
 /// Allows safe formatting tags, removes scripts and dangerous attributes.
@@ -55,7 +54,7 @@ fn default_priority() -> TaskPriority {
 }
 
 /// Request body for creating a task
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateTaskRequest {
     pub title: String,
     pub description: Option<String>,
@@ -81,8 +80,8 @@ pub struct CreateTaskRequest {
     pub revenue_budget: Option<f64>,
 }
 
-/// Request body for updating a task
-#[derive(Deserialize)]
+/// Request body for updating a task.
+#[strict_dto_derive::strict_dto]
 pub struct UpdateTaskRequest {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -117,14 +116,14 @@ pub struct UpdateTaskRequest {
 }
 
 /// Request body for moving a task
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct MoveTaskRequest {
     pub status_id: Uuid,
     pub position: String,
 }
 
 /// Request body for assigning a user
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct AssignUserRequest {
     pub user_id: Uuid,
 }

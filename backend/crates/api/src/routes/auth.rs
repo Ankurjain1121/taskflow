@@ -3,14 +3,14 @@
 //! Provides sign-in, token refresh, sign-out, and user profile endpoints.
 
 use axum::{
-    Json, Router,
     extract::State,
-    http::{HeaderMap, HeaderValue, header::SET_COOKIE},
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue},
     response::{IntoResponse, Response},
     routing::{get, post},
+    Json, Router,
 };
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -20,12 +20,12 @@ use taskbolt_db::models::UserRole;
 use taskbolt_db::queries::auth;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::state::AppState;
 
 use super::auth_password;
 use super::auth_profile;
-use super::auth_session::{SessionParams, build_auth_session, extract_session_metadata};
+use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
 use super::common::MessageResponse;
 
 pub(crate) const SESSION_TTL_SECS: usize = 30 * 60;
@@ -39,7 +39,8 @@ const LOGIN_LOCKOUT_SECS: i64 = 900;
 // Request/Response DTOs (shared across auth modules)
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SignInRequest {
     /// Accepts email or E.164 phone number (e.g. "+918750269626")
     pub identifier: String,
@@ -48,7 +49,8 @@ pub struct SignInRequest {
     pub remember_me: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SignUpRequest {
     pub name: String,
     pub email: String,
@@ -56,7 +58,8 @@ pub struct SignUpRequest {
     pub phone_number: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
@@ -107,7 +110,7 @@ pub fn is_password_strong(password: &str) -> bool {
 pub async fn sign_in_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(payload): Json<SignInRequest>,
+    StrictJson(payload): StrictJson<SignInRequest>,
 ) -> Result<Response> {
     // Validate input
     let identifier = payload.identifier.trim();
@@ -253,7 +256,7 @@ pub async fn sign_in_handler(
 pub async fn sign_up_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(payload): Json<SignUpRequest>,
+    StrictJson(payload): StrictJson<SignUpRequest>,
 ) -> Result<Response> {
     // Validate
     if payload.name.trim().is_empty() {

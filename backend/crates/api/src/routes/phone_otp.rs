@@ -2,12 +2,13 @@
 //!
 //! Sends and verifies OTP codes via WhatsApp (WAHA) for phone number confirmation.
 
-use axum::{Json, extract::State};
+use axum::{extract::State, Json};
 use rand::Rng;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::errors::{AppError, Result};
+use crate::extractors::StrictJson;
 use crate::state::AppState;
 
 use taskbolt_services::notifications::whatsapp::{is_whatsapp_enabled, validate_e164_phone_number};
@@ -16,7 +17,8 @@ use taskbolt_services::notifications::whatsapp::{is_whatsapp_enabled, validate_e
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SendOtpRequest {
     pub phone_number: String,
 }
@@ -27,7 +29,8 @@ pub struct SendOtpResponse {
     pub expires_in: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct VerifyOtpRequest {
     pub phone_number: String,
     pub code: String,
@@ -78,7 +81,7 @@ fn generate_otp() -> String {
 /// Send a 6-digit OTP to the given phone number via WhatsApp.
 pub async fn send_otp_handler(
     State(state): State<AppState>,
-    Json(payload): Json<SendOtpRequest>,
+    StrictJson(payload): StrictJson<SendOtpRequest>,
 ) -> Result<Json<SendOtpResponse>> {
     let phone = payload.phone_number.trim();
 
@@ -178,7 +181,7 @@ pub async fn send_otp_handler(
 /// that the sign-up or profile update flow consumes.
 pub async fn verify_otp_handler(
     State(state): State<AppState>,
-    Json(payload): Json<VerifyOtpRequest>,
+    StrictJson(payload): StrictJson<VerifyOtpRequest>,
 ) -> Result<Json<VerifyOtpResponse>> {
     let phone = payload.phone_number.trim();
     let code = payload.code.trim();

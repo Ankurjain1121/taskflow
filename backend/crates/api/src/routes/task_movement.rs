@@ -2,11 +2,10 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::services::cache;
 use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
@@ -31,7 +30,8 @@ use super::task_helpers::{
 };
 
 /// Request body for moving a task to a different project
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct MoveTaskToProjectRequest {
     pub target_project_id: Uuid,
     pub target_status_id: Uuid,
@@ -44,7 +44,7 @@ pub async fn move_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<MoveTaskRequest>,
+    StrictJson(body): StrictJson<MoveTaskRequest>,
 ) -> Result<Json<Task>> {
     // Get task's board_id for authorization
     let board_id = get_task_board_id(&state.db, task_id)
@@ -440,7 +440,7 @@ pub async fn move_task_to_project_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<MoveTaskToProjectRequest>,
+    StrictJson(body): StrictJson<MoveTaskToProjectRequest>,
 ) -> Result<Json<Task>> {
     // 1. Get the task to find its current project_id
     let source_project_id = get_task_board_id(&state.db, task_id)

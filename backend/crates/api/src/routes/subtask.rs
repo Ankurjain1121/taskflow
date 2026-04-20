@@ -1,17 +1,16 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::routes::validation::{
-    MAX_DESCRIPTION_LEN, MAX_NAME_LEN, validate_optional_string, validate_required_string,
+    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
 };
 use crate::state::AppState;
 use taskbolt_db::models::{Task, UserRole};
@@ -98,7 +97,7 @@ async fn list_children_handler(
 }
 
 /// Request body for creating a child task
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct CreateChildTaskRequest {
     pub title: String,
     pub priority: Option<String>,
@@ -113,7 +112,7 @@ async fn create_child_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<CreateChildTaskRequest>,
+    StrictJson(body): StrictJson<CreateChildTaskRequest>,
 ) -> Result<Json<Task>> {
     // Verify board membership
     verify_task_board_membership(&state, task_id, tenant.user_id, &tenant.role).await?;

@@ -2,9 +2,8 @@
 //!
 //! Provides password change, account deletion, forgot/reset password.
 
-use axum::{Json, extract::State};
+use axum::{extract::State, Json};
 use chrono::{Duration, Utc};
-use serde::Deserialize;
 use uuid::Uuid;
 
 use taskbolt_auth::password::verify_password;
@@ -13,7 +12,7 @@ use taskbolt_db::queries::auth;
 use taskbolt_services::notifications::PostalClient;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::state::AppState;
 
 use super::auth::{hash_token, is_password_strong};
@@ -23,23 +22,27 @@ use super::common::MessageResponse;
 // Request DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ChangePasswordRequest {
     pub current_password: String,
     pub new_password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct DeleteAccountRequest {
     pub password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ForgotPasswordRequest {
     pub email: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ResetPasswordRequest {
     pub token: String,
     pub new_password: String,
@@ -55,7 +58,7 @@ pub struct ResetPasswordRequest {
 pub async fn change_password_handler(
     State(state): State<AppState>,
     auth_ext: AuthUserExtractor,
-    Json(payload): Json<ChangePasswordRequest>,
+    StrictJson(payload): StrictJson<ChangePasswordRequest>,
 ) -> Result<Json<MessageResponse>> {
     if !is_password_strong(&payload.new_password) {
         return Err(AppError::BadRequest(
@@ -123,7 +126,7 @@ pub async fn change_password_handler(
 pub async fn delete_account_handler(
     State(state): State<AppState>,
     auth_ext: AuthUserExtractor,
-    Json(payload): Json<DeleteAccountRequest>,
+    StrictJson(payload): StrictJson<DeleteAccountRequest>,
 ) -> Result<Json<MessageResponse>> {
     let user = auth::get_user_by_id(&state.db, auth_ext.0.user_id)
         .await?
@@ -194,7 +197,7 @@ pub async fn delete_account_handler(
 /// Request a password reset link. Always returns success to prevent email enumeration.
 pub async fn forgot_password_handler(
     State(state): State<AppState>,
-    Json(payload): Json<ForgotPasswordRequest>,
+    StrictJson(payload): StrictJson<ForgotPasswordRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Always return success to prevent email enumeration
     let user = auth::get_user_by_email(&state.db, &payload.email).await?;
@@ -270,7 +273,7 @@ pub async fn forgot_password_handler(
 /// Reset password using a valid reset token.
 pub async fn reset_password_handler(
     State(state): State<AppState>,
-    Json(payload): Json<ResetPasswordRequest>,
+    StrictJson(payload): StrictJson<ResetPasswordRequest>,
 ) -> Result<Json<MessageResponse>> {
     if !is_password_strong(&payload.new_password) {
         return Err(AppError::BadRequest(

@@ -5,48 +5,47 @@
 
 use crate::services::cache;
 use axum::{
-    Json,
     extract::{Path, State},
+    Json,
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    ReminderInfo, add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
+    add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
     get_user_display_name, list_reminders_for_task, remove_reminder, remove_watcher, set_reminder,
-    unassign_user,
+    unassign_user, ReminderInfo,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::notifications::dispatcher::notify_with_metadata;
+use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::{
-    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
-    spawn_automation_evaluation,
+    spawn_automation_evaluation, BroadcastService, NotificationMetadata, NotifyContext,
+    TriggerContext,
 };
 
 use crate::services::ActivityLogService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    AssignUserRequest, broadcast_workspace_task_update, get_workspace_id_for_board,
+    broadcast_workspace_task_update, get_workspace_id_for_board, AssignUserRequest,
 };
 
 // ── Watcher types ───────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct AddWatcherRequest {
     pub user_id: Uuid,
 }
 
 // ── Reminder types ──────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 pub struct SetReminderRequest {
     pub remind_before_minutes: i32,
 }
@@ -59,7 +58,7 @@ pub async fn assign_user_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<AssignUserRequest>,
+    StrictJson(body): StrictJson<AssignUserRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Get task's board_id for authorization
     let board_id = get_task_board_id(&state.db, task_id)
@@ -204,23 +203,27 @@ pub async fn assign_user_handler(
 
             // Fetch task details for rich notification
             #[allow(clippy::type_complexity)]
-            let task_row: Option<(String, Option<chrono::DateTime<chrono::Utc>>, Option<String>, Option<String>)> =
-                sqlx::query_as(
-                    r#"SELECT t.title, t.due_date,
+            let task_row: Option<(
+                String,
+                Option<chrono::DateTime<chrono::Utc>>,
+                Option<String>,
+                Option<String>,
+            )> = sqlx::query_as(
+                r#"SELECT t.title, t.due_date,
                               LOWER(t.priority::text) as priority,
                               p.name as project_name
                        FROM tasks t
                        LEFT JOIN projects p ON p.id = t.project_id
                        WHERE t.id = $1 AND t.deleted_at IS NULL"#,
-                )
-                .bind(task_id)
-                .fetch_optional(&db)
-                .await
-                .ok()
-                .flatten();
+            )
+            .bind(task_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
 
-            let (task_title, due_date, priority, project_name) = task_row
-                .unwrap_or_else(|| ("a task".to_string(), None, None, None));
+            let (task_title, due_date, priority, project_name) =
+                task_row.unwrap_or_else(|| ("a task".to_string(), None, None, None));
 
             let notification_svc = NotificationService::new(
                 db.clone(),
@@ -357,7 +360,7 @@ pub async fn add_watcher_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<AddWatcherRequest>,
+    StrictJson(body): StrictJson<AddWatcherRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let board_id = get_task_board_id(&state.db, task_id)
         .await?
@@ -394,7 +397,7 @@ pub async fn set_reminder_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<SetReminderRequest>,
+    StrictJson(body): StrictJson<SetReminderRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let board_id = get_task_board_id(&state.db, task_id)
         .await?
