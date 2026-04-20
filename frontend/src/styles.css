@@ -1997,3 +1997,21 @@ html.dark .bg-mesh::after { opacity: 0.15; }
   .bg-mesh::after { display: none; }
   .bg-mesh { background-size: 200% 200%; }
 }
+
+/* Disable WebView overscroll bounce (removes webby feel) */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on UI elements (native feel) */
+button, a, nav, [role="button"], .task-card, .nav-item, .footer-item, .sidebar-label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Keep text selectable in content areas */
+p, span.task-title, .comment-body, input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
