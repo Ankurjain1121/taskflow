@@ -62,6 +62,8 @@ metrics-exporter-prometheus.workspace = true
 taskbolt-db = { path = "../db" }
 taskbolt-auth = { path = "../auth" }
 taskbolt-services = { path = "../services" }
+strict-dto.workspace = true
+strict-dto-derive.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

@@ -1,5 +1,12 @@
 [workspace]
-members = ["crates/api", "crates/db", "crates/auth", "crates/services"]
+members = [
+    "crates/api",
+    "crates/db",
+    "crates/auth",
+    "crates/services",
+    "crates/strict-dto",
+    "crates/strict-dto-derive",
+]
 resolver = "2"
 
 [workspace.package]
@@ -76,6 +83,10 @@ sentry-tower = { version = "0.47", features = ["http"] }
 # Metrics (Prometheus)
 metrics = "0.24"
 metrics-exporter-prometheus = { version = "0.16", default-features = false }
+
+# Strict-JSON DTO contract
+strict-dto = { path = "crates/strict-dto" }
+strict-dto-derive = { path = "crates/strict-dto-derive" }
 
 # Testing
 mockall = "0.13"
