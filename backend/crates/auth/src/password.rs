@@ -4,9 +4,9 @@ use argon2::{
 };
 
 /// Argon2id parameters per OWASP Password Storage Cheat Sheet 2025
-/// Option 1: m=47104 (46 MiB), t=1, p=1
+/// m=47104 (46 MiB), t=2, p=1 — exceeds OWASP minimum (m=19 MiB, t=2, p=1)
 const ARGON2_MEMORY_COST: u32 = 47_104; // 46 MiB
-const ARGON2_TIME_COST: u32 = 1;
+const ARGON2_TIME_COST: u32 = 2;
 const ARGON2_PARALLELISM: u32 = 1;
 
 fn argon2_instance() -> Argon2<'static> {
