@@ -93,8 +93,7 @@
         <!-- Mark done / reopen button -->
         <button
           class="w-6 h-6 rounded-full border-2 bg-[var(--card)]/90 shadow-sm flex items-center justify-center btn-snappy transition-colors"
-          [class.border-[var(--success)]]="isDoneColumn()"
-          [class.bg-[var(--success)]/15]="isDoneColumn()"
+          [ngClass]="isDoneColumn() ? 'border-[var(--success)] bg-[var(--success)]/15' : ''"
           (click)="onMarkDone($event)"
           [attr.aria-label]="(isDoneColumn() ? 'Reopen ' : 'Mark done: ') + task().title"
           [title]="isDoneColumn() ? 'Reopen task' : 'Mark done'"
