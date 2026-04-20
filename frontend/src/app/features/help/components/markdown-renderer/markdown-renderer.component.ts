@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, input, computed } from '@angular/co
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 @Component({
   selector: 'app-markdown-renderer',
@@ -34,6 +35,10 @@ export class MarkdownRendererComponent {
 
   readonly renderedHtml = computed<SafeHtml>(() => {
     const raw = marked.parse(this.content(), { async: false }) as string;
-    return this.sanitizer.bypassSecurityTrustHtml(raw);
+    // Sanitize before bypassing Angular's auto-escaping. Without this the
+    // moment article content becomes dynamic (API/CMS/i18n) we ship stored
+    // XSS. DOMPurify strips scripts, event handlers, javascript: URLs.
+    const safe = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+    return this.sanitizer.bypassSecurityTrustHtml(safe);
   });
 }
