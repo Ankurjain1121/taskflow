@@ -15,7 +15,7 @@ const MOCK_PREFS: UserPreferences = {
   default_project_view: 'kanban',
   sidebar_density: 'comfortable',
   locale: 'en-US',
-  language: 'en',
+  locale: 'en',
   quiet_hours_start: '22:00',
   quiet_hours_end: '08:00',
   digest_frequency: 'daily',
@@ -61,7 +61,7 @@ describe('UserPreferencesService', () => {
     it('should PUT /api/users/me/preferences with partial prefs', () => {
       const update: Partial<UserPreferences> = {
         timezone: 'UTC',
-        language: 'fr',
+        locale: 'fr',
       };
 
       service.updatePreferences(update).subscribe((result) => {

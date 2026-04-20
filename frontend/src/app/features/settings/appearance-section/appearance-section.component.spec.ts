@@ -28,7 +28,7 @@ describe('AppearanceSectionComponent', () => {
         date_format: 'dd/MM/yyyy',
         default_project_view: 'list',
         sidebar_density: 'compact',
-        language: 'en',
+        locale: 'en',
       }),
     ),
     updatePreferences: vi.fn().mockReturnValue(of({})),
@@ -42,7 +42,7 @@ describe('AppearanceSectionComponent', () => {
         date_format: 'dd/MM/yyyy',
         default_project_view: 'list',
         sidebar_density: 'compact',
-        language: 'en',
+        locale: 'en',
       }),
     );
     mockUserPreferencesService.updatePreferences.mockReturnValue(of({}));
@@ -125,7 +125,7 @@ describe('AppearanceSectionComponent', () => {
         dateFormat: 'yyyy-MM-dd',
         defaultBoardView: 'kanban',
         sidebarDensity: 'comfortable',
-        language: 'en',
+        locale: 'en',
       };
 
       component.savePreferences();
@@ -136,7 +136,7 @@ describe('AppearanceSectionComponent', () => {
           date_format: 'yyyy-MM-dd',
           default_project_view: 'kanban',
           sidebar_density: 'comfortable',
-          language: 'en',
+          locale: 'en',
         },
       );
     });

@@ -300,7 +300,7 @@ interface BoardViewOption {
           </label>
           <p-select
             [options]="[{ label: 'English', value: 'en' }]"
-            [(ngModel)]="preferences.language"
+            [(ngModel)]="preferences.locale"
             optionLabel="label"
             optionValue="value"
             [disabled]="true"
@@ -402,7 +402,7 @@ export class AppearanceSectionComponent implements OnInit, OnDestroy {
     dateFormat: 'MMM dd, yyyy',
     defaultBoardView: 'list',
     sidebarDensity: 'comfortable',
-    language: 'en',
+    locale: 'en',
   };
 
   ngOnInit(): void {
@@ -455,7 +455,7 @@ export class AppearanceSectionComponent implements OnInit, OnDestroy {
         date_format: this.preferences.dateFormat,
         default_project_view: this.preferences.defaultBoardView,
         sidebar_density: this.preferences.sidebarDensity,
-        language: this.preferences.language,
+        locale: this.preferences.locale,
       })
       .subscribe({
         next: () => {
@@ -493,7 +493,7 @@ export class AppearanceSectionComponent implements OnInit, OnDestroy {
             dateFormat: prefs.date_format || 'MMM dd, yyyy',
             defaultBoardView: prefs.default_project_view || 'list',
             sidebarDensity: prefs.sidebar_density || 'comfortable',
-            language: prefs.language || 'en',
+            locale: prefs.locale || 'en',
           };
         }
       },

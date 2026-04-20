@@ -9,7 +9,6 @@ export interface UserPreferences {
   default_project_view: string;
   sidebar_density: string;
   locale: string;
-  language: string;
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
   digest_frequency: string;
