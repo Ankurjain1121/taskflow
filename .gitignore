@@ -64,3 +64,10 @@ stitch-designs/
 stitch_artisan_project_tracker*
 stitch-analysis/
 .gstack/
+
+# Generated analysis output
+graphify-out/
+**/graphify-out/
+
+# Cargo local config (per-dev)
+backend/.cargo/
