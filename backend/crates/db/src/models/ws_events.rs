@@ -23,6 +23,11 @@ pub enum WsBoardEvent {
         position: String,
         origin_user_id: Uuid,
     },
+    TaskBulkMoved {
+        task_ids: Vec<Uuid>,
+        status_id: Uuid,
+        origin_user_id: Uuid,
+    },
     TaskDeleted {
         task_id: Uuid,
         origin_user_id: Uuid,
@@ -285,6 +290,14 @@ mod tests {
                     task_id: uid,
                     status_id: Some(uid),
                     position: "a0".into(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "TaskBulkMoved",
+                WsBoardEvent::TaskBulkMoved {
+                    task_ids: vec![uid],
+                    status_id: uid,
                     origin_user_id: uid,
                 },
             ),

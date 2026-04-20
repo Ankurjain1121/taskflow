@@ -1,39 +1,39 @@
 use axum::{
-    Json,
     extract::{Path, State},
+    Json,
 };
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::services::cache;
 use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskbolt_db::queries::{
-    CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput, create_task, duplicate_task,
-    find_done_status, find_non_done_status, get_project_status_name, get_task_assignee_ids,
+    create_task, duplicate_task, find_done_status, find_non_done_status, get_task_assignee_ids,
     get_task_board_id, get_task_by_id, get_task_row, get_task_status_id, get_user_display_name,
-    list_tasks_by_board, soft_delete_task, update_task,
+    list_tasks_by_board, soft_delete_task, update_task, CreateTaskInput, TaskQueryError,
+    TaskWithDetails, UpdateTaskInput,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::notifications::dispatcher::notify_with_metadata;
+use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::{
-    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
-    spawn_automation_evaluation,
+    spawn_automation_evaluation, BroadcastService, NotificationMetadata, NotifyContext,
+    TriggerContext,
 };
 
 use crate::services::ActivityLogService;
 
-use super::common::{Capability, require_capability, verify_project_membership};
+use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{
-    CreateTaskRequest, ListTasksResponse, UpdateTaskRequest, broadcast_workspace_task_update,
-    get_workspace_id_for_board, sanitize_html,
+    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
+    ListTasksResponse, UpdateTaskRequest,
 };
 use super::validation::{
-    MAX_DESCRIPTION_LEN, MAX_NAME_LEN, validate_optional_string, validate_required_string,
+    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
 };
 
 /// GET /api/boards/:board_id/tasks
@@ -251,14 +251,13 @@ pub async fn create_task_handler(
                 .unwrap_or_else(|| "Someone".to_string());
 
             // Fetch project name for rich notification
-            let project_name: Option<String> = sqlx::query_scalar(
-                "SELECT name FROM projects WHERE id = $1",
-            )
-            .bind(notify_board_id)
-            .fetch_optional(&db)
-            .await
-            .ok()
-            .flatten();
+            let project_name: Option<String> =
+                sqlx::query_scalar("SELECT name FROM projects WHERE id = $1")
+                    .bind(notify_board_id)
+                    .fetch_optional(&db)
+                    .await
+                    .ok()
+                    .flatten();
 
             let title = format!("{} assigned you to a task", creator_name);
             let body = format!("\"{}\"", task_title);
@@ -320,7 +319,7 @@ pub async fn update_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<UpdateTaskRequest>,
+    StrictJson(body): StrictJson<UpdateTaskRequest>,
 ) -> Result<Json<Task>> {
     // Get task's board_id for authorization
     let board_id = get_task_board_id(&state.db, task_id)
@@ -611,7 +610,11 @@ pub async fn delete_task_handler(
 }
 
 /// POST /api/tasks/:id/complete
-/// Move a task to the first "done" column on its board
+/// Move a task to the first "done" column on its board.
+/// Routes through the shared `move_task_inner` pipeline so this emits the same
+/// TaskMoved WS broadcast, TaskCompleted automation trigger, assignee
+/// notifications, admin WhatsApp alerts, and parent-watcher notifications as
+/// `PATCH /api/tasks/:id/move`.
 pub async fn complete_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -623,7 +626,6 @@ pub async fn complete_task_handler(
 
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
-    // Find the first "done" status for this project
     let done_status_id: Option<uuid::Uuid> = find_done_status(&state.db, board_id)
         .await
         .map_err(AppError::SqlxError)?;
@@ -633,32 +635,24 @@ pub async fn complete_task_handler(
 
     let previous_status_id = get_task_status_id(&state.db, task_id).await?;
 
-    let task =
-        taskbolt_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
-            .await
-            .map_err(|e| match e {
-                TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-                TaskQueryError::Database(e) => AppError::SqlxError(e),
-                _ => AppError::InternalError("Failed to complete task".into()),
-            })?;
-
-    spawn_record_status_changed(
-        state.db.clone(),
+    let task = super::task_movement::move_task_inner(
+        &state,
+        &tenant,
         task_id,
-        tenant.user_id,
-        tenant.tenant_id,
-        previous_status_id,
+        board_id,
         done_status_id,
-    );
-
-    // Invalidate project tasks cache
-    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+        "a0".to_string(),
+        previous_status_id,
+    )
+    .await?;
 
     Ok(Json(task))
 }
 
 /// POST /api/tasks/:id/uncomplete
-/// Move a task back to the first non-done column on its board
+/// Move a task back to the first non-done column on its board.
+/// Routes through the shared `move_task_inner` pipeline for consistent WS +
+/// automation side effects.
 pub async fn uncomplete_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -670,7 +664,6 @@ pub async fn uncomplete_task_handler(
 
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
-    // Find the first non-done status for this project
     let status_id: Option<uuid::Uuid> = find_non_done_status(&state.db, board_id)
         .await
         .map_err(AppError::SqlxError)?;
@@ -680,70 +673,18 @@ pub async fn uncomplete_task_handler(
 
     let previous_status_id = get_task_status_id(&state.db, task_id).await?;
 
-    let task = taskbolt_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            _ => AppError::InternalError("Failed to uncomplete task".into()),
-        })?;
-
-    spawn_record_status_changed(
-        state.db.clone(),
+    let task = super::task_movement::move_task_inner(
+        &state,
+        &tenant,
         task_id,
-        tenant.user_id,
-        tenant.tenant_id,
-        previous_status_id,
+        board_id,
         status_id,
-    );
-
-    // Invalidate project tasks cache
-    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+        "a0".to_string(),
+        previous_status_id,
+    )
+    .await?;
 
     Ok(Json(task))
-}
-
-/// Fire-and-forget helper: spawn a background task that resolves status names
-/// and records a `status_changed` activity log entry. No-op when the status
-/// did not actually change. Never panics; logs on failure.
-fn spawn_record_status_changed(
-    pool: sqlx::PgPool,
-    task_id: Uuid,
-    actor_id: Uuid,
-    tenant_id: Uuid,
-    previous_status_id: Option<Uuid>,
-    new_status_id: Uuid,
-) {
-    if previous_status_id == Some(new_status_id) {
-        return;
-    }
-    tokio::spawn(async move {
-        let from_name = match previous_status_id {
-            Some(id) => get_project_status_name(&pool, id).await.ok().flatten(),
-            None => None,
-        };
-        let to_name = get_project_status_name(&pool, new_status_id)
-            .await
-            .ok()
-            .flatten();
-
-        if let Err(e) = ActivityLogService::record_status_changed(
-            &pool,
-            task_id,
-            actor_id,
-            tenant_id,
-            from_name.as_deref().unwrap_or(""),
-            to_name.as_deref().unwrap_or(""),
-        )
-        .await
-        {
-            tracing::error!(
-                task_id = %task_id,
-                "Failed to record status_changed activity: {}",
-                e
-            );
-        }
-    });
 }
 
 /// POST /api/tasks/:id/duplicate

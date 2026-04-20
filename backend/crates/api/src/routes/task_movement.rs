@@ -1,6 +1,6 @@
 use axum::{
-    Json,
     extract::{Path, State},
+    Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -16,18 +16,18 @@ use taskbolt_db::queries::{
     get_task_watcher_ids, get_user_display_name, is_done_status, move_subtasks_to_project,
     move_task, move_task_to_project, strip_task_labels_for_project, validate_transition,
 };
-use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::notifications::dispatcher::notify_with_metadata;
+use taskbolt_services::notifications::NotificationService;
 use taskbolt_services::{
-    BroadcastService, NotificationMetadata, NotifyContext, TriggerContext,
-    spawn_automation_evaluation,
+    spawn_automation_evaluation, BroadcastService, NotificationMetadata, NotifyContext,
+    TriggerContext,
 };
 
 use crate::services::ActivityLogService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    MoveTaskRequest, broadcast_workspace_task_update, get_workspace_id_for_board,
+    broadcast_workspace_task_update, get_workspace_id_for_board, MoveTaskRequest,
 };
 
 /// Request body for moving a task to a different project
@@ -70,15 +70,44 @@ pub async fn move_task_handler(
             })?;
     }
 
-    let task = move_task(&state.db, task_id, body.status_id, body.position.clone()).await?;
+    let task = move_task_inner(
+        &state,
+        &tenant,
+        task_id,
+        board_id,
+        body.status_id,
+        body.position,
+        previous_status_id,
+    )
+    .await?;
+
+    Ok(Json(task))
+}
+
+/// Shared move pipeline — DB move, activity log, cache invalidation, WS broadcast,
+/// automation evaluation, completion notifications, parent-watcher notifications.
+/// Callers: `move_task_handler`, `complete_task_handler`, `uncomplete_task_handler`.
+///
+/// This fn assumes the caller has already verified project membership and
+/// (optionally) validated the blueprint transition. It does not re-check either.
+pub(super) async fn move_task_inner(
+    state: &AppState,
+    tenant: &TenantContext,
+    task_id: Uuid,
+    board_id: Uuid,
+    target_status_id: Uuid,
+    position: String,
+    previous_status_id: Option<Uuid>,
+) -> Result<Task> {
+    let task = move_task(&state.db, task_id, target_status_id, position.clone()).await?;
 
     // Record status_changed activity when the status actually changed.
     // Fire-and-forget so a logging failure never blocks the user-visible move.
-    if previous_status_id != Some(body.status_id) {
+    if previous_status_id != Some(target_status_id) {
         let db = state.db.clone();
         let tenant_id = tenant.tenant_id;
         let actor_id = tenant.user_id;
-        let new_status_id = body.status_id;
+        let new_status_id = target_status_id;
         let prev_status_id = previous_status_id;
         tokio::spawn(async move {
             let from_name = match prev_status_id {
@@ -117,8 +146,8 @@ pub async fn move_task_handler(
 
     let event = WsBoardEvent::TaskMoved {
         task_id,
-        status_id: Some(body.status_id),
-        position: body.position,
+        status_id: Some(target_status_id),
+        position,
         origin_user_id: tenant.user_id,
     };
 
@@ -155,7 +184,7 @@ pub async fn move_task_handler(
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
             previous_status_id,
-            new_status_id: Some(body.status_id),
+            new_status_id: Some(target_status_id),
             priority: None,
             member_user_id: None,
         },
@@ -163,7 +192,7 @@ pub async fn move_task_handler(
     );
 
     // Check if the task was moved to a "done" status - trigger TaskCompleted
-    let is_done = is_done_status(&state.db, body.status_id)
+    let is_done = is_done_status(&state.db, target_status_id)
         .await
         .unwrap_or(false);
 
@@ -178,7 +207,7 @@ pub async fn move_task_handler(
                 tenant_id: tenant.tenant_id,
                 user_id: tenant.user_id,
                 previous_status_id,
-                new_status_id: Some(body.status_id),
+                new_status_id: Some(target_status_id),
                 priority: None,
                 member_user_id: None,
             },
@@ -203,14 +232,13 @@ pub async fn move_task_handler(
                 .unwrap_or_else(|| "Someone".to_string());
 
             // Fetch project name for rich notification
-            let project_name: Option<String> = sqlx::query_scalar(
-                "SELECT name FROM projects WHERE id = $1",
-            )
-            .bind(completed_board_id)
-            .fetch_optional(&db)
-            .await
-            .ok()
-            .flatten();
+            let project_name: Option<String> =
+                sqlx::query_scalar("SELECT name FROM projects WHERE id = $1")
+                    .bind(completed_board_id)
+                    .fetch_optional(&db)
+                    .await
+                    .ok()
+                    .flatten();
 
             let assignees = get_task_assignee_ids(&db, task_id)
                 .await
@@ -281,14 +309,13 @@ pub async fn move_task_handler(
             // --- Phase 3: Notify workspace admins on task closure ---
             if let Some(waha) = notify_ctx.waha_client {
                 // Get workspace_id from the board
-                let workspace_id: Option<Uuid> = sqlx::query_scalar(
-                    "SELECT workspace_id FROM projects WHERE id = $1",
-                )
-                .bind(completed_board_id)
-                .fetch_optional(&db)
-                .await
-                .ok()
-                .flatten();
+                let workspace_id: Option<Uuid> =
+                    sqlx::query_scalar("SELECT workspace_id FROM projects WHERE id = $1")
+                        .bind(completed_board_id)
+                        .fetch_optional(&db)
+                        .await
+                        .ok()
+                        .flatten();
 
                 if let Some(ws_id) = workspace_id {
                     // Fetch workspace admins with phone numbers
@@ -328,17 +355,11 @@ pub async fn move_task_handler(
                         time_str,
                     );
 
-                    let button_url = format!("{}/task/{}", app_url, task_id);
+                    let task_url = format!("{}/task/{}", app_url, task_id);
 
                     for (admin_id, _admin_name, admin_phone) in &admins {
                         if let Err(e) = waha
-                            .send_button_message(
-                                admin_phone,
-                                &admin_body,
-                                "View Task",
-                                &button_url,
-                                Some("TaskBolt \u{2022} Task Closure Alert"),
-                            )
+                            .send_link_message(admin_phone, &admin_body, &task_url)
                             .await
                         {
                             tracing::error!(
@@ -380,10 +401,8 @@ pub async fn move_task_handler(
                     };
 
                     let watcher_title = format!("Subtask completed on \"{}\"", parent_title);
-                    let watcher_body = format!(
-                        "{} completed subtask \"{}\"",
-                        completer_name, task_title
-                    );
+                    let watcher_body =
+                        format!("{} completed subtask \"{}\"", completer_name, task_title);
                     let parent_link = format!("/task/{}", parent_id);
 
                     for watcher_id in watcher_ids {
@@ -412,7 +431,7 @@ pub async fn move_task_handler(
         });
     }
 
-    Ok(Json(task))
+    Ok(task)
 }
 
 /// POST /api/tasks/:id/move-to-project

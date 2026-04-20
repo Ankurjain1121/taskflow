@@ -1,8 +1,8 @@
 //! Bulk task operations (update, delete)
 
 use axum::{
-    Json,
     extract::{Path, State},
+    Json,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -10,12 +10,16 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
+use crate::services::cache;
 use crate::services::ActivityLogService;
 use crate::state::AppState;
-use taskbolt_db::models::TaskPriority;
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::models::{TaskPriority, WsBoardEvent};
 use taskbolt_db::queries::{
-    BulkUpdateInput, TaskQueryError, bulk_delete_tasks, bulk_update_tasks, get_project_status_name,
+    bulk_delete_tasks, bulk_update_tasks, get_project_status_name, is_done_status,
+    BulkUpdateInput, TaskQueryError,
 };
+use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 const MAX_BULK_TASK_IDS: usize = 200;
 
@@ -102,6 +106,73 @@ pub async fn bulk_update_handler(
             .collect();
 
         if !changed.is_empty() {
+            // Invalidate board tasks cache so subscribers refetch updated statuses.
+            cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
+            // Emit a single TaskBulkMoved WS frame with the full list of changed
+            // task ids — subscribers reconcile against the REST payload. Per-task
+            // completion side-effects (assignee/admin/parent-watcher notifications)
+            // are intentionally SKIPPED in the bulk path; users observe the change
+            // via the WS frame. Automations still fire per task for correctness.
+            let changed_ids: Vec<Uuid> = changed.iter().map(|(id, _)| *id).collect();
+            let broadcast_service = BroadcastService::new(state.redis.clone());
+            let bulk_event = WsBoardEvent::TaskBulkMoved {
+                task_ids: changed_ids.clone(),
+                status_id: to_status_id,
+                origin_user_id: ctx.user_id,
+            };
+            if let Err(e) = broadcast_service
+                .broadcast_board_event(board_id, &bulk_event)
+                .await
+            {
+                tracing::error!(
+                    board_id = %board_id,
+                    "Failed to broadcast TaskBulkMoved event: {}", e
+                );
+            }
+
+            // Fire automations per task. Always TaskMoved; additionally
+            // TaskCompleted when the destination column is a done-status.
+            let is_done_dest = is_done_status(&state.db, to_status_id)
+                .await
+                .unwrap_or(false);
+            for (task_id, prev_id) in &changed {
+                spawn_automation_evaluation(
+                    state.db.clone(),
+                    state.redis.clone(),
+                    AutomationTrigger::TaskMoved,
+                    TriggerContext {
+                        task_id: *task_id,
+                        board_id,
+                        tenant_id: ctx.tenant_id,
+                        user_id: ctx.user_id,
+                        previous_status_id: *prev_id,
+                        new_status_id: Some(to_status_id),
+                        priority: None,
+                        member_user_id: None,
+                    },
+                    0,
+                );
+                if is_done_dest {
+                    spawn_automation_evaluation(
+                        state.db.clone(),
+                        state.redis.clone(),
+                        AutomationTrigger::TaskCompleted,
+                        TriggerContext {
+                            task_id: *task_id,
+                            board_id,
+                            tenant_id: ctx.tenant_id,
+                            user_id: ctx.user_id,
+                            previous_status_id: *prev_id,
+                            new_status_id: Some(to_status_id),
+                            priority: None,
+                            member_user_id: None,
+                        },
+                        0,
+                    );
+                }
+            }
+
             let db = state.db.clone();
             let actor_id = ctx.user_id;
             let tenant_id = ctx.tenant_id;
