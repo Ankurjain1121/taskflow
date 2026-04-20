@@ -429,7 +429,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                             "PDF evening achievement reports completed"
                         ),
                         Err(e) => {
-                            tracing::error!(error = %e, "PDF evening achievement reports failed")
+                            tracing::error!(error = %e, "PDF evening achievement reports failed");
                         }
                     }
                     tokio::time::sleep(Duration::from_secs(86400)).await;

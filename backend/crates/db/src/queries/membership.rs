@@ -1,15 +1,6 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Verify that a user is a member of a project.
-/// Returns `true` if the user is a member, `false` otherwise.
-///
-/// This is the canonical membership check — all other modules should call this
-/// instead of duplicating the query. Access is granted via any of:
-///   1. Explicit `project_members` row
-///   2. Implicit: user is a member of the project's workspace
-///   3. Implicit: user has global `admin` or `super_admin` role and the
-///      workspace is not `private`
 /// Filter a list of user IDs to only those who are members of the given project.
 ///
 /// Uses the same membership logic as `verify_project_membership` (explicit member,
@@ -54,6 +45,15 @@ pub async fn filter_project_members(
     Ok(rows)
 }
 
+/// Verify that a user is a member of a project.
+/// Returns `true` if the user is a member, `false` otherwise.
+///
+/// This is the canonical membership check — all other modules should call this
+/// instead of duplicating the query. Access is granted via any of:
+///   1. Explicit `project_members` row
+///   2. Implicit: user is a member of the project's workspace
+///   3. Implicit: user has global `admin` or `super_admin` role and the
+///      workspace is not `private`
 pub async fn verify_project_membership(
     pool: &PgPool,
     project_id: Uuid,
