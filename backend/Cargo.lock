@@ -4098,6 +4098,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
+name = "strict-dto"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "strict-dto-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "string_cache"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4221,6 +4237,8 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
+ "strict-dto",
+ "strict-dto-derive",
  "taskbolt-auth",
  "taskbolt-db",
  "taskbolt-services",
@@ -4265,6 +4283,8 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
+ "strict-dto",
+ "strict-dto-derive",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
