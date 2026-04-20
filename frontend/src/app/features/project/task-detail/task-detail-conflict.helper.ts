@@ -33,11 +33,11 @@ export function isConflictError(error: unknown): error is ConflictError {
  */
 export function buildConflictResubmitRequest(
   resolution: ConflictResolution,
-): Partial<Task> | null {
+): (Partial<Task> & { expected_version?: number }) | null {
   if (resolution.action === 'keep_mine' && resolution.yourChanges) {
     return {
       ...resolution.yourChanges,
-      version: resolution.serverVersion,
+      expected_version: resolution.serverVersion,
     };
   }
   return null;
@@ -136,12 +136,16 @@ export function formatElapsedTime(startedAt: string): string {
 
 /**
  * Builds the update request with OCC version if available.
+ * Explicit null/undefined check so version 0 is preserved
+ * (truthy coercion would skip OCC for a freshly minted task).
  */
 export function buildUpdateRequest(
   task: Task,
   updates: Partial<Task>,
-): Partial<Task> {
-  return task.version ? { ...updates, version: task.version } : updates;
+): Partial<Task> & { expected_version?: number } {
+  return task.version != null
+    ? { ...updates, expected_version: task.version }
+    : updates;
 }
 
 /**

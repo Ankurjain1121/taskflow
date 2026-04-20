@@ -142,7 +142,7 @@ describe('ApiService', () => {
     it('should handle 409 Conflict (version mismatch)', () => {
       return new Promise<void>((resolve) => {
         service
-          .post('/tasks/1/update', { version: 1, title: 'Updated' })
+          .post('/tasks/1/update', { expected_version: 1, title: 'Updated' })
           .subscribe({
             next: () => fail('should have failed'),
             error: (error) => {

@@ -180,14 +180,14 @@ export interface UpdateTaskRequest {
   title?: string;
   description?: string | null;
   priority?: TaskPriority;
-  assignee_id?: string | null;
   due_date?: string | null;
   clear_due_date?: boolean;
+  start_date?: string | null;
   estimated_hours?: number | null;
   clear_estimated_hours?: boolean;
   milestone_id?: string | null;
-  status_id?: string | null;
-  version?: number;
+  // Optimistic concurrency: the version of the task the client last observed.
+  expected_version?: number;
   // Budget fields (Phase 2.6). v1 only supports setting a number — use
   // `undefined` or omit to leave unchanged. Null-semantics not wired yet.
   rate_per_hour?: number | null;
