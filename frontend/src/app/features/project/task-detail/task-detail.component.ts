@@ -16,6 +16,7 @@ import { CommonModule } from '@angular/common';
 import { Drawer } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { TaskCompletionService } from '../../../core/services/task-completion.service';
 import {
   TaskService,
   Task,
@@ -129,6 +130,7 @@ import {
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private workspaceService = inject(WorkspaceService);
   private projectService = inject(ProjectService);
   private dependencyService = inject(DependencyService);
@@ -253,6 +255,15 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   onTitleSave(title: string): void {
     this.conflictNotification.registerEdit(this.taskId(), 'title');
     this.updateTask({ title }, 'title');
+  }
+
+  onReopen(): void {
+    this.taskCompletion.uncomplete(this.taskId()).subscribe({
+      next: (updated) => {
+        const current = this.task();
+        if (current) this.task.set({ ...current, ...updated });
+      },
+    });
   }
 
   onDescriptionSave(description: string): void {

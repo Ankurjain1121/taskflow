@@ -26,6 +26,7 @@ import {
   UpdateTaskRequest,
   MoveTaskRequest,
 } from '../../core/services/task.service';
+import { TaskCompletionService } from '../../core/services/task-completion.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ProjectService, Board, Column } from '../../core/services/project.service';
 import {
@@ -333,6 +334,7 @@ export class TaskDetailPageComponent {
   private router = inject(Router);
   private location = inject(Location);
   private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private projectService = inject(ProjectService);
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
@@ -497,6 +499,7 @@ export class TaskDetailPageComponent {
 
     const snapshot = { ...t };
     const newCol = this.columns().find((c) => c.id === statusId);
+    const isDone = newCol?.status_mapping?.done === true;
     this.task.set({
       ...t,
       status_id: statusId,
@@ -504,8 +507,8 @@ export class TaskDetailPageComponent {
       status_color: newCol?.color ?? t.status_color,
     });
 
-    this.taskService
-      .moveTask(t.id, { status_id: statusId, position: 'a0' })
+    this.taskCompletion
+      .moveToStatus(t.id, statusId, 'a0', { isDone, silent: true })
       .subscribe({
         next: (updated) => {
           this.task.set({

@@ -7,6 +7,7 @@ import {
   TaskListItem,
   UpdateTaskRequest,
 } from '../../../core/services/task.service';
+import { TaskCompletionService } from '../../../core/services/task-completion.service';
 import { HapticService } from '../../../core/services/haptic.service';
 import { ProjectStateService } from './project-state.service';
 
@@ -15,6 +16,7 @@ export type CreateDirection = 'above' | 'below';
 @Injectable()
 export class ProjectListEditHandler {
   private readonly taskService = inject(TaskService);
+  private readonly taskCompletion = inject(TaskCompletionService);
   private readonly hapticService = inject(HapticService);
   private readonly state = inject(ProjectStateService);
 
@@ -266,10 +268,10 @@ export class ProjectListEditHandler {
       }
     }
 
-    this.taskService
-      .moveTask(this.resolveRealId(event.taskId), {
-        status_id: event.statusId,
-        position: 'bottom',
+    this.taskCompletion
+      .moveToStatus(this.resolveRealId(event.taskId), event.statusId, 'bottom', {
+        isDone: targetColumn?.status_mapping?.done === true,
+        silent: true,
       })
       .pipe(takeUntil(destroy$))
       .subscribe({

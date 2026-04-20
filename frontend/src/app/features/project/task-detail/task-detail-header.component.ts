@@ -36,9 +36,20 @@ import { Column } from '../../../core/services/project.service';
           </div>
         }
 
-        <!-- Done badge -->
+        <!-- Done badge + Reopen -->
         @if (column()?.status_mapping?.done) {
-          <p-tag value="Done" severity="success" />
+          <div class="flex items-center gap-2">
+            <p-tag value="Done" severity="success" />
+            <button
+              type="button"
+              (click)="reopenRequested.emit()"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+              [attr.aria-label]="'Reopen task ' + t.title"
+            >
+              <i class="pi pi-replay text-[10px]"></i>
+              Reopen
+            </button>
+          </div>
         }
 
         <!-- Title (Inline Editable) -->
@@ -83,6 +94,7 @@ export class TaskDetailHeaderComponent {
 
   titleChanged = output<string>();
   closeRequested = output<void>();
+  reopenRequested = output<void>();
 
   private pendingTitle = '';
 

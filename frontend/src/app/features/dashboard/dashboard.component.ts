@@ -19,6 +19,7 @@ import { DashboardService, DashboardStats } from '../../core/services/dashboard.
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { Workspace } from '../../core/services/workspace.service';
 import { TaskService } from '../../core/services/task.service';
+import { TaskCompletionService } from '../../core/services/task-completion.service';
 import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -233,6 +234,7 @@ export class DashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private workspaceState = inject(WorkspaceStateService);
   private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private checklistService = inject(OnboardingChecklistService);
   private injector = inject(Injector);
 
@@ -342,7 +344,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onFocusTaskCompleted(taskId: string): void {
-    this.taskService.updateTask(taskId, { status_id: null }).subscribe({
+    this.taskCompletion.complete(taskId, { celebrate: true }).subscribe({
       error: () => {
         // Revert optimistic UI would happen in the card
       },

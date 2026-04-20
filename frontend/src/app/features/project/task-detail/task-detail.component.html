@@ -52,6 +52,7 @@
               [column]="column()"
               [parentTitle]="parentTaskTitle()"
               (titleChanged)="onTitleSave($event)"
+              (reopenRequested)="onReopen()"
             />
 
             <!-- Metadata: priority, due date, assignees, labels, milestone -->

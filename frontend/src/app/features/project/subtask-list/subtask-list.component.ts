@@ -28,6 +28,7 @@ import {
   TaskPriority,
   ChildTaskListResponse,
 } from '../../../core/services/task.service';
+import { TaskCompletionService } from '../../../core/services/task-completion.service';
 import {
   Column,
   ProjectMember,
@@ -227,6 +228,7 @@ import { Toast } from 'primeng/toast';
 })
 export class SubtaskListComponent implements OnInit, OnChanges {
   private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private projectService = inject(ProjectService);
   private workspaceService = inject(WorkspaceService);
   private messageService = inject(MessageService);
@@ -303,16 +305,20 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     const snapshot = this.children();
     const child = snapshot.find(c => c.id === event.childId);
     if (!child) return;
+    const targetCol = this.boardColumns().find(c => c.id === event.statusId);
+    const isDone = targetCol?.status_mapping?.done === true;
     this.children.update(list =>
       list.map(c => c.id === event.childId ? { ...c, status_id: event.statusId } : c),
     );
-    this.taskService.moveTask(event.childId, { status_id: event.statusId, position: child.position }).subscribe({
-      next: () => this.loadChildren(),
-      error: () => {
-        this.children.set(snapshot);
-        this.showToast('Failed to update status');
-      },
-    });
+    this.taskCompletion
+      .moveToStatus(event.childId, event.statusId, child.position, { isDone, silent: true })
+      .subscribe({
+        next: () => this.loadChildren(),
+        error: () => {
+          this.children.set(snapshot);
+          this.showToast('Failed to update status');
+        },
+      });
   }
 
   onPriorityChanged(event: { childId: string; priority: TaskPriority | null }): void {
