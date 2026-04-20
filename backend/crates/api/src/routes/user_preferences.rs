@@ -1,20 +1,22 @@
 use axum::{
-    Json, Router,
     extract::State,
     middleware::from_fn_with_state,
     routing::{get, put},
+    Json, Router,
 };
-use serde::Deserialize;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
+use super::validation::validate_locale;
+
 use taskbolt_db::queries::user_prefs;
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdatePreferencesRequest {
     #[serde(default)]
     pub timezone: Option<String>,
@@ -66,10 +68,26 @@ async fn get_preferences(
 async fn update_preferences(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(body): Json<UpdatePreferencesRequest>,
+    StrictJson(body): StrictJson<UpdatePreferencesRequest>,
 ) -> Result<Json<taskbolt_db::models::UserPreferences>> {
-    // Fetch existing prefs so partial updates merge correctly
-    let existing = user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?;
+    // Validate input BEFORE merging with DB fallback. A stale DB row
+    // (pre-allowlist) must not 400 unrelated PUTs that do not touch locale.
+    if let Some(ref new_locale) = body.locale {
+        validate_locale(new_locale)?;
+    }
+
+    // Fetch existing prefs so partial updates merge correctly. Reuse the
+    // cache entry written by GET so hot users skip the DB round-trip.
+    let cache_key = cache::user_prefs_key(&auth.0.user_id);
+    let existing = match cache::cache_get::<taskbolt_db::models::UserPreferences>(
+        &state.redis,
+        &cache_key,
+    )
+    .await
+    {
+        Some(cached) => cached,
+        None => user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?,
+    };
 
     let timezone = body.timezone.unwrap_or(existing.timezone);
     let date_format = body.date_format.unwrap_or(existing.date_format);
@@ -140,8 +158,8 @@ async fn update_preferences(
     )
     .await?;
 
-    // Invalidate preferences cache
-    cache::cache_del(&state.redis, &cache::user_prefs_key(&auth.0.user_id)).await;
+    // Invalidate preferences cache (reuse key computed for the merge-read)
+    cache::cache_del(&state.redis, &cache_key).await;
 
     Ok(Json(prefs))
 }

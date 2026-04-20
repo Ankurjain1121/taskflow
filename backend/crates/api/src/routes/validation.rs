@@ -69,6 +69,25 @@ pub fn validate_hex_color(value: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Allowed locale tags. Extend as translations ship.
+pub const ALLOWED_LOCALES: &[&str] = &["en"];
+
+/// Validate a locale tag against the `ALLOWED_LOCALES` allowlist.
+///
+/// Callers must gate on presence in the request body: validating the
+/// DB-resident fallback value would regress unrelated PUTs if a row
+/// carries a locale stored before this allowlist existed.
+pub fn validate_locale(locale: &str) -> Result<(), AppError> {
+    if ALLOWED_LOCALES.contains(&locale) {
+        Ok(())
+    } else {
+        Err(AppError::BadRequest(format!(
+            "locale must be one of: {}",
+            ALLOWED_LOCALES.join(", ")
+        )))
+    }
+}
+
 /// Maximum nesting depth for subtasks (parent depth 0 -> child depth 1 -> ... -> depth 5).
 pub const MAX_SUBTASK_DEPTH: i16 = 5;
 
@@ -159,14 +178,12 @@ mod tests {
     #[test]
     fn test_valid_length_strings_accepted() {
         assert!(validate_required_string("Title", "Short title", MAX_NAME_LEN).is_ok());
-        assert!(
-            validate_optional_string(
-                "Description",
-                Some("A brief description"),
-                MAX_DESCRIPTION_LEN
-            )
-            .is_ok()
-        );
+        assert!(validate_optional_string(
+            "Description",
+            Some("A brief description"),
+            MAX_DESCRIPTION_LEN
+        )
+        .is_ok());
         assert!(validate_required_string("Name", "My Project", MAX_NAME_LEN).is_ok());
     }
 
@@ -228,10 +245,12 @@ mod tests {
         );
 
         let too_long = "p".repeat(5_001);
-        assert!(
-            validate_optional_string("Description", Some(&too_long), MAX_PROJECT_DESCRIPTION_LEN)
-                .is_err()
-        );
+        assert!(validate_optional_string(
+            "Description",
+            Some(&too_long),
+            MAX_PROJECT_DESCRIPTION_LEN
+        )
+        .is_err());
     }
 
     #[test]
@@ -301,5 +320,48 @@ mod tests {
     fn test_validate_hex_color_css_injection_attempt() {
         assert!(validate_hex_color("red; background-image: url(evil)").is_err());
         assert!(validate_hex_color("#000000; --x: 1").is_err());
+    }
+
+    // ========================================================================
+    // Locale allowlist validation
+    // ========================================================================
+
+    #[test]
+    fn test_validate_locale_en_accepted() {
+        assert!(validate_locale("en").is_ok());
+    }
+
+    #[test]
+    fn test_validate_locale_unknown_rejected() {
+        assert!(validate_locale("zh-Hant-TW").is_err());
+        assert!(validate_locale("fr").is_err());
+        assert!(validate_locale("en-US").is_err()); // stricter: only exact entries pass
+    }
+
+    #[test]
+    fn test_validate_locale_empty_rejected() {
+        assert!(validate_locale("").is_err());
+    }
+
+    #[test]
+    fn test_validate_locale_junk_rejected() {
+        assert!(validate_locale("aaaaaaaaaa").is_err());
+        assert!(validate_locale("en_US").is_err()); // underscore not a locale
+        assert!(validate_locale("EN").is_err()); // case-sensitive per BCP-47 primary-tag lowercase convention
+    }
+
+    #[test]
+    fn test_validate_locale_error_message_lists_allowed() {
+        let err = validate_locale("xx").unwrap_err();
+        let AppError::BadRequest(msg) = err else {
+            panic!("expected BadRequest");
+        };
+        assert!(msg.contains("en"));
+    }
+
+    #[test]
+    fn test_allowed_locales_is_non_empty() {
+        // Guard against accidental emptying of the allowlist.
+        assert!(!ALLOWED_LOCALES.is_empty());
     }
 }
