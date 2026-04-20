@@ -8,7 +8,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::{CreateTaskGroupRequest, UpdateTaskGroupRequest};
@@ -123,7 +123,7 @@ async fn create_group(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(req): Json<CreateTaskGroupRequest>,
+    StrictJson(req): StrictJson<CreateTaskGroupRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if !verify_board_access(&state.db, board_id, tenant.user_id).await? {
         return Err(AppError::Forbidden(
@@ -150,7 +150,7 @@ async fn update_group(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-    Json(req): Json<UpdateTaskGroupRequest>,
+    StrictJson(req): StrictJson<UpdateTaskGroupRequest>,
 ) -> Result<Json<serde_json::Value>> {
     if !verify_group_access(&state.db, id, tenant.user_id).await? {
         return Err(AppError::Forbidden(

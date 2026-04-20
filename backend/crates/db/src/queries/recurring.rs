@@ -47,7 +47,8 @@ pub enum RecurringQueryError {
 }
 
 /// Input for creating a recurring task config
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateRecurringInput {
     pub pattern: RecurrencePattern,
     pub cron_expression: Option<String>,
@@ -62,7 +63,8 @@ pub struct CreateRecurringInput {
 }
 
 /// Input for updating a recurring task config
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateRecurringInput {
     pub pattern: Option<RecurrencePattern>,
     pub cron_expression: Option<String>,
@@ -202,7 +204,7 @@ pub(super) fn calculate_next_run(
                 return from + Duration::days(7);
             }
             let current_dow = from.weekday().num_days_from_monday().cast_signed(); // 0=Mon
-            // Find next matching day this week or next week
+                                                                                   // Find next matching day this week or next week
             let mut best_offset = 7i64; // worst case: same day next week
             for &dow in &config.days_of_week {
                 let dow = dow.clamp(0, 6);

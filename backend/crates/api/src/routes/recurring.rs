@@ -8,7 +8,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::TaskTemplateData;
@@ -62,7 +62,7 @@ async fn create_config_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<CreateRecurringInput>,
+    StrictJson(body): StrictJson<CreateRecurringInput>,
 ) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let config = create_config(&state.db, task_id, body, tenant.user_id, tenant.tenant_id)
         .await
@@ -77,7 +77,7 @@ async fn update_config_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(config_id): Path<Uuid>,
-    Json(body): Json<UpdateRecurringInput>,
+    StrictJson(body): StrictJson<UpdateRecurringInput>,
 ) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let config = update_config(&state.db, config_id, body, tenant.user_id)
         .await
@@ -87,7 +87,8 @@ async fn update_config_handler(
 }
 
 /// Request body for creating a template-based recurring config.
-#[derive(Debug, serde::Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateTemplateRecurringRequest {
     pub template: TaskTemplateData,
     pub pattern: taskbolt_db::models::RecurrencePattern,
@@ -106,7 +107,7 @@ async fn create_template_config_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(project_id): Path<Uuid>,
-    Json(body): Json<CreateTemplateRecurringRequest>,
+    StrictJson(body): StrictJson<CreateTemplateRecurringRequest>,
 ) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let start_date: chrono::DateTime<chrono::Utc> = body.start_date.parse().map_err(|_| {
         AppError::BadRequest("Invalid start_date format (expected ISO 8601)".into())

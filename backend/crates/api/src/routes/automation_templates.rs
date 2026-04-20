@@ -8,7 +8,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::ManagerOrAdmin;
+use crate::extractors::{StrictJson, ManagerOrAdmin};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -50,7 +50,7 @@ async fn toggle_template_handler(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
     Path((workspace_id, template_id)): Path<(Uuid, Uuid)>,
-    Json(body): Json<ToggleTemplateRequest>,
+    StrictJson(body): StrictJson<ToggleTemplateRequest>,
 ) -> Result<Json<AutomationTemplate>> {
     let is_member = is_workspace_member(&state.db, workspace_id, manager.0.user_id).await?;
     if !is_member {
@@ -81,7 +81,7 @@ async fn apply_template_handler(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
     Path((workspace_id, template_id)): Path<(Uuid, Uuid)>,
-    Json(body): Json<ApplyTemplateRequest>,
+    StrictJson(body): StrictJson<ApplyTemplateRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let is_member = is_workspace_member(&state.db, workspace_id, manager.0.user_id).await?;
     if !is_member {

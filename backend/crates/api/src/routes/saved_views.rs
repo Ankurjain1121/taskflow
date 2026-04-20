@@ -41,7 +41,7 @@ async fn create_saved_view_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(ws_id): Path<Uuid>,
-    Json(input): Json<CreateSavedViewInput>,
+    StrictJson(input): StrictJson<CreateSavedViewInput>,
 ) -> Result<Json<SavedView>> {
     // Verify workspace membership
     let is_member = workspaces::is_workspace_member(&state.db, ws_id, tenant.user_id).await?;
@@ -80,7 +80,7 @@ async fn update_saved_view_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-    Json(input): Json<UpdateSavedViewInput>,
+    StrictJson(input): StrictJson<UpdateSavedViewInput>,
 ) -> Result<Json<SavedView>> {
     let view = saved_views::update_saved_view(&state.db, id, tenant.user_id, &input)
         .await

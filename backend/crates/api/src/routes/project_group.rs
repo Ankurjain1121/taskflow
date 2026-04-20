@@ -4,7 +4,6 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{get, post},
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -43,7 +42,8 @@ pub struct CreateGroupRequest {
     pub description: Option<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[strict_dto_derive::strict_dto]
+#[derive(Default)]
 #[serde(default)]
 pub struct UpdateGroupRequest {
     pub name: Option<String>,
@@ -117,7 +117,7 @@ async fn update_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-    Json(body): Json<UpdateGroupRequest>,
+    StrictJson(body): StrictJson<UpdateGroupRequest>,
 ) -> Result<Json<ProjectGroup>> {
     // Auth: ensure caller is a workspace member of the group's workspace
     let ws_id = get_group_workspace_id(&state.db, id)

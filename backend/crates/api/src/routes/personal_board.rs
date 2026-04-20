@@ -11,7 +11,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::personal_board::{
@@ -36,7 +36,7 @@ async fn move_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(input): Json<MovePersonalTaskInput>,
+    StrictJson(input): StrictJson<MovePersonalTaskInput>,
 ) -> Result<Json<serde_json::Value>> {
     personal_board::move_personal_task(&state.db, tenant.user_id, task_id, &input)
         .await

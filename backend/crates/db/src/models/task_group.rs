@@ -22,7 +22,8 @@ pub struct TaskList {
 // Alias for backward compat within crate
 pub type TaskGroup = TaskList;
 
-#[derive(Deserialize, Debug)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateTaskListRequest {
     pub project_id: Uuid,
     pub name: String,
@@ -34,7 +35,8 @@ pub struct CreateTaskListRequest {
 // Alias for callers that still use old name
 pub type CreateTaskGroupRequest = CreateTaskListRequest;
 
-#[derive(Deserialize, Debug)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateTaskListRequest {
     pub name: Option<String>,
     pub color: Option<String>,

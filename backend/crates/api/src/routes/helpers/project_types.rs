@@ -11,27 +11,31 @@ use taskbolt_db::models::{BoardMemberRole, TaskPriority};
 // Request/Response DTOs
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateProjectRequest {
     pub name: String,
     pub description: Option<String>,
     pub template: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateProjectRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub background_color: Option<Option<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct AddProjectMemberRequest {
     pub user_id: Uuid,
     pub role: BoardMemberRole,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateProjectMemberRoleRequest {
     pub role: BoardMemberRole,
 }
@@ -165,7 +169,8 @@ pub struct LabelInfo {
 // Duplicate Project
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct DuplicateProjectRequest {
     pub name: String,
     pub include_tasks: Option<bool>,

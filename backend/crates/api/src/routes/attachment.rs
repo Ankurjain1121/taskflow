@@ -9,12 +9,12 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -51,7 +51,8 @@ const ALLOWED_MIME_TYPES: &[&str] = &[
 ];
 
 /// Request body for generating an upload URL
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetUploadUrlRequest {
     pub file_name: String,
@@ -68,7 +69,8 @@ pub struct GetUploadUrlResponse {
 }
 
 /// Request body for confirming an upload
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfirmUploadRequest {
     pub storage_key: String,
@@ -90,7 +92,7 @@ async fn get_upload_url(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<GetUploadUrlRequest>,
+    StrictJson(body): StrictJson<GetUploadUrlRequest>,
 ) -> Result<Json<GetUploadUrlResponse>> {
     // Validate file size
     if body.file_size > MAX_FILE_SIZE {
@@ -147,7 +149,7 @@ async fn confirm_upload(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<ConfirmUploadRequest>,
+    StrictJson(body): StrictJson<ConfirmUploadRequest>,
 ) -> Result<Json<AttachmentWithUploader>> {
     // Validate MIME type against allowlist
     if !ALLOWED_MIME_TYPES.contains(&body.mime_type.as_str()) {

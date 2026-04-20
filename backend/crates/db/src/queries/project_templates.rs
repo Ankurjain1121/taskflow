@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -20,7 +20,8 @@ pub enum ProjectTemplateQueryError {
 }
 
 /// Input for creating a new project template
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateTemplateInput {
     pub name: String,
     pub description: Option<String>,
@@ -28,7 +29,8 @@ pub struct CreateTemplateInput {
 }
 
 /// Input for saving a board as a template
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateTemplateFromBoardInput {
     pub name: String,
     pub description: Option<String>,
@@ -36,7 +38,8 @@ pub struct CreateTemplateFromBoardInput {
 }
 
 /// Input for creating a board from a template
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateBoardFromTemplateInput {
     pub workspace_id: Uuid,
     pub board_name: String,

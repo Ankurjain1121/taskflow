@@ -27,7 +27,8 @@ pub struct TaskTemplateWithDetails {
     pub custom_fields: Vec<TaskTemplateCustomField>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateTaskTemplateInput {
     pub name: String,
     pub description: Option<String>,
@@ -48,7 +49,8 @@ pub struct TemplateCustomFieldInput {
     pub value: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateTaskTemplateInput {
     pub name: Option<String>,
     pub description: Option<String>,

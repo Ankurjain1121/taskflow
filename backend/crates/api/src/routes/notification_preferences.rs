@@ -8,11 +8,11 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, put},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::NotificationPreference;
@@ -27,7 +27,7 @@ pub struct ListPreferencesResponse {
 }
 
 /// Request body for updating preferences
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePreferenceRequest {
     pub event_type: String,
@@ -61,7 +61,7 @@ async fn list_preferences(
 async fn update_preference(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(body): Json<UpdatePreferenceRequest>,
+    StrictJson(body): StrictJson<UpdatePreferenceRequest>,
 ) -> Result<Json<NotificationPreference>> {
     let preference = upsert(
         &state.db,

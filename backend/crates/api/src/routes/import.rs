@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -34,7 +34,7 @@ struct ImportTaskItem {
     due_date: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 struct ImportCsvBody {
     csv_text: String,
 }
@@ -56,7 +56,7 @@ struct TrelloList {
     closed: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 struct TrelloExport {
     #[allow(dead_code)]
     name: Option<String>,
@@ -303,7 +303,7 @@ async fn import_csv_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<ImportCsvBody>,
+    StrictJson(body): StrictJson<ImportCsvBody>,
 ) -> Result<Json<ImportResult>> {
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
     require_capability(
@@ -436,7 +436,7 @@ async fn import_trello_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(trello): Json<TrelloExport>,
+    StrictJson(trello): StrictJson<TrelloExport>,
 ) -> Result<Json<TrelloImportResult>> {
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
     require_capability(

@@ -18,7 +18,8 @@ pub struct BatchTaskUpdate {
 }
 
 /// Input for batch my-tasks update
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct BatchMyTasksInput {
     pub updates: Vec<BatchTaskUpdate>,
 }

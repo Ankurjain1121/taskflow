@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -20,7 +20,8 @@ pub enum DependencyQueryError {
 }
 
 /// Input for creating a new dependency
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateDependencyInput {
     pub target_task_id: uuid::Uuid,
     pub dependency_type: DependencyType,

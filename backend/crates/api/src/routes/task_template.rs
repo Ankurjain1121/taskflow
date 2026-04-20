@@ -81,7 +81,7 @@ async fn get_template(
 async fn create_template(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(input): Json<CreateTaskTemplateInput>,
+    StrictJson(input): StrictJson<CreateTaskTemplateInput>,
 ) -> Result<Json<TaskTemplate>> {
     let template = create_task_template(&state.db, input, tenant.tenant_id, tenant.user_id)
         .await
@@ -98,7 +98,7 @@ async fn update_template(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(template_id): Path<Uuid>,
-    Json(input): Json<UpdateTaskTemplateInput>,
+    StrictJson(input): StrictJson<UpdateTaskTemplateInput>,
 ) -> Result<Json<TaskTemplate>> {
     let template = update_task_template(
         &state.db,

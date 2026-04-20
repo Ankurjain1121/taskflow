@@ -8,7 +8,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::dependencies::{
@@ -82,7 +82,7 @@ async fn create_dependency_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(body): Json<CreateDependencyInput>,
+    StrictJson(body): StrictJson<CreateDependencyInput>,
 ) -> Result<Json<DependencyWithTask>> {
     let dep = create_dependency(&state.db, task_id, body, tenant.user_id)
         .await

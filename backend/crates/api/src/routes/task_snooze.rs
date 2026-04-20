@@ -11,7 +11,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::task_snooze::{self, SnoozeTaskInput, TaskSnooze, TaskSnoozeError};
@@ -23,7 +23,7 @@ async fn snooze_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-    Json(input): Json<SnoozeTaskInput>,
+    StrictJson(input): StrictJson<SnoozeTaskInput>,
 ) -> Result<Json<TaskSnooze>> {
     let snooze = task_snooze::snooze_task(&state.db, tenant.user_id, task_id, &input)
         .await

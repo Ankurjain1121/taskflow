@@ -57,7 +57,8 @@ pub struct CreateIssueRequest {
     pub flag: Option<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[strict_dto_derive::strict_dto]
+#[derive(Default)]
 #[serde(default)]
 pub struct UpdateIssueRequest {
     pub title: Option<String>,
@@ -193,7 +194,7 @@ async fn update_issue_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(issue_id): Path<Uuid>,
-    Json(body): Json<UpdateIssueRequest>,
+    StrictJson(body): StrictJson<UpdateIssueRequest>,
 ) -> Result<Json<Issue>> {
     let project_id = get_issue_project_id(&state.db, issue_id)
         .await?

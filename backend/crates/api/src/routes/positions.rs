@@ -92,7 +92,7 @@ async fn create_position(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(board_id): Path<Uuid>,
-    Json(payload): Json<taskbolt_db::models::CreatePositionRequest>,
+    StrictJson(payload): StrictJson<taskbolt_db::models::CreatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
     let is_member = projects::is_project_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
@@ -154,7 +154,7 @@ async fn update_position(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<taskbolt_db::models::UpdatePositionRequest>,
+    StrictJson(payload): StrictJson<taskbolt_db::models::UpdatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
     let existing = positions::get_position(&state.db, id)
         .await?

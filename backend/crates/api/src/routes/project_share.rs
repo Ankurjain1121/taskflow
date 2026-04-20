@@ -4,12 +4,11 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::project_shares::{
@@ -48,7 +47,7 @@ async fn create_share_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateBoardShareInput>,
+    StrictJson(body): StrictJson<CreateBoardShareInput>,
 ) -> Result<Json<taskbolt_db::models::BoardShare>> {
     let share = create_board_share(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
         .await
@@ -70,7 +69,7 @@ async fn delete_share_handler(
     Ok(Json(json!({ "success": true })))
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 struct ToggleShareRequest {
     is_active: bool,
 }
@@ -80,7 +79,7 @@ async fn toggle_share_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(share_id): Path<Uuid>,
-    Json(body): Json<ToggleShareRequest>,
+    StrictJson(body): StrictJson<ToggleShareRequest>,
 ) -> Result<Json<taskbolt_db::models::BoardShare>> {
     let share = toggle_board_share(&state.db, share_id, body.is_active, tenant.user_id)
         .await
@@ -101,7 +100,7 @@ async fn access_shared_board_handler(
     Ok(Json(access))
 }
 
-#[derive(Deserialize)]
+#[strict_dto_derive::strict_dto]
 struct AccessShareBody {
     password: Option<String>,
 }
@@ -110,7 +109,7 @@ struct AccessShareBody {
 async fn access_shared_board_post_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(body): Json<AccessShareBody>,
+    StrictJson(body): StrictJson<AccessShareBody>,
 ) -> Result<Json<taskbolt_db::queries::project_shares::SharedBoardAccess>> {
     let access = access_shared_board(&state.db, &token, body.password.as_deref())
         .await

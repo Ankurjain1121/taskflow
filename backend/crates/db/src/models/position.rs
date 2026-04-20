@@ -52,7 +52,8 @@ pub struct PositionWithHolders {
 }
 
 /// DTO for creating a position
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreatePositionRequest {
     pub name: String,
     pub description: Option<String>,
@@ -60,7 +61,8 @@ pub struct CreatePositionRequest {
 }
 
 /// DTO for updating a position
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdatePositionRequest {
     pub name: Option<String>,
     pub description: Option<String>,

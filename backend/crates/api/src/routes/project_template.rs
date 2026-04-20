@@ -8,7 +8,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::project_templates::{
@@ -51,7 +51,7 @@ async fn list_templates_handler(
 async fn create_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(body): Json<CreateTemplateInput>,
+    StrictJson(body): StrictJson<CreateTemplateInput>,
 ) -> Result<Json<taskbolt_db::models::ProjectTemplate>> {
     let template = create_template(&state.db, body, tenant.user_id, tenant.tenant_id)
         .await
@@ -100,7 +100,7 @@ async fn create_board_from_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(template_id): Path<Uuid>,
-    Json(body): Json<CreateBoardFromTemplateInput>,
+    StrictJson(body): StrictJson<CreateBoardFromTemplateInput>,
 ) -> Result<Json<serde_json::Value>> {
     let board_id = create_board_from_template(
         &state.db,
@@ -122,7 +122,7 @@ async fn save_board_as_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateTemplateFromBoardInput>,
+    StrictJson(body): StrictJson<CreateTemplateFromBoardInput>,
 ) -> Result<Json<taskbolt_db::models::ProjectTemplate>> {
     let template =
         save_board_as_template(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)

@@ -18,6 +18,8 @@ ts-rs.workspace = true
 sha2.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 url.workspace = true
+strict-dto.workspace = true
+strict-dto-derive.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

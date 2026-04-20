@@ -19,7 +19,7 @@ use taskbolt_db::queries::{projects, workspaces};
 use taskbolt_services::board_templates;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
+use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::services::http_cache::{check_if_none_match, generate_etag};
@@ -185,7 +185,7 @@ async fn create_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<CreateProjectRequest>,
+    StrictJson(payload): StrictJson<CreateProjectRequest>,
 ) -> Result<Json<ProjectDetailResponse>> {
     // Check workspace membership
     let is_member =
@@ -255,7 +255,7 @@ async fn update_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateProjectRequest>,
+    StrictJson(payload): StrictJson<UpdateProjectRequest>,
 ) -> Result<Json<ProjectResponse>> {
     // Check project membership with editor or owner role
     let role = projects::get_project_member_role(&state.db, id, auth.0.user_id).await?;
@@ -405,7 +405,7 @@ async fn add_project_member(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<AddProjectMemberRequest>,
+    StrictJson(payload): StrictJson<AddProjectMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Check project membership
     let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;
@@ -472,7 +472,7 @@ async fn update_project_member_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((id, user_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateProjectMemberRoleRequest>,
+    StrictJson(payload): StrictJson<UpdateProjectMemberRoleRequest>,
 ) -> Result<Json<ProjectMemberResponse>> {
     // Check project membership with owner or editor role
     let role = projects::get_project_member_role(&state.db, id, auth.0.user_id).await?;
@@ -527,7 +527,7 @@ async fn duplicate_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<DuplicateProjectRequest>,
+    StrictJson(payload): StrictJson<DuplicateProjectRequest>,
 ) -> Result<Json<ProjectDetailResponse>> {
     // Verify membership
     let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;

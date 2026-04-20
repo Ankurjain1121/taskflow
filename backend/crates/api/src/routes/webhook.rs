@@ -9,7 +9,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::webhooks::{
@@ -45,7 +45,7 @@ async fn create_webhook_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateWebhookInput>,
+    StrictJson(body): StrictJson<CreateWebhookInput>,
 ) -> Result<Json<taskbolt_db::models::Webhook>> {
     let webhook = create_webhook(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
         .await
@@ -59,7 +59,7 @@ async fn update_webhook_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(webhook_id): Path<Uuid>,
-    Json(body): Json<UpdateWebhookInput>,
+    StrictJson(body): StrictJson<UpdateWebhookInput>,
 ) -> Result<Json<taskbolt_db::models::Webhook>> {
     let webhook = update_webhook(&state.db, webhook_id, body, tenant.user_id)
         .await

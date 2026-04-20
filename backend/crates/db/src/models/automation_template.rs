@@ -24,13 +24,15 @@ pub struct AutomationTemplate {
 }
 
 /// Request body for toggling a template on/off
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ToggleTemplateRequest {
     pub enabled: bool,
 }
 
 /// Request body for applying a template to a board
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct ApplyTemplateRequest {
     pub board_id: Uuid,
 }

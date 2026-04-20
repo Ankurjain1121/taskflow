@@ -15,7 +15,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AuthUserExtractor;
+use crate::extractors::{StrictJson, AuthUserExtractor};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -55,7 +55,7 @@ async fn restore_workspace_trash(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(body): Json<RestoreRequest>,
+    StrictJson(body): StrictJson<RestoreRequest>,
 ) -> Result<Json<TrashOpResponse>> {
     let scope = workspace_scope(&state, workspace_id, auth.0.user_id).await?;
     let response = trash_queries::restore_item(

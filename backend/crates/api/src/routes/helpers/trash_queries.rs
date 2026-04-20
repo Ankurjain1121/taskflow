@@ -13,7 +13,7 @@ use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use taskbolt_services::minio::{MinioConfig, MinioService};
 use taskbolt_services::trash_bin::{
-    TRASH_RETENTION_DAYS, TrashEntityType, permanently_delete, restore_from_trash,
+    permanently_delete, restore_from_trash, TrashEntityType, TRASH_RETENTION_DAYS,
 };
 
 // ============================================================================
@@ -64,7 +64,8 @@ pub struct TrashListResponse {
     pub next_cursor: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct RestoreRequest {
     pub entity_type: String,
     pub entity_id: Uuid,

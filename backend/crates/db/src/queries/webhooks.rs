@@ -1,5 +1,5 @@
 use chrono::Utc;
-use serde::Deserialize;
+
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -19,7 +19,8 @@ pub enum WebhookQueryError {
 }
 
 /// Input for creating a webhook
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateWebhookInput {
     pub url: String,
     pub secret: Option<String>,
@@ -27,7 +28,8 @@ pub struct CreateWebhookInput {
 }
 
 /// Input for updating a webhook
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateWebhookInput {
     pub url: Option<String>,
     pub secret: Option<String>,

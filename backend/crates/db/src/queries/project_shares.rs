@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -25,7 +25,8 @@ pub enum BoardShareQueryError {
 }
 
 /// Input for creating a board share link
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateBoardShareInput {
     pub name: Option<String>,
     pub password: Option<String>,

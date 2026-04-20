@@ -5,7 +5,7 @@
 use axum::{Json, Router, extract::State, middleware::from_fn_with_state, routing::post};
 
 use crate::errors::{AppError, Result};
-use crate::extractors::TenantContext;
+use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::batch_my_tasks::{
@@ -18,7 +18,7 @@ use taskbolt_db::queries::batch_my_tasks::{
 async fn batch_update_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Json(input): Json<BatchMyTasksInput>,
+    StrictJson(input): StrictJson<BatchMyTasksInput>,
 ) -> Result<Json<BatchMyTasksResult>> {
     let result = batch_my_tasks::batch_update_my_tasks(&state.db, tenant.user_id, &input)
         .await

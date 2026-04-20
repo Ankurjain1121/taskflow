@@ -3,7 +3,7 @@
 //! Manages task snooze/unsnooze operations for the my-tasks view.
 
 use chrono::NaiveDate;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -18,7 +18,8 @@ pub struct TaskSnooze {
 }
 
 /// Input for snoozing a task
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct SnoozeTaskInput {
     pub snoozed_until: NaiveDate,
 }

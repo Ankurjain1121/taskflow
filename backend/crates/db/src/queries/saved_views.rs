@@ -24,7 +24,8 @@ pub struct SavedView {
 }
 
 /// Input for creating a saved view
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct CreateSavedViewInput {
     pub name: String,
     pub view_type: String,
@@ -35,7 +36,8 @@ pub struct CreateSavedViewInput {
 }
 
 /// Input for updating a saved view
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct UpdateSavedViewInput {
     pub name: Option<String>,
     pub config: Option<serde_json::Value>,

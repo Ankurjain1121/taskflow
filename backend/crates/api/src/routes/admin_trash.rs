@@ -13,7 +13,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::errors::Result;
-use crate::extractors::AdminUser;
+use crate::extractors::{StrictJson, AdminUser};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
@@ -37,7 +37,7 @@ async fn list_trash(
 async fn restore_item(
     State(state): State<AppState>,
     admin: AdminUser,
-    Json(body): Json<RestoreRequest>,
+    StrictJson(body): StrictJson<RestoreRequest>,
 ) -> Result<Json<TrashOpResponse>> {
     let scope = TrashScope::Tenant(admin.0.tenant_id);
     let response = trash_queries::restore_item(

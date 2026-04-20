@@ -3,7 +3,7 @@
 //! Manages the user's personal kanban board state (backlog, today, in_progress, done).
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -86,7 +86,8 @@ pub async fn get_personal_board(
 }
 
 /// Input for moving a task on the personal board
-#[derive(Debug, Deserialize)]
+#[strict_dto_derive::strict_dto]
+#[derive(Debug)]
 pub struct MovePersonalTaskInput {
     pub column_name: String,
     pub position: i32,
