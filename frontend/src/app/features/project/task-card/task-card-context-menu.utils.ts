@@ -9,6 +9,7 @@ export interface ContextMenuCallbacks {
   onMoveToProjectRequested?: (taskId: string) => void;
   onDuplicateRequested: (taskId: string) => void;
   onDeleteRequested: (taskId: string) => void;
+  onMarkDoneRequested?: () => void;
 }
 
 export function buildContextMenu(
@@ -16,6 +17,7 @@ export function buildContextMenu(
   columns: Column[],
   statusTransitions: Record<string, string[] | null>,
   callbacks: ContextMenuCallbacks,
+  isDoneColumn: boolean = false,
 ): MenuItem[] {
   const priorities = [
     { label: 'Urgent', value: 'urgent', color: PRIORITY_COLORS['urgent'] },
@@ -27,6 +29,16 @@ export function buildContextMenu(
   const currentStatusId = task.status_id ?? task.column_id ?? '';
 
   return [
+    ...(callbacks.onMarkDoneRequested
+      ? [
+          {
+            label: isDoneColumn ? 'Mark incomplete' : 'Mark done',
+            icon: isDoneColumn ? 'pi pi-replay' : 'pi pi-check',
+            command: () => callbacks.onMarkDoneRequested!(),
+          },
+          { separator: true },
+        ]
+      : []),
     {
       label: 'Set Priority',
       icon: 'pi pi-flag',

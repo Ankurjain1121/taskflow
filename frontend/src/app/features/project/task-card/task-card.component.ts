@@ -18,6 +18,7 @@ import { TieredMenu } from 'primeng/tieredmenu';
 import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
+import { TaskCompletionService } from '../../../core/services/task-completion.service';
 import { Column } from '../../../core/services/project.service';
 import {
   CardFields,
@@ -66,12 +67,14 @@ export class TaskCardComponent {
   private readonly quickEditService = inject(CardQuickEditService, {
     optional: true,
   });
+  private readonly taskCompletion = inject(TaskCompletionService);
 
   task = input.required<Task>();
   isBlocked = input<boolean>(false);
   isCelebrating = input<boolean>(false);
   isFocused = input<boolean>(false);
   isSelected = input<boolean>(false);
+  isDoneColumn = input<boolean>(false);
   subtaskProgress = input<{ completed: number; total: number } | null>(null);
   hasRunningTimer = input<boolean>(false);
   columns = input<Column[]>([]);
@@ -211,6 +214,15 @@ export class TaskCardComponent {
     this.titleChanged.emit(event);
   }
 
+  onMarkDone(event: MouseEvent): void {
+    event.stopPropagation();
+    const id = this.task().id;
+    const action = this.isDoneColumn()
+      ? this.taskCompletion.uncomplete(id)
+      : this.taskCompletion.complete(id, { celebrate: true });
+    action.subscribe();
+  }
+
   private rebuildContextMenu(): void {
     this.contextMenuItems = buildContextMenu(
       this.task(),
@@ -227,7 +239,9 @@ export class TaskCardComponent {
           this.duplicateRequested.emit(taskId),
         onDeleteRequested: (taskId) =>
           this.deleteRequested.emit(taskId),
+        onMarkDoneRequested: () => this.onMarkDone(new MouseEvent('click')),
       },
+      this.isDoneColumn(),
     );
   }
 }
