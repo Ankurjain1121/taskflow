@@ -1,6 +1,6 @@
 //! Unit tests for auth module helpers (hash_token, extract_cookie, cookie builders, password strength)
 
-use axum::http::{HeaderMap, HeaderValue, header::COOKIE, header::SET_COOKIE};
+use axum::http::{header::COOKIE, header::SET_COOKIE, HeaderMap, HeaderValue};
 
 use super::{
     build_auth_cookie_headers, build_clear_cookie_headers, extract_cookie, hash_token,

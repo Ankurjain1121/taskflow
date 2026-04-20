@@ -334,7 +334,11 @@ mod tests {
 
     #[test]
     fn test_workspace_visibility_serde() {
-        for variant in [WorkspaceVisibility::Open, WorkspaceVisibility::Closed, WorkspaceVisibility::Private] {
+        for variant in [
+            WorkspaceVisibility::Open,
+            WorkspaceVisibility::Closed,
+            WorkspaceVisibility::Private,
+        ] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: WorkspaceVisibility = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);

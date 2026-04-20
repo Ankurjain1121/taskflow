@@ -4,22 +4,22 @@
 //! Protected by ManagerOrAdmin extractor.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, ManagerOrAdmin};
+use crate::extractors::{ManagerOrAdmin, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::is_workspace_member;
 use taskbolt_db::queries::team_overview::{
-    MemberTask, MemberWorkload, OverloadedMember, get_member_active_tasks, get_overloaded_members,
-    get_workload, reassign_tasks,
+    get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks, MemberTask,
+    MemberWorkload, OverloadedMember,
 };
 
 /// Query parameters for overloaded members endpoint

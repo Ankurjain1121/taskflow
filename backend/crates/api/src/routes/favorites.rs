@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use uuid::Uuid;
 
@@ -11,7 +11,7 @@ use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::favorites::{
-    FavoriteItem, add_favorite, is_favorited, list_favorites, remove_favorite,
+    add_favorite, is_favorited, list_favorites, remove_favorite, FavoriteItem,
 };
 
 /// Request body for adding a favorite

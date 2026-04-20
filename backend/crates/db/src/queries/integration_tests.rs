@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::test_helpers::{
-    FAKE_HASH, setup_full, setup_user, setup_user_and_workspace, test_pool, unique_email,
+    setup_full, setup_user, setup_user_and_workspace, test_pool, unique_email, FAKE_HASH,
 };
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
 use crate::queries::{auth, comments, projects, tasks, workspaces};

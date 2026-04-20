@@ -84,7 +84,9 @@ pub async fn audit_middleware(
     }
 
     // Need auth user for audit
-    let Some(auth_user) = auth_user else { return response };
+    let Some(auth_user) = auth_user else {
+        return response;
+    };
 
     // Get route identifier
     let route_id = match route_id {

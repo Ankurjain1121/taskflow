@@ -4,10 +4,10 @@
 //! Results are cached in Redis with a 120-second TTL.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use serde::Deserialize;
@@ -20,8 +20,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskbolt_db::queries::metrics::{
-    PersonalDashboard, ResourceUtilizationRow, TeamDashboard, WorkspaceDashboard,
     get_personal_dashboard, get_resource_utilization, get_team_dashboard, get_workspace_dashboard,
+    PersonalDashboard, ResourceUtilizationRow, TeamDashboard, WorkspaceDashboard,
 };
 
 #[derive(Deserialize)]

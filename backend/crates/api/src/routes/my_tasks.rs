@@ -3,10 +3,10 @@
 //! Provides endpoints for viewing tasks assigned to the current user.
 
 use axum::{
-    Json, Router,
     extract::{Query, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -16,7 +16,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::my_tasks::{
-    MyTasksSortBy, MyTasksSummary, PaginatedMyTasks, SortOrder, list_my_tasks, my_tasks_summary,
+    list_my_tasks, my_tasks_summary, MyTasksSortBy, MyTasksSummary, PaginatedMyTasks, SortOrder,
 };
 
 /// Query parameters for listing my tasks

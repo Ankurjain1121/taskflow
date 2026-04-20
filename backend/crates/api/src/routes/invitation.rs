@@ -3,10 +3,10 @@
 //! Provides invitation creation, validation, acceptance, and listing endpoints.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -18,11 +18,11 @@ use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{Invitation, UserRole};
 use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::{
-    ResendClient, TriggerContext, generate_invitation_html, spawn_automation_evaluation,
+    generate_invitation_html, spawn_automation_evaluation, ResendClient, TriggerContext,
 };
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, AuthUserExtractor};
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 

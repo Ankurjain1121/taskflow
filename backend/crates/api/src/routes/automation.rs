@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
+    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -14,9 +14,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
 use taskbolt_db::queries::automations::{
-    AutomationActivityEntry, AutomationQueryError, AutomationRuleWithActions, CreateActionInput,
-    CreateRuleInput, UpdateRuleInput, create_rule, delete_rule, get_rule, get_rule_logs,
-    list_project_activity, list_rules, update_rule,
+    create_rule, delete_rule, get_rule, get_rule_logs, list_project_activity, list_rules,
+    update_rule, AutomationActivityEntry, AutomationQueryError, AutomationRuleWithActions,
+    CreateActionInput, CreateRuleInput, UpdateRuleInput,
 };
 
 /// Map AutomationQueryError to AppError

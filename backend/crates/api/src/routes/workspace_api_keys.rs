@@ -1,15 +1,15 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get},
+    Json, Router,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, ManagerOrAdmin};
+use crate::extractors::{ManagerOrAdmin, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 

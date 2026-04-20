@@ -79,15 +79,13 @@ async fn update_preferences(
     // Fetch existing prefs so partial updates merge correctly. Reuse the
     // cache entry written by GET so hot users skip the DB round-trip.
     let cache_key = cache::user_prefs_key(&auth.0.user_id);
-    let existing = match cache::cache_get::<taskbolt_db::models::UserPreferences>(
-        &state.redis,
-        &cache_key,
-    )
-    .await
-    {
-        Some(cached) => cached,
-        None => user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?,
-    };
+    let existing =
+        match cache::cache_get::<taskbolt_db::models::UserPreferences>(&state.redis, &cache_key)
+            .await
+        {
+            Some(cached) => cached,
+            None => user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?,
+        };
 
     let timezone = body.timezone.unwrap_or(existing.timezone);
     let date_format = body.date_format.unwrap_or(existing.date_format);

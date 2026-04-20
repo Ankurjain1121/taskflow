@@ -109,8 +109,7 @@ mod tests {
     async fn assert_opaque_rejection(res: axum::response::Response) {
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         let body = body_text(res).await;
-        let parsed: serde_json::Value =
-            serde_json::from_str(&body).expect("response must be JSON");
+        let parsed: serde_json::Value = serde_json::from_str(&body).expect("response must be JSON");
         assert_eq!(
             parsed["error"]["code"].as_str(),
             Some("BAD_REQUEST"),
@@ -151,7 +150,10 @@ mod tests {
             !body.contains("unknown field"),
             "response must not leak serde wording"
         );
-        assert!(!body.contains("name"), "response must not leak known fields");
+        assert!(
+            !body.contains("name"),
+            "response must not leak known fields"
+        );
 
         // Envelope assertions (positive shape)
         let parsed: serde_json::Value = serde_json::from_str(&body).unwrap();

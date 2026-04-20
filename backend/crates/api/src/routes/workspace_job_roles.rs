@@ -4,10 +4,10 @@
 //! and member-role assignments.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
+    Json, Router,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -19,7 +19,7 @@ use taskbolt_db::queries::workspace_job_roles::{
 use taskbolt_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, AuthUserExtractor};
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 

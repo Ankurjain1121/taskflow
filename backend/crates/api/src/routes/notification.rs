@@ -4,11 +4,11 @@
 //! NOTE: There is NO create endpoint - notifications are created server-side only.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     middleware::from_fn_with_state,
     routing::{delete, get, put},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -19,8 +19,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::notifications::{
-    NotificationListResponse, NotificationQueryError, archive_notification, get_unread_count,
-    list_notifications, mark_all_read, mark_read,
+    archive_notification, get_unread_count, list_notifications, mark_all_read, mark_read,
+    NotificationListResponse, NotificationQueryError,
 };
 
 /// Query parameters for listing notifications

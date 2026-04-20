@@ -4,10 +4,10 @@
 //! shared audit query logic in `audit_queries`. All endpoints require Admin role.
 
 use axum::{
-    Json, Router,
     extract::{Query, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 
 use crate::errors::Result;

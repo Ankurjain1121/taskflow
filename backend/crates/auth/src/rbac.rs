@@ -320,7 +320,9 @@ mod tests {
                 assert_eq!(required, UserRole::Admin);
                 assert_eq!(actual, UserRole::Member);
             }
-            AuthError::PermissionDenied(_) => panic!("Expected InsufficientRole error, got {:?}", err),
+            AuthError::PermissionDenied(_) => {
+                panic!("Expected InsufficientRole error, got {:?}", err)
+            }
         }
     }
 

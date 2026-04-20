@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get},
+    Json, Router,
 };
 use serde::Serialize;
 use uuid::Uuid;

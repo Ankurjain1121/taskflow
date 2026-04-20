@@ -3,11 +3,11 @@
 //! Provides CRUD endpoints for task comments with @mention extraction and real-time broadcasting.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
+    Json, Router,
 };
 use regex::Regex;
 use serde::Serialize;
@@ -21,8 +21,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::ActivityLogService;
 use crate::state::AppState;
 use taskbolt_db::queries::comments::{
-    CommentWithAuthor, create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
-    list_comments_by_task, update_comment,
+    create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
+    list_comments_by_task, update_comment, CommentWithAuthor,
 };
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_services::broadcast::events;
@@ -32,7 +32,7 @@ use taskbolt_services::{BroadcastService, NotifyContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::sanitize_html;
-use super::validation::{MAX_DESCRIPTION_LEN, validate_required_string};
+use super::validation::{validate_required_string, MAX_DESCRIPTION_LEN};
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: LazyLock<Regex> =
@@ -170,81 +170,85 @@ async fn create_comment_handler(
     // This routes through in-app, email, and Slack channels based on user preferences.
     // Only notify mentioned users who are actually members of the task's project.
     if !mentioned_user_ids.is_empty() {
-        let mentioned_user_ids =
-            taskbolt_db::queries::filter_project_members(&state.db, project_id, &mentioned_user_ids)
+        let mentioned_user_ids = taskbolt_db::queries::filter_project_members(
+            &state.db,
+            project_id,
+            &mentioned_user_ids,
+        )
+        .await
+        .unwrap_or_default();
+        if !mentioned_user_ids.is_empty() {
+            let db = state.db.clone();
+            let redis = state.redis.clone();
+            let waha_client = state.waha_client.clone();
+            let author_id = tenant.user_id;
+            let author_name = comment.author_name.clone();
+            let app_url = state.config.app_url.clone();
+            tokio::spawn(async move {
+                // Fetch task title for notification body
+                let task_title: String = sqlx::query_scalar(
+                    "SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL",
+                )
+                .bind(task_id)
+                .fetch_optional(&db)
                 .await
-                .unwrap_or_default();
-    if !mentioned_user_ids.is_empty() {
-        let db = state.db.clone();
-        let redis = state.redis.clone();
-        let waha_client = state.waha_client.clone();
-        let author_id = tenant.user_id;
-        let author_name = comment.author_name.clone();
-        let app_url = state.config.app_url.clone();
-        tokio::spawn(async move {
-            // Fetch task title for notification body
-            let task_title: String =
-                sqlx::query_scalar("SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL")
-                    .bind(task_id)
-                    .fetch_optional(&db)
-                    .await
-                    .ok()
-                    .flatten()
-                    .unwrap_or_else(|| "a task".to_string());
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "a task".to_string());
 
-            // Fetch project's Slack webhook URL
-            let slack_webhook: Option<String> = sqlx::query_scalar(
-                r#"SELECT p.slack_webhook_url FROM projects p
+                // Fetch project's Slack webhook URL
+                let slack_webhook: Option<String> = sqlx::query_scalar(
+                    r#"SELECT p.slack_webhook_url FROM projects p
                    JOIN tasks t ON t.project_id = p.id
                    WHERE t.id = $1 AND t.deleted_at IS NULL"#,
-            )
-            .bind(task_id)
-            .fetch_optional(&db)
-            .await
-            .ok()
-            .flatten();
-
-            // Build the NotificationService for the dispatcher
-            let broadcast = BroadcastService::new(redis.clone());
-            let notification_svc =
-                NotificationService::new(db.clone(), broadcast, None, app_url.clone());
-
-            let notif_title = format!("{} mentioned you", author_name);
-            let notif_body = format!("in a comment on \"{}\"", task_title);
-            let link_url = format!("/task/{}", task_id);
-
-            let notify_ctx = NotifyContext {
-                pool: &db,
-                redis: &redis,
-                notification_svc: &notification_svc,
-                app_url: &app_url,
-                slack_webhook_url: slack_webhook.as_deref(),
-                waha_client: waha_client.as_ref(),
-            };
-
-            for user_id in mentioned_user_ids {
-                if user_id == author_id {
-                    continue;
-                }
-                if let Err(e) = notify(
-                    &notify_ctx,
-                    NotificationEvent::MentionInComment,
-                    user_id,
-                    &notif_title,
-                    &notif_body,
-                    Some(link_url.as_str()),
                 )
+                .bind(task_id)
+                .fetch_optional(&db)
                 .await
-                {
-                    tracing::error!(
-                        user_id = %user_id,
-                        error = %e,
-                        "Failed to dispatch mention notification"
-                    );
+                .ok()
+                .flatten();
+
+                // Build the NotificationService for the dispatcher
+                let broadcast = BroadcastService::new(redis.clone());
+                let notification_svc =
+                    NotificationService::new(db.clone(), broadcast, None, app_url.clone());
+
+                let notif_title = format!("{} mentioned you", author_name);
+                let notif_body = format!("in a comment on \"{}\"", task_title);
+                let link_url = format!("/task/{}", task_id);
+
+                let notify_ctx = NotifyContext {
+                    pool: &db,
+                    redis: &redis,
+                    notification_svc: &notification_svc,
+                    app_url: &app_url,
+                    slack_webhook_url: slack_webhook.as_deref(),
+                    waha_client: waha_client.as_ref(),
+                };
+
+                for user_id in mentioned_user_ids {
+                    if user_id == author_id {
+                        continue;
+                    }
+                    if let Err(e) = notify(
+                        &notify_ctx,
+                        NotificationEvent::MentionInComment,
+                        user_id,
+                        &notif_title,
+                        &notif_body,
+                        Some(link_url.as_str()),
+                    )
+                    .await
+                    {
+                        tracing::error!(
+                            user_id = %user_id,
+                            error = %e,
+                            "Failed to dispatch mention notification"
+                        );
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
     } // outer: mentioned_user_ids not empty after filtering
 
     // Send task-commented notifications to assignees via dispatcher (fire and forget)

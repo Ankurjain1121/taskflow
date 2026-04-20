@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -12,9 +12,9 @@ use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::project_templates::{
-    CreateBoardFromTemplateInput, CreateTemplateFromBoardInput, CreateTemplateInput,
-    ProjectTemplateQueryError, create_board_from_template, create_template, delete_template,
-    get_template, list_templates, save_board_as_template,
+    create_board_from_template, create_template, delete_template, get_template, list_templates,
+    save_board_as_template, CreateBoardFromTemplateInput, CreateTemplateFromBoardInput,
+    CreateTemplateInput, ProjectTemplateQueryError,
 };
 
 /// Map ProjectTemplateQueryError to AppError

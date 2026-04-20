@@ -15,8 +15,8 @@ use crate::state::AppState;
 use taskbolt_db::models::automation::AutomationTrigger;
 use taskbolt_db::models::{TaskPriority, WsBoardEvent};
 use taskbolt_db::queries::{
-    bulk_delete_tasks, bulk_update_tasks, get_project_status_name, is_done_status,
-    BulkUpdateInput, TaskQueryError,
+    bulk_delete_tasks, bulk_update_tasks, get_project_status_name, is_done_status, BulkUpdateInput,
+    TaskQueryError,
 };
 use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 

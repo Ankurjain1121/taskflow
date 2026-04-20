@@ -25,7 +25,10 @@ pub async fn request_id_middleware(req: Request<Body>, next: Next) -> Response {
         .get(REQUEST_ID_HEADER)
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty() && s.len() <= 128)
-        .map_or_else(|| Uuid::new_v4().to_string(), std::string::ToString::to_string);
+        .map_or_else(
+            || Uuid::new_v4().to_string(),
+            std::string::ToString::to_string,
+        );
 
     // Add to tracing span
     tracing::Span::current().record("request_id", request_id.as_str());

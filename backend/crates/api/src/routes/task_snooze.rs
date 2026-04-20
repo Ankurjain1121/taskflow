@@ -3,10 +3,10 @@
 //! Endpoints for snoozing and unsnoozing tasks in the my-tasks view.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::post,
+    Json, Router,
 };
 use uuid::Uuid;
 

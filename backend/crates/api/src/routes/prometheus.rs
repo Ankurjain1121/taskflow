@@ -7,7 +7,7 @@
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{Router, extract::State};
+use axum::{extract::State, Router};
 use std::sync::atomic::Ordering;
 
 use crate::errors::{AppError, Result};

@@ -372,7 +372,9 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
 
                 loop {
                     match taskbolt_services::jobs::report_jobs::send_morning_agenda_reports(
-                        &wa_pool, &wa_client, &wa_app_url,
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
                     )
                     .await
                     {
@@ -415,7 +417,9 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
 
                 loop {
                     match taskbolt_services::jobs::report_jobs::send_evening_achievement_reports(
-                        &wa_pool, &wa_client, &wa_app_url,
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
                     )
                     .await
                     {
@@ -424,7 +428,9 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                             errs = r.errors,
                             "PDF evening achievement reports completed"
                         ),
-                        Err(e) => tracing::error!(error = %e, "PDF evening achievement reports failed"),
+                        Err(e) => {
+                            tracing::error!(error = %e, "PDF evening achievement reports failed")
+                        }
                     }
                     tokio::time::sleep(Duration::from_secs(86400)).await;
                 }

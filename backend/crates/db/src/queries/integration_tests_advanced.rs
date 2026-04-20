@@ -701,12 +701,10 @@ async fn test_search_tasks_by_title() {
         !results.tasks.is_empty(),
         "search should find the task with the unique needle"
     );
-    assert!(
-        results
-            .tasks
-            .iter()
-            .any(|t| t.title.contains(&unique_needle))
-    );
+    assert!(results
+        .tasks
+        .iter()
+        .any(|t| t.title.contains(&unique_needle)));
 }
 
 // ============================================================================

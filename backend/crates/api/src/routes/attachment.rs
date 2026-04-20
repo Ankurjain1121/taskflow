@@ -4,10 +4,10 @@
 //! listing attachments, and deleting files.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use serde::Serialize;
 use serde_json::json;
@@ -20,8 +20,9 @@ use crate::state::AppState;
 
 use taskbolt_db::models::ActivityAction;
 use taskbolt_db::queries::attachments::{
-    AttachmentWithUploader, can_delete_attachment, create_attachment, delete_attachment,
-    get_attachment_by_id, get_attachment_with_uploader, list_by_task, verify_task_board_membership,
+    can_delete_attachment, create_attachment, delete_attachment, get_attachment_by_id,
+    get_attachment_with_uploader, list_by_task, verify_task_board_membership,
+    AttachmentWithUploader,
 };
 use taskbolt_services::{MinioConfig, MinioService};
 

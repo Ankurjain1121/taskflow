@@ -3,10 +3,10 @@
 //! Provides CRUD operations for project statuses.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, put},
+    Json, Router,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -16,13 +16,13 @@ use taskbolt_db::queries::{project_statuses, projects};
 use taskbolt_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, AuthUserExtractor};
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
-use super::common::{Capability, MessageResponse, require_capability};
-use super::validation::{MAX_SHORT_NAME_LEN, validate_required_string};
+use super::common::{require_capability, Capability, MessageResponse};
+use super::validation::{validate_required_string, MAX_SHORT_NAME_LEN};
 
 // ============================================================================
 // Request/Response DTOs

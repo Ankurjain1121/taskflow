@@ -664,7 +664,9 @@ async fn validate_channel_access(
     }
 
     let channel_type = parts[0];
-    let Ok(channel_id) = Uuid::parse_str(parts[1]) else { return Ok(false) };
+    let Ok(channel_id) = Uuid::parse_str(parts[1]) else {
+        return Ok(false);
+    };
 
     match channel_type {
         "project" | "board" => {
@@ -704,7 +706,9 @@ fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     }
 
     let channel_type = parts[0];
-    let Ok(channel_id) = Uuid::parse_str(parts[1]) else { return false };
+    let Ok(channel_id) = Uuid::parse_str(parts[1]) else {
+        return false;
+    };
 
     match channel_type {
         // Format valid, actual auth done by validate_channel_access

@@ -1,10 +1,10 @@
 //! Bulk operations routes: preview, execute, undo, list.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, post},
+    Json, Router,
 };
 use redis::AsyncCommands;
 use serde_json::json;

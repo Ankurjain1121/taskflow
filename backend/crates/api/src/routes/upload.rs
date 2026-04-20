@@ -1,4 +1,4 @@
-use axum::{Json, Router, extract::State, middleware::from_fn_with_state, routing::post};
+use axum::{extract::State, middleware::from_fn_with_state, routing::post, Json, Router};
 use serde::Serialize;
 use uuid::Uuid;
 

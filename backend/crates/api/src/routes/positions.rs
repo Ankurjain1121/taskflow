@@ -3,10 +3,10 @@
 //! Provides CRUD operations for board-level positions and holder management.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use uuid::Uuid;
 

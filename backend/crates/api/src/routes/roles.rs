@@ -3,10 +3,10 @@
 //! Provides management of custom workspace roles and project visibility settings.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, put},
+    Json, Router,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -15,7 +15,7 @@ use taskbolt_db::models::{BoardMemberRole, Capabilities, WorkspaceRole};
 use taskbolt_db::queries::{projects, workspace_roles, workspaces};
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, AuthUserExtractor};
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 

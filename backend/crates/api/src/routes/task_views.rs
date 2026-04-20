@@ -1,8 +1,8 @@
 //! Alternative task view handlers (list, calendar, gantt)
 
 use axum::{
-    Json,
     extract::{Path, Query, State},
+    Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -11,8 +11,8 @@ use crate::errors::Result;
 use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskbolt_db::queries::{
-    CalendarTask, GanttTask, TaskListItem, list_tasks_flat, list_tasks_for_calendar,
-    list_tasks_for_gantt,
+    list_tasks_flat, list_tasks_for_calendar, list_tasks_for_gantt, CalendarTask, GanttTask,
+    TaskListItem,
 };
 
 /// Query params for calendar endpoint

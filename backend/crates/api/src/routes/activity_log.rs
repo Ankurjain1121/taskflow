@@ -3,10 +3,10 @@
 //! Provides endpoints for reading task activity history with cursor-based pagination.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -16,7 +16,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::activity_log::{
-    PaginatedActivityLog, list_activity_by_project, list_activity_by_task,
+    list_activity_by_project, list_activity_by_task, PaginatedActivityLog,
 };
 use taskbolt_db::queries::get_task_project_id;
 

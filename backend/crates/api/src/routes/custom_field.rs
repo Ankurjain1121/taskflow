@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, put},
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -13,9 +13,10 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValue};
 use taskbolt_db::queries::custom_fields::{
-    CreateCustomFieldInput, CustomFieldQueryError, SetFieldValue, TaskCustomFieldValueWithField,
-    UpdateCustomFieldInput, create_custom_field, delete_custom_field, get_task_custom_field_values,
+    create_custom_field, delete_custom_field, get_task_custom_field_values,
     list_board_custom_fields, set_task_custom_field_values, update_custom_field,
+    CreateCustomFieldInput, CustomFieldQueryError, SetFieldValue, TaskCustomFieldValueWithField,
+    UpdateCustomFieldInput,
 };
 
 /// Map CustomFieldQueryError to AppError

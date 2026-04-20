@@ -3,12 +3,12 @@
 //! Provides export (CSV, JSON) for board tasks.
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     http::header,
     middleware::from_fn_with_state,
     response::{IntoResponse, Response},
     routing::get,
+    Json, Router,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::{Capability, require_capability, verify_project_membership};
+use super::common::{require_capability, verify_project_membership, Capability};
 
 // ============================================================================
 // DTOs

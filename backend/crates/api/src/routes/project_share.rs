@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -12,8 +12,8 @@ use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::project_shares::{
-    BoardShareQueryError, CreateBoardShareInput, access_shared_board, create_board_share,
-    delete_board_share, list_board_shares, toggle_board_share,
+    access_shared_board, create_board_share, delete_board_share, list_board_shares,
+    toggle_board_share, BoardShareQueryError, CreateBoardShareInput,
 };
 
 /// Map BoardShareQueryError to AppError

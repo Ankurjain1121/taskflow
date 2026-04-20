@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -12,9 +12,9 @@ use crate::errors::{AppError, Result};
 use crate::extractors::{AdminUser, StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskbolt_db::queries::archive::{PaginatedArchive, list_archive};
+use taskbolt_db::queries::archive::{list_archive, PaginatedArchive};
 use taskbolt_services::minio::{MinioConfig, MinioService};
-use taskbolt_services::trash_bin::{TrashEntityType, permanently_delete, restore_from_trash};
+use taskbolt_services::trash_bin::{permanently_delete, restore_from_trash, TrashEntityType};
 
 /// Query parameters for archive listing
 #[derive(Debug, Deserialize)]

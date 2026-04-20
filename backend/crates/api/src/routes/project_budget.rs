@@ -5,10 +5,10 @@
 //! task create/update endpoints.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use uuid::Uuid;
 
@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use taskbolt_db::queries::{BudgetSummaryError, ProjectBudgetSummary, get_project_budget_summary};
+use taskbolt_db::queries::{get_project_budget_summary, BudgetSummaryError, ProjectBudgetSummary};
 
 use super::common::verify_project_membership;
 

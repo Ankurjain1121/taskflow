@@ -3,10 +3,10 @@
 //! Endpoints for managing the user's personal kanban board.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, put},
+    Json, Router,
 };
 use uuid::Uuid;
 

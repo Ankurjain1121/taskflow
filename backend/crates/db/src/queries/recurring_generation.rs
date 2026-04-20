@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::RecurringTaskConfig;
 
-use super::recurring::{RecurringQueryError, calculate_next_run};
+use super::recurring::{calculate_next_run, RecurringQueryError};
 
 /// Internal struct for fetching source task fields
 #[derive(sqlx::FromRow)]

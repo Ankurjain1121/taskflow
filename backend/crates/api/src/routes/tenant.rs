@@ -3,10 +3,10 @@
 //! Provides org-wide member listing and cross-workspace membership info.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use uuid::Uuid;
 

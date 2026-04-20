@@ -3,10 +3,10 @@
 //! CRUD endpoints for user-created saved views per workspace.
 
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, patch, put},
+    Json, Router,
 };
 use uuid::Uuid;
 

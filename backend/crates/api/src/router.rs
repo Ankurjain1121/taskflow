@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
-use axum::http::Method;
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use axum::http::Method;
 use axum::middleware::{from_fn, from_fn_with_state};
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::timeout::TimeoutLayer;

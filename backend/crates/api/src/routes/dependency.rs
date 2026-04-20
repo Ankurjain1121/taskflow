@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post},
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -12,8 +12,9 @@ use crate::extractors::{StrictJson, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::dependencies::{
-    BlockerInfo, CreateDependencyInput, DependencyQueryError, DependencyWithTask, check_blockers,
-    create_dependency, delete_dependency, get_board_dependencies, list_dependencies,
+    check_blockers, create_dependency, delete_dependency, get_board_dependencies,
+    list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError,
+    DependencyWithTask,
 };
 use taskbolt_db::queries::get_task_project_id;
 

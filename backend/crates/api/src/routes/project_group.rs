@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{get, post},
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -14,9 +14,9 @@ use crate::state::AppState;
 
 use taskbolt_db::models::ProjectGroup;
 use taskbolt_db::queries::project_groups::{
-    CreateProjectGroupInput, ProjectGroupQueryError, ProjectGroupWithCount,
-    UpdateProjectGroupInput, create_project_group, delete_project_group, get_group_workspace_id,
-    get_project_group, list_project_groups, set_project_group, update_project_group,
+    create_project_group, delete_project_group, get_group_workspace_id, get_project_group,
+    list_project_groups, set_project_group, update_project_group, CreateProjectGroupInput,
+    ProjectGroupQueryError, ProjectGroupWithCount, UpdateProjectGroupInput,
 };
 use taskbolt_db::queries::projects::get_project_internal;
 

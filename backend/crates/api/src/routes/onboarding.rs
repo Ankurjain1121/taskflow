@@ -8,10 +8,10 @@
 //! - Onboarding completion
 
 use axum::{
-    Json, Router,
     extract::{Query, State},
     middleware::from_fn_with_state,
     routing::{get, post},
+    Json, Router,
 };
 use chrono::{Duration, Utc};
 use regex::Regex;
@@ -24,12 +24,12 @@ use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::sample_board::generate_sample_board;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{StrictJson, AuthUserExtractor};
+use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::validation::{
-    MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN, validate_optional_string, validate_required_string,
+    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
 };
 
 // ============================================================================
@@ -475,8 +475,8 @@ mod email_validation_tests {
         assert!(is_valid_email("user@example.co")); // Two char TLD valid
         assert!(is_valid_email("user@example.international")); // Long TLD
         assert!(!is_valid_email("user@@example.com")); // Double @
-        // Our simplified regex allows dots at start/end of local part
-        // (stricter than RFC but acceptable for onboarding)
+                                                       // Our simplified regex allows dots at start/end of local part
+                                                       // (stricter than RFC but acceptable for onboarding)
         assert!(is_valid_email(".user@example.com")); // Dot at start (allowed by our regex)
         assert!(is_valid_email("user.@example.com")); // Dot at end (allowed by our regex)
         assert!(!is_valid_email("user@exam ple.com")); // Space in domain

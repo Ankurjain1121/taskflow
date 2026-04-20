@@ -169,7 +169,9 @@ fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> 
 /// Extract the Bearer token from the Authorization header.
 fn extract_token_from_auth_header(headers: &axum::http::HeaderMap) -> Option<String> {
     let auth_header = headers.get(AUTHORIZATION)?.to_str().ok()?;
-    auth_header.strip_prefix("Bearer ").map(std::string::ToString::to_string)
+    auth_header
+        .strip_prefix("Bearer ")
+        .map(std::string::ToString::to_string)
 }
 
 /// Check if session exists in Redis and refresh its TTL (idle timeout enforcement)

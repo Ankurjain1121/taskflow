@@ -1,8 +1,8 @@
 use axum::{
-    Json, Router,
     extract::{Path, State},
     middleware::from_fn_with_state,
     routing::get,
+    Json, Router,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -15,8 +15,8 @@ use crate::state::AppState;
 use super::common::verify_project_membership;
 use taskbolt_db::queries::issues::get_issue_project_id;
 use taskbolt_db::queries::task_issue_links::{
-    LinkedIssueRow, LinkedTaskRow, TaskIssueLinkError, create_link, delete_link,
-    list_linked_issues, list_linked_tasks,
+    create_link, delete_link, list_linked_issues, list_linked_tasks, LinkedIssueRow, LinkedTaskRow,
+    TaskIssueLinkError,
 };
 use taskbolt_db::queries::tasks::get_task_project_id;
 
