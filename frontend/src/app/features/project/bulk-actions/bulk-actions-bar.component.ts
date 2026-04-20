@@ -2,6 +2,7 @@ import {
   Component,
   input,
   output,
+  computed,
   ChangeDetectionStrategy,
   EventEmitter,
 } from '@angular/core';
@@ -53,6 +54,28 @@ export interface BulkAction {
           }
         </select>
       </div>
+
+      <!-- Mark done / Reopen quick buttons -->
+      @if (doneColumnId()) {
+        <button
+          (click)="onMarkDone()"
+          class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--muted)] hover:bg-[var(--secondary)] rounded transition-colors"
+          title="Mark all selected as done"
+        >
+          <i class="pi pi-check text-[12px]"></i>
+          Mark done
+        </button>
+      }
+      @if (firstNonDoneColumnId()) {
+        <button
+          (click)="onReopen()"
+          class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--muted)] hover:bg-[var(--secondary)] rounded transition-colors"
+          title="Reopen all selected"
+        >
+          <i class="pi pi-replay text-[12px]"></i>
+          Reopen
+        </button>
+      }
 
       <!-- Set Priority -->
       <div class="relative">
@@ -179,6 +202,24 @@ export class BulkActionsBarComponent {
   bulkAction = output<BulkAction>();
   cancelSelection = output<void>();
   exportCsv = output<void>();
+
+  readonly doneColumnId = computed(() =>
+    this.columns().find((c) => c.status_mapping?.done === true)?.id ?? null,
+  );
+
+  readonly firstNonDoneColumnId = computed(() =>
+    this.columns().find((c) => c.status_mapping?.done !== true)?.id ?? null,
+  );
+
+  onMarkDone(): void {
+    const id = this.doneColumnId();
+    if (id) this.bulkAction.emit({ type: 'move', column_id: id });
+  }
+
+  onReopen(): void {
+    const id = this.firstNonDoneColumnId();
+    if (id) this.bulkAction.emit({ type: 'move', column_id: id });
+  }
 
   onMoveToColumn(columnId: string): void {
     if (columnId) {

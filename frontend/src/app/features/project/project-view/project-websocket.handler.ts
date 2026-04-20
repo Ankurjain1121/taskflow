@@ -68,6 +68,9 @@ export class ProjectWebsocketHandler {
           event.position,
         );
         break;
+      case 'TaskBulkMoved':
+        this.handleTaskBulkMoved(event.task_ids, event.status_id);
+        break;
       case 'TaskDeleted':
         this.handleTaskDeleted(event.task_id);
         break;
@@ -182,6 +185,38 @@ export class ProjectWebsocketHandler {
         a.position.localeCompare(b.position),
       );
 
+      return newState;
+    });
+  }
+
+  private handleTaskBulkMoved(taskIds: string[], targetColumnId: string): void {
+    if (!taskIds.length || !targetColumnId) return;
+
+    const idSet = new Set(taskIds);
+    this.state.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      const moved: Task[] = [];
+
+      // Collect + strip moved tasks from all columns
+      for (const [columnId, tasks] of Object.entries(state)) {
+        const keep: Task[] = [];
+        for (const t of tasks) {
+          if (idSet.has(t.id)) moved.push(t);
+          else keep.push(t);
+        }
+        newState[columnId] = keep;
+      }
+
+      if (!moved.length) return state;
+
+      const updatedMoved = moved.map((t) => ({
+        ...t,
+        status_id: targetColumnId,
+      }));
+      const existing = newState[targetColumnId] ?? [];
+      newState[targetColumnId] = [...existing, ...updatedMoved].sort((a, b) =>
+        a.position.localeCompare(b.position),
+      );
       return newState;
     });
   }
