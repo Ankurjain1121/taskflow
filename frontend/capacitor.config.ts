@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'TaskBolt',
   webDir: 'dist/frontend/browser',
   server: {
+    url: 'https://taskflow.paraslace.in',
     androidScheme: 'https',
-    hostname: 'taskflow.paraslace.in',
     allowNavigation: ['taskflow.paraslace.in', '*.paraslace.in'],
   },
   android: {
@@ -16,7 +16,7 @@ const config: CapacitorConfig = {
     },
     allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: false,
+    webContentsDebuggingEnabled: true,
   },
   plugins: {
     SplashScreen: {

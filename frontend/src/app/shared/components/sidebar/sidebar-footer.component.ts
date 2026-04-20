@@ -71,6 +71,14 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         <i class="pi pi-question-circle flex-shrink-0" style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
         <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Help</span>
       </a>
+      <!-- Get Android App -->
+      <a href="/download/taskbolt.apk"
+         class="footer-item flex items-center gap-3 px-3 text-sm"
+         [class.justify-center]="collapsed()"
+         [pTooltip]="collapsed() ? 'Get Android App' : ''" tooltipPosition="right">
+        <i class="pi pi-android flex-shrink-0" style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
+        <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Get Android App</span>
+      </a>
     </div>
   `,
 })
