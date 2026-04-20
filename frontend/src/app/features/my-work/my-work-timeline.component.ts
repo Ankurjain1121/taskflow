@@ -12,7 +12,7 @@ import {
 import { RouterModule, Router } from '@angular/router';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { MyTasksService, MyTask, MyTasksSummary } from '../../core/services/my-tasks.service';
-import { TaskService } from '../../core/services/task.service';
+import { TaskCompletionService } from '../../core/services/task-completion.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WebSocketService } from '../../core/services/websocket.service';
 import { UnifiedTaskCardComponent } from '../../shared/components/task-card/task-card.component';
@@ -111,7 +111,7 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
   readonly refreshTrigger = input(0);
 
   private myTasksService = inject(MyTasksService);
-  private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private authService = inject(AuthService);
   private wsService = inject(WebSocketService);
   private router = inject(Router);
@@ -167,11 +167,9 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
   }
 
   onCompleteTask(taskId: string): void {
-    this.taskService.completeTask(taskId).subscribe({
+    this.taskCompletion.complete(taskId).subscribe({
       next: () => {
-        setTimeout(() => {
-          this.allTasks.update(tasks => tasks.filter(t => t.id !== taskId));
-        }, 600);
+        this.allTasks.update(tasks => tasks.filter(t => t.id !== taskId));
       },
     });
   }

@@ -24,7 +24,7 @@ import {
 } from '../../core/services/my-work-board.service';
 import { UnifiedTaskCardComponent } from '../../shared/components/task-card/task-card.component';
 import { TaskCardData } from '../../shared/components/task-card/task-card-data';
-import { TaskService } from '../../core/services/task.service';
+import { TaskCompletionService } from '../../core/services/task-completion.service';
 
 type BoardColumn = 'backlog' | 'today' | 'in_progress' | 'done';
 
@@ -120,7 +120,7 @@ export class MyWorkBoardComponent implements OnInit {
   readonly refreshTrigger = input(0);
 
   private boardService = inject(MyWorkBoardService);
-  private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private router = inject(Router);
 
   readonly loading = signal(false);
@@ -165,16 +165,14 @@ export class MyWorkBoardComponent implements OnInit {
   }
 
   onCompleteTask(taskId: string, column: BoardColumn): void {
-    this.taskService.completeTask(taskId).subscribe({
+    this.taskCompletion.complete(taskId).subscribe({
       next: () => {
-        setTimeout(() => {
-          const b = this.board();
-          if (!b) return;
-          this.board.set({
-            ...b,
-            [column]: b[column].filter(t => t.task_id !== taskId),
-          });
-        }, 600);
+        const b = this.board();
+        if (!b) return;
+        this.board.set({
+          ...b,
+          [column]: b[column].filter(t => t.task_id !== taskId),
+        });
       },
     });
   }

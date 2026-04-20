@@ -23,7 +23,7 @@ import {
   EisenhowerQuadrant,
   EisenhowerMatrixResponse,
 } from '../../core/services/eisenhower.service';
-import { TaskService } from '../../core/services/task.service';
+import { TaskCompletionService } from '../../core/services/task-completion.service';
 import { QuickCreateService } from '../../core/services/quick-create.service';
 
 type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -799,7 +799,7 @@ export class MyWorkMatrixComponent implements OnInit {
   readonly refreshTrigger = input(0);
 
   private eisenhowerService = inject(EisenhowerService);
-  private taskService = inject(TaskService);
+  private taskCompletion = inject(TaskCompletionService);
   private quickCreateService = inject(QuickCreateService);
   private router = inject(Router);
 
@@ -927,22 +927,20 @@ export class MyWorkMatrixComponent implements OnInit {
       return next;
     });
 
-    this.taskService.completeTask(taskId).subscribe({
+    this.taskCompletion.complete(taskId).subscribe({
       next: () => {
-        setTimeout(() => {
-          const currentMatrix = this.matrix();
-          if (!currentMatrix) return;
-          const updated = {
+        const currentMatrix = this.matrix();
+        if (currentMatrix) {
+          this.matrix.set({
             ...currentMatrix,
             [quadrant]: currentMatrix[quadrant].filter(t => t.id !== taskId),
-          };
-          this.matrix.set(updated);
-          this.completingTaskIds.update(ids => {
-            const next = new Set(ids);
-            next.delete(taskId);
-            return next;
           });
-        }, 600);
+        }
+        this.completingTaskIds.update(ids => {
+          const next = new Set(ids);
+          next.delete(taskId);
+          return next;
+        });
       },
       error: () => {
         this.completingTaskIds.update(ids => {
