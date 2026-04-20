@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { finalize, shareReplay } from 'rxjs/operators';
+import { Observable, ReplaySubject } from 'rxjs';
+import { finalize, share } from 'rxjs/operators';
 
 /**
  * Generic HTTP wrapper with request deduplication.
@@ -32,9 +32,14 @@ export class ApiService {
       return this.pendingGetRequests.get(fullPath) as Observable<T>;
     }
 
-    // Create new request with shareReplay for deduplication
+    // Dedupe concurrent subscribers; reset pipeline when refCount hits 0 (matches refCount:true)
     const request$ = this.http.get<T>(fullPath).pipe(
-      shareReplay({ bufferSize: 1, refCount: true }),
+      share({
+        connector: () => new ReplaySubject<T>(1),
+        resetOnError: true,
+        resetOnComplete: false,
+        resetOnRefCountZero: true,
+      }),
       finalize(() => this.pendingGetRequests.delete(fullPath)),
     );
 

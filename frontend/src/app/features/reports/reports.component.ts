@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { SkeletonModule } from 'primeng/skeleton';
 import {
   PortfolioService,
@@ -17,7 +17,7 @@ import {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterLink, SkeletonModule],
+  imports: [CommonModule, SkeletonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
