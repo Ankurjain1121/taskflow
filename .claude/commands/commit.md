@@ -3,24 +3,26 @@ name: commit
 description: Run checks, commit with AI message, and push
 ---
 
-1. Run quality checks (fix ALL errors before continuing):
+1. Quality checks (fix ALL errors before continuing):
    ```bash
-   cd frontend && npx tsc --noEmit --project tsconfig.app.json
+   ./scripts/quick-check.sh
    ```
+   Falls back per-stack if `quick-check.sh` is missing:
    ```bash
-   cd backend && cargo check --release 2>&1 | tail -5
+   cd backend && cargo check --workspace --all-targets
+   cd frontend && npx tsc --noEmit
    ```
 
-2. Review changes: `git status` and `git diff --stat`
+2. Review: `git status --short` and `git diff --stat`.
 
 3. Generate commit message:
    - Start with type: feat/fix/refactor/test/chore/docs
-   - Be specific and concise, one line preferred
-   - Follow existing repo style from `git log --oneline -5`
+   - Be specific + concise, one line preferred
+   - Match repo style from `git log --oneline -5`
 
-4. Stage specific files (not `git add -A`), commit, and push:
+4. Stage specific files (never `git add -A`), commit, push:
    ```bash
    git add <files>
-   git commit -m "message"
+   git commit -m "<type>(<scope>): <summary>"
    git push
    ```
