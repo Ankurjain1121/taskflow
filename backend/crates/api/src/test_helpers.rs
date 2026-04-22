@@ -405,6 +405,24 @@ pub mod helpers {
                 routes::board_positions_router(state.clone()),
             )
             .nest("/api/positions", routes::positions_router(state.clone()))
+            // Routers added for integration test coverage
+            .nest("/api", routes::personal_board_router(state.clone()))
+            .nest("/api", routes::task_snooze_router(state.clone()))
+            .nest("/api", routes::recent_items_router(state.clone()))
+            .nest("/api", routes::task_issue_link_router(state.clone()))
+            .nest("/api", routes::prometheus_router())
+            .nest(
+                "/api/projects/{board_id}/filter-presets",
+                routes::filter_presets_router(state.clone()),
+            )
+            .nest(
+                "/api/workspaces/{workspace_id}",
+                routes::workspace_audit_router(state.clone()),
+            )
+            .nest(
+                "/api/workspaces/{workspace_id}",
+                routes::workspace_export_router(state.clone()),
+            )
             .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
             .layer(TimeoutLayer::with_status_code(
                 axum::http::StatusCode::REQUEST_TIMEOUT,
