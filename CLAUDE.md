@@ -174,6 +174,66 @@ The UI should evoke all four pillars simultaneously:
 
 *Do the work, show results.*
 
+## graphify — TaskBolt Knowledge Graph (MANDATORY FIRST-STEP)
+
+**Graph:** `/home/ankur/projects/taskflow/graphify-out/graph.json`
+**Scope:** backend/crates + frontend (features + core + shared). 6,767 nodes, 11,098 edges, 501 communities.
+
+### RULE: Check graph FIRST for any of these tasks
+BEFORE Read/Grep, run the appropriate graphify command:
+
+| Task | Command |
+|------|---------|
+| Understand a feature end-to-end | `/graphify query "how does <feature> work"` |
+| Find what calls/depends on a function | `/graphify explain "<functionName>"` |
+| Trace request flow route→service→db | `/graphify path "<handler>" "<query_fn>"` |
+| Impact of changing a Rust model | `/graphify query "what uses <Model>"` |
+| Angular component consumer map | `/graphify explain "<ComponentName>"` |
+| Cross-layer bug (FE hits BE) | `/graphify path "<service.ts>" "<handler.rs>"` |
+| Refactor scope estimate | `/graphify query "what touches <module>"` |
+| WebSocket / realtime flow | `/graphify query "how does broadcast reach frontend"` |
+| Auth surface audit | `/graphify query "what bypasses verify_project_membership"` |
+| Test coverage gaps | `/graphify query "which handlers lack integration tests"` |
+
+### Skip graph (read directly) for
+- Single-file edits with known path (line-level fixes, typos)
+- Style / CSS / theme tweaks in one file
+- New leaf component with no cross-dependencies
+- Pure doc writes
+
+### After changes — rebuild
+| Change type | Action | Tokens |
+|-------------|--------|--------|
+| Code (.rs/.ts) only | Git post-commit hook rebuilds automatically | 0 |
+| Docs/README/migrations | `/graphify --update` | 0 |
+| 3+ files spanning FE+BE | `/graphify --update` | 0 |
+| Before next arch question after big PR | `/graphify --update` | 0 |
+
+### Current good queries to try
+- "how does task drag-drop broadcast to other clients"
+- "what happens when a task is archived"
+- "path from AuthMiddleware to TaskRepository"
+- "why does verify_project_membership bridge 14 communities"
+- "what shared components does project feature use"
+
+### Scope already indexed
+`backend/crates`, `frontend/src/app/features`, `frontend/src/app/core`, `frontend/src/app/shared`
+
+### Known graph hazards (read path/betweenness results with skepticism)
+Node IDs collapse same-name methods across files. These five bridge nodes are extraction artifacts, **not real call chains**:
+
+| Node | Location | Degree | Reality |
+|------|----------|--------|---------|
+| `map_err()` | `routes/task_issue_link.rs:L23` | 237 | Any `Result::map_err` closure gets routed here |
+| `.new()` | `middleware/rate_limit.rs:L295` | 222 | Every struct's `::new` constructor collapses into this |
+| `.from_str()` | `notifications/events.rs:L54` | 179 | Every `FromStr::from_str` impl |
+| `.forbidden()` / `.as_str()` / `.from()` | various | 60–130 | Common trait methods |
+
+If `/graphify path A B` routes through any of these, treat as **AMBIGUOUS**. Prefer `/graphify explain <node>` for real-degree views.
+
+### Architecture note — no Service/Repository layer
+Backend uses **free functions in `db/queries/*.rs`**, not `TaskService` / `TaskRepository` classes. Graph queries for these names will return empty. Do not introduce `*Service` / `*Repository` classes without an ADR — doing so creates parallel patterns future agents will follow incorrectly.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
