@@ -260,27 +260,26 @@ async fn auto_add_existing_user(
     actor_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<bool> {
+    // QA-FIX-1 (HIGH): gate cache invalidation + automation trigger on the
+    // INSERT's actual rows_affected, not on a pre-INSERT EXISTS check. Two
+    // concurrent requests both saw `already=false` then both fired the trigger
+    // even though ON CONFLICT only inserted one row. Read returns truth from
+    // the INSERT itself.
     let mut tx = state.db.begin().await?;
-    let already: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM workspace_members \
-         WHERE workspace_id = $1 AND user_id = $2)",
+    let inserted = sqlx::query(
+        "INSERT INTO workspace_members (workspace_id, user_id, role) \
+         VALUES ($1, $2, 'member') \
+         ON CONFLICT (workspace_id, user_id) DO NOTHING",
     )
     .bind(workspace_id)
     .bind(user_id)
-    .fetch_one(&mut *tx)
-    .await?;
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    tx.commit().await?;
 
-    if !already {
-        sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) \
-             VALUES ($1, $2, 'member') \
-             ON CONFLICT (workspace_id, user_id) DO NOTHING",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await?;
-
+    let did_insert = inserted > 0;
+    if did_insert {
         tracing::info!(
             workspace_id = %workspace_id,
             user_id = %user_id,
@@ -288,10 +287,6 @@ async fn auto_add_existing_user(
             source = "invitation_auto_add",
             "workspace_members inserted: existing org user"
         );
-    }
-    tx.commit().await?;
-
-    if !already {
         cache::cache_del(&state.redis, &cache::workspace_members_key(&workspace_id)).await;
         fire_member_joined_trigger(
             state.db.clone(),
@@ -302,7 +297,7 @@ async fn auto_add_existing_user(
         );
     }
 
-    Ok(!already)
+    Ok(did_insert)
 }
 
 // ============================================================================
