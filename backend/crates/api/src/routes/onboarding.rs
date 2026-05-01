@@ -73,6 +73,10 @@ pub struct InviteMembersResponse {
     pub pending: i32,
     /// Number of existing users added directly to workspace
     pub invited: i32,
+    /// Number of existing tenant users skipped because the caller lacked
+    /// admin role to auto-add them (only ws Owner/Admin or global Admin can).
+    #[serde(default)]
+    pub skipped_existing: i32,
 }
 
 #[strict_dto_derive::strict_dto]
@@ -243,6 +247,7 @@ async fn invite_members(
 
     let mut invited_count = 0;
     let mut pending_count = 0;
+    let mut skipped_existing = 0;
 
     for email in &payload.emails {
         let email = email.trim().to_lowercase();
@@ -256,10 +261,12 @@ async fn invite_members(
         // Check if user already exists
         if let Some(existing_user) = auth::get_user_by_email(&state.db, &email).await? {
             if !caller_is_admin {
+                // QA-FIX-3: surface to the caller instead of silently dropping.
                 tracing::debug!(
                     "Skipping existing-user auto-add: caller {} lacks admin role",
                     auth.0.user_id
                 );
+                skipped_existing += 1;
                 continue;
             }
 
@@ -335,6 +342,7 @@ async fn invite_members(
     Ok(Json(InviteMembersResponse {
         pending: pending_count,
         invited: invited_count,
+        skipped_existing,
     }))
 }
 
