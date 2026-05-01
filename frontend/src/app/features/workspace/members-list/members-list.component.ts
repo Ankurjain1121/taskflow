@@ -436,6 +436,10 @@ export class MembersListComponent {
     emails: string[];
     role: 'admin' | 'manager' | 'member';
   }>();
+  /** Fires whenever workspace membership changes in a way that requires the
+   * parent's `members` input to be reloaded (e.g. existing org users added,
+   * or invitations accepted that hit the workspace_members table). */
+  membersChanged = output<void>();
 
   private readonly profileDialog = viewChild<MemberProfileDialogComponent>('profileDialog');
 
@@ -619,8 +623,10 @@ export class MembersListComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          // Trigger member list refresh via the same hook used for invitations.
-          this.memberInvited.emit({ emails: [], role: 'member' });
+          // QA-FIX-2: dedicated event so parents can reload the members list
+          // (memberInvited only carries email-path data and is not bound by
+          // every parent — empty-emails emit was a silent no-op).
+          this.membersChanged.emit();
         },
         error: () => {
           this.showError('Failed to add members');

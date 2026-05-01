@@ -605,30 +605,32 @@ pub async fn list_addable_tenant_members(
 }
 
 /// Bulk-add existing tenant users to a workspace.
-/// Returns the number of newly added members (skips existing via ON CONFLICT).
+/// Returns the user_ids that were actually inserted (skips existing via ON CONFLICT).
+/// Caller can use this list to fire per-user side effects (e.g. MemberJoined trigger).
 pub async fn bulk_add_workspace_members(
     pool: &PgPool,
     workspace_id: Uuid,
     user_ids: &[Uuid],
-) -> Result<u64, sqlx::Error> {
+) -> Result<Vec<Uuid>, sqlx::Error> {
     if user_ids.is_empty() {
-        return Ok(0);
+        return Ok(Vec::new());
     }
 
-    let result = sqlx::query(
+    let inserted: Vec<(Uuid,)> = sqlx::query_as(
         r"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         SELECT $1, uid, 'member'::workspace_member_role
         FROM unnest($2::uuid[]) AS uid
         ON CONFLICT (workspace_id, user_id) DO NOTHING
+        RETURNING user_id
         ",
     )
     .bind(workspace_id)
     .bind(user_ids)
-    .execute(pool)
+    .fetch_all(pool)
     .await?;
 
-    Ok(result.rows_affected())
+    Ok(inserted.into_iter().map(|(uid,)| uid).collect())
 }
 
 /// Workspace matrix entry: workspace with membership status for a given user

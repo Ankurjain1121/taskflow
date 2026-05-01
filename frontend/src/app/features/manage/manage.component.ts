@@ -189,6 +189,7 @@ const ALL_TABS: TabDef[] = [
                         [boards]="[]"
                         (memberRemoved)="onMemberRemoved($event)"
                         (memberRoleChanged)="onMemberRoleChanged($event)"
+                        (membersChanged)="loadData()"
                       />
                     }
                   </section>

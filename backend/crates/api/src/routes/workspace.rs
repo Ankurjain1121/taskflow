@@ -780,10 +780,24 @@ async fn bulk_add_members(
         }
     }
 
-    let added = workspaces::bulk_add_workspace_members(&state.db, id, &payload.user_ids).await?;
+    let inserted_ids =
+        workspaces::bulk_add_workspace_members(&state.db, id, &payload.user_ids).await?;
+    let added = inserted_ids.len() as u64;
 
     // Invalidate workspace members cache
     cache::cache_del(&state.redis, &cache::workspace_members_key(&id)).await;
+
+    // QA-FIX-2 (HIGH): fire MemberJoined per newly-inserted member, matching
+    // the single-add path (workspace.rs add_member, invitation.rs auto_add_existing_user).
+    for new_user_id in &inserted_ids {
+        fire_member_joined_trigger(
+            state.db.clone(),
+            state.redis.clone(),
+            id,
+            *new_user_id,
+            auth.0.tenant_id,
+        );
+    }
 
     Ok(Json(BulkAddMembersResponse { added }))
 }

@@ -126,6 +126,7 @@ import { WorkspaceRolesTabComponent } from './workspace-roles-tab.component';
                     [workspaceName]="workspace()?.name ?? 'this workspace'"
                     [boards]="boards()"
                     (memberRemoved)="onMemberRemoved($event)"
+                    (membersChanged)="onMembersChanged()"
                   ></app-members-list>
                 </div>
               </p-tabpanel>
@@ -237,6 +238,11 @@ export class WorkspaceSettingsComponent implements OnInit {
     this.members.update((members) =>
       members.filter((m) => m.user_id !== userId),
     );
+  }
+
+  /** Reload workspace + embedded members after a bulk membership change. */
+  onMembersChanged(): void {
+    this.loadWorkspace();
   }
 
   private loadWorkspace(): void {
