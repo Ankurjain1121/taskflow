@@ -595,9 +595,13 @@ pub async fn accept_handler(
         .and_then(|v| serde_json::from_value::<Vec<Uuid>>(v.clone()).ok())
         .unwrap_or_default();
     for board_id in board_ids {
+        // QA-FIX-4: FOR SHARE blocks concurrent project moves (workspace_id
+        // updates) without serializing concurrent reads of the same project
+        // row. Re-verification only needs the row stable for the tx, not
+        // exclusive write access.
         let row: Option<(Uuid,)> = sqlx::query_as(
             "SELECT workspace_id FROM projects \
-             WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+             WHERE id = $1 AND deleted_at IS NULL FOR SHARE",
         )
         .bind(board_id)
         .fetch_optional(&mut *tx)
