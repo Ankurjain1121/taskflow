@@ -35,11 +35,11 @@ async fn test_export_json_happy_path() {
     );
     assert_eq!(json["workspace"]["id"], ws_id.to_string());
     assert!(
-        json.get("members").map(|v| v.is_array()).unwrap_or(false),
+        json.get("members").is_some_and(serde_json::Value::is_array),
         "Expected 'members' array"
     );
     assert!(
-        json.get("boards").map(|v| v.is_array()).unwrap_or(false),
+        json.get("boards").is_some_and(serde_json::Value::is_array),
         "Expected 'boards' array"
     );
 }

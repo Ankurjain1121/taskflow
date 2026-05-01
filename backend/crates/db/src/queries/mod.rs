@@ -298,10 +298,11 @@ pub use webhooks::{
 pub use workspaces::{
     add_workspace_member, bulk_add_workspace_members, create_workspace, get_user_workspaces,
     get_workspace_by_id, get_workspace_member_role, get_workspace_visibility, is_workspace_member,
-    join_open_workspace, list_open_workspaces, list_tenant_members, list_workspaces_for_user,
-    remove_workspace_member, search_workspace_members, soft_delete_workspace, update_workspace,
-    update_workspace_member_role, update_workspace_visibility, TenantMemberInfo,
-    UserWorkspaceMembership, WorkspaceMemberInfo, WorkspaceWithMembers,
+    join_open_workspace, list_addable_tenant_members, list_open_workspaces, list_tenant_members,
+    list_workspaces_for_user, remove_workspace_member, search_workspace_members,
+    soft_delete_workspace, update_workspace, update_workspace_member_role,
+    update_workspace_visibility, TenantMemberInfo, UserWorkspaceMembership, WorkspaceMemberInfo,
+    WorkspaceWithMembers,
 };
 
 // workspace_roles
@@ -333,10 +334,9 @@ pub use favorites::{add_favorite, is_favorited, list_favorites, remove_favorite,
 
 // invitations
 pub use invitations::{
-    accept_invitation, add_workspace_member as invitation_add_workspace_member, create_invitation,
-    create_invitation_with_details, delete_invitation, get_invitation_by_id,
-    get_invitation_by_token, get_pending_invitation_by_email, get_workspace_tenant_id,
-    list_all_invitations, list_pending_invitations, resend_invitation,
+    accept_invitation, create_invitation, create_invitation_with_details, delete_invitation,
+    get_invitation_by_id, get_invitation_by_token, get_pending_invitation_by_email,
+    get_workspace_tenant_id, list_all_invitations, list_pending_invitations, resend_invitation,
 };
 
 // milestones

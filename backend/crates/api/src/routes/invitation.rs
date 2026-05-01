@@ -15,7 +15,7 @@ use uuid::Uuid;
 use taskbolt_auth::jwt::issue_tokens;
 use taskbolt_auth::password::hash_password;
 use taskbolt_db::models::automation::AutomationTrigger;
-use taskbolt_db::models::{Invitation, UserRole};
+use taskbolt_db::models::{Invitation, UserRole, WorkspaceMemberRole};
 use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::{
     generate_invitation_html, spawn_automation_evaluation, ResendClient, TriggerContext,
@@ -24,7 +24,10 @@ use taskbolt_services::{
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, StrictJson};
 use crate::middleware::{auth_middleware, csrf_middleware};
+use crate::services::cache;
 use crate::state::AppState;
+
+use super::workspace_helpers::fire_member_joined_trigger;
 
 // ============================================================================
 // Request/Response DTOs
@@ -62,6 +65,10 @@ pub struct BulkInvitationError {
 pub struct BulkCreateInvitationResponse {
     pub created: Vec<InvitationResponse>,
     pub errors: Vec<BulkInvitationError>,
+    /// Count of emails that matched an existing same-tenant user and were
+    /// added directly to the workspace (no invitation/email).
+    #[serde(default)]
+    pub added_existing: u32,
 }
 
 #[strict_dto_derive::strict_dto]
@@ -93,6 +100,13 @@ pub struct InvitationResponse {
     pub message: Option<String>,
     pub board_ids: Option<serde_json::Value>,
     pub job_title: Option<String>,
+    /// True when the response represents an existing same-tenant user added
+    /// directly to the workspace (no token, no email sent).
+    #[serde(default)]
+    pub direct_add: bool,
+    /// True when direct_add and user was already in the workspace (no-op).
+    #[serde(default)]
+    pub already_member: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -154,6 +168,8 @@ impl From<Invitation> for InvitationResponse {
             message: inv.message,
             board_ids: inv.board_ids,
             job_title: inv.job_title,
+            direct_add: false,
+            already_member: false,
         }
     }
 }
@@ -213,6 +229,83 @@ fn spawn_invitation_emails(
 }
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+/// True if caller is global Admin/SuperAdmin or workspace Owner/Admin.
+/// Used by fix #2 (Admin role gate) and fix #9 (auto-add gate).
+async fn caller_can_invite_as_admin(
+    db: &sqlx::PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    role: UserRole,
+) -> Result<bool> {
+    if matches!(role, UserRole::Admin | UserRole::SuperAdmin) {
+        return Ok(true);
+    }
+    let ws_role = workspaces::get_workspace_member_role(db, workspace_id, user_id).await?;
+    Ok(matches!(
+        ws_role,
+        Some(WorkspaceMemberRole::Owner | WorkspaceMemberRole::Admin)
+    ))
+}
+
+/// Auto-add an existing same-tenant user directly to the workspace.
+/// Tx-wraps the membership check + insert; cache_del + trigger run post-commit.
+/// Returns true if a new row was inserted, false if user was already a member.
+async fn auto_add_existing_user(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    actor_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<bool> {
+    let mut tx = state.db.begin().await?;
+    let already: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM workspace_members \
+         WHERE workspace_id = $1 AND user_id = $2)",
+    )
+    .bind(workspace_id)
+    .bind(user_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    if !already {
+        sqlx::query(
+            "INSERT INTO workspace_members (workspace_id, user_id, role) \
+             VALUES ($1, $2, 'member') \
+             ON CONFLICT (workspace_id, user_id) DO NOTHING",
+        )
+        .bind(workspace_id)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+
+        tracing::info!(
+            workspace_id = %workspace_id,
+            user_id = %user_id,
+            actor_id = %actor_id,
+            source = "invitation_auto_add",
+            "workspace_members inserted: existing org user"
+        );
+    }
+    tx.commit().await?;
+
+    if !already {
+        cache::cache_del(&state.redis, &cache::workspace_members_key(&workspace_id)).await;
+        fire_member_joined_trigger(
+            state.db.clone(),
+            state.redis.clone(),
+            workspace_id,
+            user_id,
+            tenant_id,
+        );
+    }
+
+    Ok(!already)
+}
+
+// ============================================================================
 // Route Handlers
 // ============================================================================
 
@@ -239,16 +332,74 @@ pub async fn create_handler(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Fix #2: only ws Owner/Admin or global Admin can invite as Admin
+    if payload.role == UserRole::Admin
+        && !caller_can_invite_as_admin(
+            &state.db,
+            payload.workspace_id,
+            auth.0.user_id,
+            auth.0.role,
+        )
+        .await?
+    {
+        return Err(AppError::Forbidden(
+            "Only workspace owners/admins or global admins can invite as Admin".into(),
+        ));
+    }
+
     // Validate email
     if payload.email.is_empty() || !payload.email.contains('@') {
         return Err(AppError::BadRequest("Invalid email address".into()));
     }
 
-    // Check if user already exists with this email
-    if let Some(_existing) = auth::get_user_by_email(&state.db, &payload.email).await? {
-        return Err(AppError::Conflict(
-            "User with this email already exists".into(),
-        ));
+    // Fix #9: handle existing user — same-tenant means auto-add (admin only),
+    // different tenant keeps 409.
+    if let Some(existing) = auth::get_user_by_email(&state.db, &payload.email).await? {
+        if existing.tenant_id != auth.0.tenant_id {
+            return Err(AppError::Conflict(
+                "User with this email already exists".into(),
+            ));
+        }
+
+        // Mitigation A: caller must be ws Owner/Admin or global Admin
+        if !caller_can_invite_as_admin(
+            &state.db,
+            payload.workspace_id,
+            auth.0.user_id,
+            auth.0.role,
+        )
+        .await?
+        {
+            return Err(AppError::Conflict(
+                "User already has an account. Ask a workspace admin to add them.".into(),
+            ));
+        }
+
+        let added = auto_add_existing_user(
+            &state,
+            payload.workspace_id,
+            existing.id,
+            auth.0.user_id,
+            auth.0.tenant_id,
+        )
+        .await?;
+
+        return Ok(Json(InvitationResponse {
+            // Synthetic response: invitation-shaped envelope with sentinel zero token
+            // signaling direct add (no token, no email, already accepted).
+            id: Uuid::nil(),
+            email: existing.email,
+            workspace_id: payload.workspace_id,
+            role: payload.role,
+            token: Uuid::nil(),
+            expires_at: Utc::now(),
+            created_at: Utc::now(),
+            message: payload.message,
+            board_ids: None,
+            job_title: existing.job_title,
+            direct_add: true,
+            already_member: !added,
+        }));
     }
 
     // Check if a pending invitation already exists
@@ -440,6 +591,51 @@ pub async fn accept_handler(
     .execute(&mut *tx)
     .await?;
 
+    // Fix #1: honor invitation.board_ids by inserting explicit project_members rows.
+    // Re-verify each board still belongs to the invitation's workspace under FOR UPDATE
+    // (mitigation C, pre-mortem failure #1: board moved between create and accept).
+    let board_ids: Vec<Uuid> = invitation
+        .board_ids
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<Vec<Uuid>>(v.clone()).ok())
+        .unwrap_or_default();
+    for board_id in board_ids {
+        let row: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT workspace_id FROM projects \
+             WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+        )
+        .bind(board_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some((current_ws,)) = row else { continue };
+        if current_ws != invitation.workspace_id {
+            tracing::warn!(
+                board_id = %board_id,
+                expected_ws = %invitation.workspace_id,
+                actual_ws = %current_ws,
+                "Skipping project_members insert: board moved or in different workspace"
+            );
+            continue;
+        }
+
+        sqlx::query(
+            "INSERT INTO project_members (project_id, user_id, role) \
+             VALUES ($1, $2, 'editor') \
+             ON CONFLICT (project_id, user_id) DO NOTHING",
+        )
+        .bind(board_id)
+        .bind(user.id)
+        .execute(&mut *tx)
+        .await?;
+
+        tracing::info!(
+            board_id = %board_id,
+            user_id = %user.id,
+            invitation_id = %invitation.id,
+            "project_members inserted from invitation accept"
+        );
+    }
+
     // Mark invitation as accepted within the transaction
     sqlx::query(
         "UPDATE invitations SET accepted_at = NOW() WHERE token = $1 AND accepted_at IS NULL",
@@ -597,6 +793,20 @@ pub async fn bulk_create_handler(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Fix #2: only ws Owner/Admin or global Admin can invite as Admin
+    let caller_is_admin = caller_can_invite_as_admin(
+        &state.db,
+        payload.workspace_id,
+        auth.0.user_id,
+        auth.0.role,
+    )
+    .await?;
+    if payload.role == UserRole::Admin && !caller_is_admin {
+        return Err(AppError::Forbidden(
+            "Only workspace owners/admins or global admins can invite as Admin".into(),
+        ));
+    }
+
     if payload.emails.is_empty() {
         return Err(AppError::BadRequest(
             "At least one email is required".into(),
@@ -612,6 +822,7 @@ pub async fn bulk_create_handler(
     let expires_at = Utc::now() + Duration::days(7);
     let mut created = Vec::new();
     let mut errors = Vec::new();
+    let mut added_existing: u32 = 0;
 
     // Convert board_ids to a JSON value if present
     let board_ids_json = payload
@@ -631,13 +842,43 @@ pub async fn bulk_create_handler(
             continue;
         }
 
-        // Check if user already exists
+        // Fix #9: existing same-tenant user → auto-add (admin only),
+        // existing different-tenant → skip with error.
         match auth::get_user_by_email(&state.db, &email).await {
-            Ok(Some(_)) => {
-                errors.push(BulkInvitationError {
-                    email: email.clone(),
-                    reason: "User with this email already exists".into(),
-                });
+            Ok(Some(existing)) => {
+                if existing.tenant_id != auth.0.tenant_id {
+                    errors.push(BulkInvitationError {
+                        email: email.clone(),
+                        reason: "User with this email already exists".into(),
+                    });
+                    continue;
+                }
+                if !caller_is_admin {
+                    errors.push(BulkInvitationError {
+                        email: email.clone(),
+                        reason: "User already has an account. Workspace admin required to add."
+                            .into(),
+                    });
+                    continue;
+                }
+                match auto_add_existing_user(
+                    &state,
+                    payload.workspace_id,
+                    existing.id,
+                    auth.0.user_id,
+                    auth.0.tenant_id,
+                )
+                .await
+                {
+                    Ok(true) => added_existing += 1,
+                    Ok(false) => {} // already a member, no-op
+                    Err(e) => {
+                        errors.push(BulkInvitationError {
+                            email: email.clone(),
+                            reason: format!("Failed to add existing user: {}", e),
+                        });
+                    }
+                }
                 continue;
             }
             Ok(None) => {}
@@ -716,7 +957,11 @@ pub async fn bulk_create_handler(
         );
     }
 
-    Ok(Json(BulkCreateInvitationResponse { created, errors }))
+    Ok(Json(BulkCreateInvitationResponse {
+        created,
+        errors,
+        added_existing,
+    }))
 }
 
 /// GET /api/invitations/all?workspace_id=<uuid>

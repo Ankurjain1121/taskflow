@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 use uuid::Uuid;
 
-use taskbolt_db::models::UserRole;
+use taskbolt_db::models::{UserRole, WorkspaceMemberRole};
 use taskbolt_db::queries::{auth, invitations, workspaces};
 use taskbolt_services::sample_board::generate_sample_board;
 
@@ -229,6 +229,18 @@ async fn invite_members(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Mitigation A: only ws Owner/Admin or global Admin can auto-add an
+    // existing org user. Other callers can still send email invites for
+    // unknown emails — only the same-tenant short-circuit is gated.
+    let caller_ws_role =
+        workspaces::get_workspace_member_role(&state.db, payload.workspace_id, auth.0.user_id)
+            .await?;
+    let caller_is_admin = matches!(auth.0.role, UserRole::Admin | UserRole::SuperAdmin)
+        || matches!(
+            caller_ws_role,
+            Some(WorkspaceMemberRole::Owner | WorkspaceMemberRole::Admin)
+        );
+
     let mut invited_count = 0;
     let mut pending_count = 0;
 
@@ -243,6 +255,14 @@ async fn invite_members(
 
         // Check if user already exists
         if let Some(existing_user) = auth::get_user_by_email(&state.db, &email).await? {
+            if !caller_is_admin {
+                tracing::debug!(
+                    "Skipping existing-user auto-add: caller {} lacks admin role",
+                    auth.0.user_id
+                );
+                continue;
+            }
+
             // Check if already a workspace member
             let already_member =
                 workspaces::is_workspace_member(&state.db, payload.workspace_id, existing_user.id)

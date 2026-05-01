@@ -185,6 +185,13 @@ export class WorkspaceService {
     );
   }
 
+  /** Tenant members not currently in the given workspace (for "Add from organization" UI). */
+  listAddableMembers(workspaceId: string): Observable<AddableMember[]> {
+    return this.http.get<AddableMember[]>(
+      `${this.apiUrl}/${workspaceId}/members/addable`,
+    );
+  }
+
   getWorkspaceMatrix(userId: string): Observable<WorkspaceMatrixEntry[]> {
     return this.http.get<WorkspaceMatrixEntry[]>(
       `/api/tenant/members/${userId}/workspace-matrix`,
@@ -412,6 +419,14 @@ export interface TenantMember {
   workspace_count: number;
   created_at: string;
   is_org_admin: boolean;
+}
+
+/** Tenant member eligible to be added to a workspace (response of /members/addable). */
+export interface AddableMember {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url: string | null;
 }
 
 export interface WorkspaceMatrixEntry {

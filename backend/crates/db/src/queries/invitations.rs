@@ -47,7 +47,7 @@ pub async fn create_invitation_with_details(
         r"
         INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, message, board_ids, job_title, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title, job_title
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         ",
     )
     .bind(id)
@@ -149,28 +149,6 @@ pub async fn get_workspace_tenant_id(
     .await?;
 
     Ok(result)
-}
-
-/// Add a user to a workspace as a member
-pub async fn add_workspace_member(
-    pool: &PgPool,
-    workspace_id: Uuid,
-    user_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r"
-        INSERT INTO workspace_members (id, workspace_id, user_id, joined_at)
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (workspace_id, user_id) DO NOTHING
-        ",
-    )
-    .bind(Uuid::new_v4())
-    .bind(workspace_id)
-    .bind(user_id)
-    .execute(pool)
-    .await?;
-
-    Ok(())
 }
 
 /// List ALL invitations (pending, accepted, expired) for a workspace

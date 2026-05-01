@@ -659,3 +659,120 @@ async fn test_list_task_groups() {
 
     assert_eq!(response.status(), StatusCode::OK);
 }
+
+// =========================================================================
+// FIX #3: project add/remove member role gate
+// =========================================================================
+
+#[ignore = "integration test - run with: cargo test -- --ignored"]
+#[tokio::test]
+async fn test_add_member_blocked_for_project_viewer() {
+    let (app, state) = test_app().await;
+    let (tenant_id, _owner_id, ws_id, board_id, _col_id) = setup_full(&state.db).await;
+
+    // Caller: another tenant user, ws member, but only project Viewer
+    let viewer_id = Uuid::new_v4();
+    sqlx::query(
+        r"INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
+          VALUES ($1, $2, 'Viewer', '$argon2id$dummy', 'manager', $3, true, NOW(), NOW())",
+    )
+    .bind(viewer_id)
+    .bind(unique_email())
+    .bind(tenant_id)
+    .execute(&state.db)
+    .await
+    .expect("insert user");
+    taskbolt_db::queries::workspaces::add_workspace_member(&state.db, ws_id, viewer_id)
+        .await
+        .expect("add ws");
+    sqlx::query(
+        "INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'viewer')",
+    )
+    .bind(board_id)
+    .bind(viewer_id)
+    .execute(&state.db)
+    .await
+    .expect("explicit viewer");
+
+    // Target user
+    let target_id = Uuid::new_v4();
+    sqlx::query(
+        r"INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
+          VALUES ($1, $2, 'Target', '$argon2id$dummy', 'member', $3, true, NOW(), NOW())",
+    )
+    .bind(target_id)
+    .bind(unique_email())
+    .bind(tenant_id)
+    .execute(&state.db)
+    .await
+    .expect("insert target");
+    taskbolt_db::queries::workspaces::add_workspace_member(&state.db, ws_id, target_id)
+        .await
+        .expect("add target ws");
+
+    let token = test_jwt_token_with_role(&state, viewer_id, tenant_id, UserRole::Manager);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/projects/{}/members", board_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&serde_json::json!({
+                        "user_id": target_id,
+                        "role": "Editor",
+                    }))
+                    .expect("serialize"),
+                ))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[ignore = "integration test - run with: cargo test -- --ignored"]
+#[tokio::test]
+async fn test_add_project_member_allowed_for_owner() {
+    let (app, state) = test_app().await;
+    let (tenant_id, owner_id, ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    // Owner already has Owner role on the project (from create_project default).
+    let target_id = Uuid::new_v4();
+    sqlx::query(
+        r"INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
+          VALUES ($1, $2, 'Target', '$argon2id$dummy', 'member', $3, true, NOW(), NOW())",
+    )
+    .bind(target_id)
+    .bind(unique_email())
+    .bind(tenant_id)
+    .execute(&state.db)
+    .await
+    .expect("insert target");
+    taskbolt_db::queries::workspaces::add_workspace_member(&state.db, ws_id, target_id)
+        .await
+        .expect("add target ws");
+
+    let token = test_jwt_token(&state, owner_id, tenant_id);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/projects/{}/members", board_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&serde_json::json!({
+                        "user_id": target_id,
+                        "role": "Editor",
+                    }))
+                    .expect("serialize"),
+                ))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+}

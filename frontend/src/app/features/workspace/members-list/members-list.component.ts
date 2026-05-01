@@ -21,6 +21,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import { TooltipModule } from 'primeng/tooltip';
 import {
+  AddExistingMembersResult,
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
@@ -399,6 +400,7 @@ export interface MemberWithDetails extends WorkspaceMember {
       [workspaceName]="workspaceName()"
       [boards]="boards()"
       (created)="onInviteResult($event)"
+      (addedExisting)="onAddedExisting($event)"
     />
 
     <!-- Member Profile Dialog -->
@@ -605,6 +607,23 @@ export class MembersListComponent {
         },
         error: () => {
           this.showError('Failed to send invitation');
+        },
+      });
+  }
+
+  /** Add existing tenant users (no email path). */
+  onAddedExisting(result: AddExistingMembersResult): void {
+    if (result.userIds.length === 0) return;
+    this.workspaceService
+      .bulkAddMembers(result.workspaceId, result.userIds)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          // Trigger member list refresh via the same hook used for invitations.
+          this.memberInvited.emit({ emails: [], role: 'member' });
+        },
+        error: () => {
+          this.showError('Failed to add members');
         },
       });
   }

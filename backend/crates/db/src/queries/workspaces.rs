@@ -574,6 +574,36 @@ pub async fn get_user_workspaces(
     .await
 }
 
+/// List tenant members eligible to be added to a workspace.
+///
+/// Returns same-tenant users not currently in `workspace_members` for `workspace_id`.
+/// Used by the "Add from organization" workspace UI.
+pub async fn list_addable_tenant_members(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<Vec<UserPublic>, sqlx::Error> {
+    sqlx::query_as::<_, UserPublic>(
+        r"
+        SELECT u.id, u.email, u.name, u.avatar_url, u.job_title, u.department,
+               u.role, u.tenant_id, u.onboarding_completed, u.created_at
+        FROM users u
+        WHERE u.tenant_id = $2
+          AND u.deleted_at IS NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM workspace_members wm
+              WHERE wm.workspace_id = $1 AND wm.user_id = u.id
+          )
+        ORDER BY u.name ASC
+        LIMIT 500
+        ",
+    )
+    .bind(workspace_id)
+    .bind(tenant_id)
+    .fetch_all(pool)
+    .await
+}
+
 /// Bulk-add existing tenant users to a workspace.
 /// Returns the number of newly added members (skips existing via ON CONFLICT).
 pub async fn bulk_add_workspace_members(

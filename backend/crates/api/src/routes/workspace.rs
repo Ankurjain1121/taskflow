@@ -458,6 +458,37 @@ async fn search_members(
     Ok(Json(results))
 }
 
+/// GET /api/workspaces/:id/addable-members
+///
+/// List tenant members not currently in this workspace, for the
+/// "Add from organization" UI.
+/// Requires caller is a workspace member with Manager or Admin org role.
+async fn list_addable_members(
+    State(state): State<AppState>,
+    auth: ManagerOrAdmin,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<UserSearchResult>>> {
+    let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
+    let users =
+        workspaces::list_addable_tenant_members(&state.db, id, auth.0.tenant_id).await?;
+
+    let results: Vec<UserSearchResult> = users
+        .into_iter()
+        .map(|u| UserSearchResult {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            avatar_url: u.avatar_url,
+        })
+        .collect();
+
+    Ok(Json(results))
+}
+
 /// POST /api/workspaces/:id/members
 ///
 /// Add a user to a workspace.
@@ -468,6 +499,11 @@ async fn add_member(
     Path(id): Path<Uuid>,
     StrictJson(payload): StrictJson<AddMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
+    // Fix #8: cannot add yourself
+    if auth.0.user_id == payload.user_id {
+        return Err(AppError::BadRequest("Cannot add yourself".into()));
+    }
+
     // Check if auth user is a member
     let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
@@ -793,6 +829,7 @@ pub fn workspace_router(state: AppState) -> Router<AppState> {
         .route("/{id}/join", post(join_workspace))
         .route("/{id}/my-capabilities", get(get_my_capabilities))
         .route("/{id}/members/search", get(search_members))
+        .route("/{id}/members/addable", get(list_addable_members))
         .route("/{id}/members/bulk", post(bulk_add_members))
         .route("/{id}/members", get(list_members).post(add_member))
         .route(

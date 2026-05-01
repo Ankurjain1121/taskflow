@@ -407,12 +407,19 @@ async fn add_project_member(
     Path(id): Path<Uuid>,
     StrictJson(payload): StrictJson<AddProjectMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
-    // Check project membership
-    let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;
-    if !is_member {
-        return Err(AppError::NotFound(
-            "Project not found or access denied".into(),
-        ));
+    // Fix #3: caller must hold project Owner or Editor role (precedence-resolved).
+    // Viewer-level project membership is no longer sufficient.
+    let role = projects::get_project_member_role(&state.db, id, auth.0.user_id).await?;
+    match role {
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
+        Some(BoardMemberRole::Viewer) => {
+            return Err(AppError::Forbidden("Editor role required".into()));
+        }
+        None => {
+            return Err(AppError::NotFound(
+                "Project not found or access denied".into(),
+            ));
+        }
     }
 
     // Get project to check workspace membership of the user being added
@@ -445,12 +452,18 @@ async fn remove_project_member(
     auth: ManagerOrAdmin,
     Path((id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<MessageResponse>> {
-    // Check project membership
-    let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;
-    if !is_member {
-        return Err(AppError::NotFound(
-            "Project not found or access denied".into(),
-        ));
+    // Fix #3: caller must hold project Owner or Editor role.
+    let role = projects::get_project_member_role(&state.db, id, auth.0.user_id).await?;
+    match role {
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
+        Some(BoardMemberRole::Viewer) => {
+            return Err(AppError::Forbidden("Editor role required".into()));
+        }
+        None => {
+            return Err(AppError::NotFound(
+                "Project not found or access denied".into(),
+            ));
+        }
     }
 
     let removed = projects::remove_project_member(&state.db, id, user_id).await?;

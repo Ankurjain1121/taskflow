@@ -23,7 +23,11 @@ import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
 import { ProjectService } from '../../../core/services/project.service';
-import { Workspace } from '../../../core/services/workspace.service';
+import {
+  AddableMember,
+  Workspace,
+  WorkspaceService,
+} from '../../../core/services/workspace.service';
 
 export interface InviteMemberDialogData {
   workspaceId: string;
@@ -38,6 +42,12 @@ export interface InviteMemberDialogResult {
   message?: string;
   jobTitle?: string;
   workspaceId?: string;
+}
+
+/** Result emitted when caller picks existing tenant users to bulk-add (no email). */
+export interface AddExistingMembersResult {
+  userIds: string[];
+  workspaceId: string;
 }
 
 interface EmailValidation {
@@ -75,6 +85,76 @@ interface EmailValidation {
           Invite new members to {{ effectiveWorkspaceName() }}
         </p>
       }
+
+      <!-- Mode toggle: send email invite vs add existing org user -->
+      <div
+        class="inline-flex rounded-lg border border-[var(--border)] p-0.5 mb-4"
+      >
+        <button
+          type="button"
+          class="px-3 py-1.5 text-sm rounded-md transition-colors"
+          [class]="
+            mode() === 'invite'
+              ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+          "
+          (click)="setMode('invite')"
+        >
+          Invite by email
+        </button>
+        <button
+          type="button"
+          class="px-3 py-1.5 text-sm rounded-md transition-colors"
+          [class]="
+            mode() === 'add_existing'
+              ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+          "
+          (click)="setMode('add_existing')"
+        >
+          Add from organization
+        </button>
+      </div>
+
+      @if (mode() === 'add_existing') {
+        <div class="flex flex-col gap-2 mb-2">
+          @if (loadingAddable()) {
+            <p class="text-sm text-[var(--muted-foreground)]">Loading…</p>
+          } @else if (addableMembers().length === 0) {
+            <p class="text-sm text-[var(--muted-foreground)]">
+              Everyone in your organization is already a member of this workspace.
+            </p>
+          } @else {
+            <div
+              class="border border-[var(--border)] rounded-lg p-2 max-h-64 overflow-y-auto"
+            >
+              @for (m of addableMembers(); track m.id) {
+                <div class="flex items-center gap-2 py-1">
+                  <p-checkbox
+                    [binary]="true"
+                    [ngModel]="isExistingSelected(m.id)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (onChange)="toggleExisting(m.id, $event.checked)"
+                    [inputId]="'existing-' + m.id"
+                  />
+                  <label
+                    [for]="'existing-' + m.id"
+                    class="flex-1 cursor-pointer text-sm text-[var(--foreground)]"
+                    >{{ m.name }}
+                    <span class="text-[var(--muted-foreground)]">
+                      &lt;{{ m.email }}&gt;</span
+                    ></label
+                  >
+                </div>
+              }
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)]">
+              {{ selectedExistingIds().length }} selected
+            </p>
+          }
+        </div>
+      }
+      @if (mode() === 'invite') {
       <form [formGroup]="form">
         <!-- Workspace Selector (shown when multiple workspaces available) -->
         @if (showWorkspaceSelector()) {
@@ -293,6 +373,7 @@ interface EmailValidation {
           >
         </div>
       </form>
+      }
 
       <ng-template #footer>
         <div class="flex justify-end gap-2">
@@ -304,11 +385,7 @@ interface EmailValidation {
             [disabled]="isSubmitting"
           />
           <p-button
-            [label]="
-              'Send Invitation' +
-              (validEmailCount() > 1 ? 's' : '') +
-              (validEmailCount() > 0 ? ' (' + validEmailCount() + ')' : '')
-            "
+            [label]="submitLabel()"
             (onClick)="onSubmit()"
             [disabled]="!canSubmit() || isSubmitting"
             [loading]="isSubmitting"
@@ -321,6 +398,7 @@ interface EmailValidation {
 export class InviteMemberDialogComponent {
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectService);
+  private workspaceService = inject(WorkspaceService);
 
   /** Two-way bound visibility */
   visible = model(false);
@@ -335,6 +413,15 @@ export class InviteMemberDialogComponent {
 
   /** Emits result when dialog closes with a value */
   created = output<InviteMemberDialogResult>();
+
+  /** Emits when caller picked existing tenant users (no email path). */
+  addedExisting = output<AddExistingMembersResult>();
+
+  /** Mode: 'invite' (email path) or 'add_existing' (pick from tenant). */
+  mode = signal<'invite' | 'add_existing'>('invite');
+  addableMembers = signal<AddableMember[]>([]);
+  loadingAddable = signal(false);
+  selectedExistingIds = signal<string[]>([]);
 
   form: FormGroup = this.fb.group({
     emailsText: ['', [Validators.required]],
@@ -394,6 +481,57 @@ export class InviteMemberDialogComponent {
     this.selectedBoardIds.set([]);
     this.internalWorkspaceId.set(null);
     this.dynamicBoards.set([]);
+    this.mode.set('invite');
+    this.addableMembers.set([]);
+    this.selectedExistingIds.set([]);
+  }
+
+  setMode(mode: 'invite' | 'add_existing'): void {
+    this.mode.set(mode);
+    if (mode === 'add_existing') {
+      this.loadAddableMembers();
+    }
+  }
+
+  private loadAddableMembers(): void {
+    const wsId =
+      this.workspaceId() || this.internalWorkspaceId() || undefined;
+    if (!wsId) {
+      this.addableMembers.set([]);
+      return;
+    }
+    this.loadingAddable.set(true);
+    this.workspaceService.listAddableMembers(wsId).subscribe({
+      next: (members) => {
+        this.addableMembers.set(members);
+        this.loadingAddable.set(false);
+      },
+      error: () => {
+        this.addableMembers.set([]);
+        this.loadingAddable.set(false);
+      },
+    });
+  }
+
+  isExistingSelected(userId: string): boolean {
+    return this.selectedExistingIds().includes(userId);
+  }
+
+  toggleExisting(userId: string, checked: boolean): void {
+    this.selectedExistingIds.update((ids) =>
+      checked ? [...ids, userId] : ids.filter((id) => id !== userId),
+    );
+  }
+
+  submitLabel(): string {
+    if (this.mode() === 'add_existing') {
+      const n = this.selectedExistingIds().length;
+      return n > 0 ? `Add ${n} member${n !== 1 ? 's' : ''}` : 'Add members';
+    }
+    const n = this.validEmailCount();
+    return (
+      'Send Invitation' + (n > 1 ? 's' : '') + (n > 0 ? ' (' + n + ')' : '')
+    );
   }
 
   onWorkspaceChange(wsId: string | null): void {
@@ -426,6 +564,11 @@ export class InviteMemberDialogComponent {
   }
 
   canSubmit(): boolean {
+    if (this.mode() === 'add_existing') {
+      const wsId =
+        this.workspaceId() || this.internalWorkspaceId() || undefined;
+      return !!wsId && this.selectedExistingIds().length > 0;
+    }
     const hasValidEmails =
       this.form.get('role')?.valid === true && this.validEmailCount() > 0;
     if (this.showWorkspaceSelector()) {
@@ -484,6 +627,19 @@ export class InviteMemberDialogComponent {
   }
 
   onSubmit(): void {
+    if (this.mode() === 'add_existing') {
+      if (!this.canSubmit()) return;
+      const wsId =
+        this.workspaceId() || this.internalWorkspaceId() || '';
+      const result: AddExistingMembersResult = {
+        userIds: [...this.selectedExistingIds()],
+        workspaceId: wsId,
+      };
+      this.visible.set(false);
+      this.addedExisting.emit(result);
+      return;
+    }
+
     this.validateEmails();
 
     if (!this.canSubmit()) {
