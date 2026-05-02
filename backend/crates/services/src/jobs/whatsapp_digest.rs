@@ -30,14 +30,12 @@ fn ist_offset() -> FixedOffset {
 
 /// Start-of-day `NaiveTime` (00:00:00). Hardcoded valid hour/min/sec.
 fn naive_time_start_of_day() -> NaiveTime {
-    NaiveTime::from_hms_opt(0, 0, 0)
-        .expect("00:00:00 is a valid NaiveTime")
+    NaiveTime::from_hms_opt(0, 0, 0).expect("00:00:00 is a valid NaiveTime")
 }
 
 /// End-of-day `NaiveTime` (23:59:59). Hardcoded valid hour/min/sec.
 fn naive_time_end_of_day() -> NaiveTime {
-    NaiveTime::from_hms_opt(23, 59, 59)
-        .expect("23:59:59 is a valid NaiveTime")
+    NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is a valid NaiveTime")
 }
 
 /// Error type for WhatsApp digest operations

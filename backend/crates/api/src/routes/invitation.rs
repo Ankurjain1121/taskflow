@@ -329,13 +329,8 @@ pub async fn create_handler(
 
     // Fix #2: only ws Owner/Admin or global Admin can invite as Admin
     if payload.role == UserRole::Admin
-        && !caller_can_invite_as_admin(
-            &state.db,
-            payload.workspace_id,
-            auth.0.user_id,
-            auth.0.role,
-        )
-        .await?
+        && !caller_can_invite_as_admin(&state.db, payload.workspace_id, auth.0.user_id, auth.0.role)
+            .await?
     {
         return Err(AppError::Forbidden(
             "Only workspace owners/admins or global admins can invite as Admin".into(),
@@ -357,13 +352,8 @@ pub async fn create_handler(
         }
 
         // Mitigation A: caller must be ws Owner/Admin or global Admin
-        if !caller_can_invite_as_admin(
-            &state.db,
-            payload.workspace_id,
-            auth.0.user_id,
-            auth.0.role,
-        )
-        .await?
+        if !caller_can_invite_as_admin(&state.db, payload.workspace_id, auth.0.user_id, auth.0.role)
+            .await?
         {
             return Err(AppError::Conflict(
                 "User already has an account. Ask a workspace admin to add them.".into(),
@@ -794,13 +784,9 @@ pub async fn bulk_create_handler(
     }
 
     // Fix #2: only ws Owner/Admin or global Admin can invite as Admin
-    let caller_is_admin = caller_can_invite_as_admin(
-        &state.db,
-        payload.workspace_id,
-        auth.0.user_id,
-        auth.0.role,
-    )
-    .await?;
+    let caller_is_admin =
+        caller_can_invite_as_admin(&state.db, payload.workspace_id, auth.0.user_id, auth.0.role)
+            .await?;
     if payload.role == UserRole::Admin && !caller_is_admin {
         return Err(AppError::Forbidden(
             "Only workspace owners/admins or global admins can invite as Admin".into(),

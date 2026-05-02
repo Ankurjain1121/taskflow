@@ -29,7 +29,10 @@ async fn test_list_audit_log_empty_returns_ok() {
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
 
-    assert!(json.get("items").is_some(), "Response should include 'items'");
+    assert!(
+        json.get("items").is_some(),
+        "Response should include 'items'"
+    );
     assert!(json["items"].is_array(), "'items' should be an array");
     assert_eq!(
         json["items"].as_array().unwrap().len(),
@@ -87,8 +90,7 @@ async fn test_list_audit_log_nonexistent_workspace_returns_404() {
     // Handler returns 403 when caller is not a member of the workspace,
     // which is how a nonexistent workspace presents to the caller.
     assert!(
-        response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::FORBIDDEN,
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
         "Expected 404 or 403 for nonexistent workspace, got {}",
         response.status()
     );

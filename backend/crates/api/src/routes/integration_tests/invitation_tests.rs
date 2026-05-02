@@ -381,13 +381,10 @@ async fn test_invite_existing_org_user_added_directly_by_admin() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Verify target was added to workspace_members directly
-    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
-        &state.db,
-        ws_id,
-        target_id,
-    )
-    .await
-    .expect("check membership");
+    let is_member =
+        taskbolt_db::queries::workspaces::is_workspace_member(&state.db, ws_id, target_id)
+            .await
+            .expect("check membership");
     assert!(is_member, "target user should be in workspace_members");
 }
 
@@ -446,8 +443,7 @@ async fn test_invite_existing_org_user_blocked_for_non_admin() {
     // ManagerOrAdmin extractor blocks at org-level first (403). If extractor
     // were to permit, the auto-add gate would 409. Either way, not 200.
     assert!(
-        response.status() == StatusCode::FORBIDDEN
-            || response.status() == StatusCode::CONFLICT,
+        response.status() == StatusCode::FORBIDDEN || response.status() == StatusCode::CONFLICT,
         "Expected 403 or 409, got {}",
         response.status()
     );

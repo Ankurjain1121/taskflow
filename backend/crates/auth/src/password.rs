@@ -36,10 +36,7 @@ fn hash_password_sync(password: &str) -> Result<String, argon2::password_hash::E
 
 /// Synchronous Argon2id verify. CPU-bound (~300ms with current params).
 /// Prefer the async [`verify_password`] in async contexts.
-fn verify_password_sync(
-    password: &str,
-    hash: &str,
-) -> Result<bool, argon2::password_hash::Error> {
+fn verify_password_sync(password: &str, hash: &str) -> Result<bool, argon2::password_hash::Error> {
     let parsed_hash = PasswordHash::new(hash)?;
     Ok(argon2_instance()
         .verify_password(password.as_bytes(), &parsed_hash)

@@ -13,8 +13,8 @@
 //! body rendering.
 
 use super::common::*;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 const METRICS_PATH: &str = "/api/internal/prometheus";
 const CRON_SECRET_VALUE: &str = "test-cron-secret-for-testing";
@@ -38,8 +38,7 @@ fn set_cron_secret_env() {
 /// panics when multiple tests touch prometheus).
 async fn test_app_with_prometheus() -> (axum::Router, crate::state::AppState) {
     let mut state = test_app_state().await;
-    let recorder = metrics_exporter_prometheus::PrometheusBuilder::new()
-        .build_recorder();
+    let recorder = metrics_exporter_prometheus::PrometheusBuilder::new().build_recorder();
     let handle = recorder.handle();
     state.prometheus_handle = Some(Arc::new(handle));
     // Keep the recorder alive for the duration of the test process by leaking it.

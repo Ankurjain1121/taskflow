@@ -473,8 +473,7 @@ async fn list_addable_members(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let users =
-        workspaces::list_addable_tenant_members(&state.db, id, auth.0.tenant_id).await?;
+    let users = workspaces::list_addable_tenant_members(&state.db, id, auth.0.tenant_id).await?;
 
     let results: Vec<UserSearchResult> = users
         .into_iter()

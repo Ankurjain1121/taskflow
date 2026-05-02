@@ -230,8 +230,7 @@ async fn test_snooze_nonexistent_task_returns_404() {
     // Non-existent task yields TaskNotAccessible (can't see it), so 403 is expected,
     // but accept 404 as well in case access checks evolve.
     assert!(
-        response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::FORBIDDEN,
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
         "Expected 404 or 403 for nonexistent task, got {}",
         response.status()
     );

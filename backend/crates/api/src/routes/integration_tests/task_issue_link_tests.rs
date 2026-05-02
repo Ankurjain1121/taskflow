@@ -247,10 +247,7 @@ async fn test_unlink_issue_happy_path() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!(
-                    "/api/tasks/{}/linked-issues/{}",
-                    task_id, issue_id
-                ))
+                .uri(format!("/api/tasks/{}/linked-issues/{}", task_id, issue_id))
                 .header("Cookie", format!("access_token={}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -331,9 +328,10 @@ async fn test_list_issues_for_task_returns_linked() {
     assert!(json.is_array(), "expected array of linked issues");
     let arr = json.as_array().expect("array");
     assert!(
-        arr.iter()
-            .any(|row| row["issue_id"].as_str() == Some(&issue_id.to_string())
-                || row["id"].as_str() == Some(&issue_id.to_string())),
+        arr.iter().any(
+            |row| row["issue_id"].as_str() == Some(&issue_id.to_string())
+                || row["id"].as_str() == Some(&issue_id.to_string())
+        ),
         "expected linked issue {} to be present, got: {}",
         issue_id,
         json

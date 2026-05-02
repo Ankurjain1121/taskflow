@@ -212,8 +212,7 @@ async fn test_move_personal_task_nonexistent_returns_404() {
     // TODO: confirm exact status code — handler returns Forbidden for TaskNotAccessible,
     // but some deployments map missing resources to 404.
     assert!(
-        response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::FORBIDDEN,
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
         "Expected 404 or 403 for nonexistent task, got {}",
         response.status()
     );

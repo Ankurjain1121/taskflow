@@ -242,9 +242,9 @@ async fn test_upsert_then_list_returns_item() {
         "expected at least one recent item after upsert"
     );
 
-    let found = items.iter().any(|item| {
-        item["entity_id"].as_str() == Some(board_id.to_string().as_str())
-    });
+    let found = items
+        .iter()
+        .any(|item| item["entity_id"].as_str() == Some(board_id.to_string().as_str()));
     assert!(
         found,
         "expected upserted board to appear in recent items list"

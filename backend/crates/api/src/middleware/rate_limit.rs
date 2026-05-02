@@ -437,9 +437,10 @@ mod tests {
     // ── IP extraction tests ─────────────────────────────────────────
 
     fn req_with_peer(peer: &str) -> axum::http::request::Builder {
-        Request::builder().extension(axum::extract::ConnectInfo(
-            std::net::SocketAddr::new(peer.parse().expect("peer ip"), 0),
-        ))
+        Request::builder().extension(axum::extract::ConnectInfo(std::net::SocketAddr::new(
+            peer.parse().expect("peer ip"),
+            0,
+        )))
     }
 
     #[test]

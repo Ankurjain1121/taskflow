@@ -30,10 +30,7 @@ pub use tenant::{set_tenant_context, with_tenant, with_tenant_tx};
 /// Trust set comes from env `TRUSTED_PROXIES` (comma-separated IPs). Defaults
 /// to loopback `127.0.0.1`, `::1` so single-host nginx still works without
 /// configuration.
-pub fn extract_client_ip(
-    headers: &axum::http::HeaderMap,
-    peer_ip: Option<&str>,
-) -> Option<String> {
+pub fn extract_client_ip(headers: &axum::http::HeaderMap, peer_ip: Option<&str>) -> Option<String> {
     let peer = peer_ip?;
 
     if !is_trusted_proxy(peer) {

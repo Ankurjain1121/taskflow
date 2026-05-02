@@ -85,8 +85,7 @@ async fn test_export_json_nonexistent_workspace_returns_404() {
     // Handler checks workspace membership first, so a nonexistent ws returns 403.
     // Accept either 404 or 403 depending on check ordering.
     assert!(
-        response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::FORBIDDEN,
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
         "Expected 404 or 403 for non-existent workspace, got {}",
         response.status()
     );
