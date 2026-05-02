@@ -24,10 +24,25 @@ use crate::state::AppState;
 
 use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
 use super::common::MessageResponse;
+use super::totp_crypto;
 
 /// Max TOTP verification attempts before rate limiting (5 per 5 minutes)
 const MAX_TOTP_ATTEMPTS: i64 = 5;
 const TOTP_RATE_LIMIT_SECS: i64 = 300;
+
+/// Decrypt a stored TOTP secret. Cleartext (legacy) rows are rejected to force
+/// re-enrollment after the encryption-at-rest migration.
+fn unwrap_stored_secret(stored: &str) -> Result<String> {
+    if !totp_crypto::is_encrypted(stored) {
+        return Err(AppError::BadRequest(
+            "Two-factor secret stored in legacy format. Disable and re-enable 2FA.".into(),
+        ));
+    }
+    totp_crypto::decrypt_secret(stored).map_err(|e| {
+        tracing::error!("TOTP decrypt failed: {e}");
+        AppError::InternalError("Failed to read 2FA secret".into())
+    })
+}
 
 // ============================================================================
 // Request/Response DTOs
@@ -227,7 +242,9 @@ pub async fn setup_handler(
 
     let otpauth_uri = build_otpauth_uri(&secret, &email);
 
-    // Upsert the secret (not yet enabled)
+    let stored = totp_crypto::encrypt_secret(&secret)
+        .map_err(|e| AppError::InternalError(format!("TOTP encrypt failed: {e}")))?;
+
     sqlx::query(
         r#"
         INSERT INTO user_2fa (user_id, totp_secret, totp_enabled, created_at, updated_at)
@@ -237,7 +254,7 @@ pub async fn setup_handler(
         "#,
     )
     .bind(user_id)
-    .bind(&secret)
+    .bind(&stored)
     .execute(&state.db)
     .await?;
 
@@ -267,7 +284,7 @@ pub async fn verify_handler(
             .fetch_optional(&state.db)
             .await?;
 
-    let (secret, enabled) = row.ok_or_else(|| {
+    let (stored_secret, enabled) = row.ok_or_else(|| {
         AppError::BadRequest("Please set up 2FA first by calling /api/auth/2fa/setup".into())
     })?;
 
@@ -277,7 +294,7 @@ pub async fn verify_handler(
         ));
     }
 
-    // Validate the code
+    let secret = unwrap_stored_secret(&stored_secret)?;
     if !validate_totp_code(&secret, &payload.code) {
         increment_totp_attempts(&mut state.redis.clone(), user_id).await;
         return Err(AppError::Unauthorized("Invalid verification code".into()));
@@ -331,7 +348,7 @@ pub async fn disable_handler(
     .fetch_optional(&state.db)
     .await?;
 
-    let (secret, enabled, recovery_codes_json) =
+    let (stored_secret, enabled, recovery_codes_json) =
         row.ok_or_else(|| AppError::BadRequest("Two-factor authentication is not set up".into()))?;
 
     if !enabled {
@@ -340,7 +357,7 @@ pub async fn disable_handler(
         ));
     }
 
-    // Validate via TOTP code or recovery code
+    let secret = unwrap_stored_secret(&stored_secret)?;
     let valid = if let Some(code) = &payload.code {
         validate_totp_code(&secret, code)
     } else if let Some(recovery_code) = &payload.recovery_code {
@@ -428,14 +445,14 @@ pub async fn challenge_handler(
     .fetch_optional(&state.db)
     .await?;
 
-    let (secret, enabled, recovery_codes_json) =
+    let (stored_secret, enabled, recovery_codes_json) =
         row.ok_or_else(|| AppError::InternalError("2FA configuration not found".into()))?;
 
     if !enabled {
         return Err(AppError::InternalError("2FA is not enabled".into()));
     }
 
-    // Validate code
+    let secret = unwrap_stored_secret(&stored_secret)?;
     let valid = if let Some(code) = &payload.code {
         validate_totp_code(&secret, code)
     } else if let Some(recovery_code) = &payload.recovery_code {

@@ -13,6 +13,7 @@
 pub mod actions;
 pub mod safety;
 pub mod trigger;
+pub mod url_guard;
 
 use std::time::Duration;
 

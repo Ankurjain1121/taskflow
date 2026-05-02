@@ -72,6 +72,10 @@ url = "2"
 # Hex encoding
 hex = "0.4"
 
+# Symmetric encryption (TOTP secret at rest)
+aes-gcm = "0.10"
+hkdf = "0.12"
+
 # Regex
 regex = "1"
 once_cell = "1"

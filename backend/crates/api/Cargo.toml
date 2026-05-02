@@ -39,6 +39,9 @@ hmac.workspace = true
 totp-lite.workspace = true
 data-encoding.workspace = true
 rand.workspace = true
+aes-gcm = { workspace = true }
+hkdf = { workspace = true }
+base64 = "0.22"
 futures-util = "0.3"
 
 # Hex encoding

@@ -151,21 +151,16 @@ impl RateLimiter {
     }
 }
 
-/// Extract client IP address from request.
-/// Delegates to the shared `extract_client_ip` utility (first entry in
-/// X-Forwarded-For behind single-hop nginx), with a fallback to the peer
-/// address from `ConnectInfo`.
+/// Extract client IP address from request. Trusts `X-Forwarded-For` only when
+/// the peer is in `TRUSTED_PROXIES` (defaults to `127.0.0.1,::1`).
 fn extract_ip(req: &Request<Body>) -> String {
-    if let Some(ip) = super::extract_client_ip(req.headers()) {
-        return ip;
-    }
-
-    // Fallback to peer address (direct connection without reverse proxy)
-    if let Some(connect_info) = req
+    let peer_ip = req
         .extensions()
         .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
-    {
-        return connect_info.0.ip().to_string();
+        .map(|ci| ci.0.ip().to_string());
+
+    if let Some(ip) = super::extract_client_ip(req.headers(), peer_ip.as_deref()) {
+        return ip;
     }
 
     "unknown".to_string()
@@ -441,25 +436,30 @@ mod tests {
 
     // ── IP extraction tests ─────────────────────────────────────────
 
-    #[test]
-    fn test_extract_ip_forwarded_for_first_entry() {
-        let req = Request::builder()
-            .header("X-Forwarded-For", "real-client.ip, proxy.ip, nginx.ip")
-            .body(Body::empty())
-            .expect("build request");
-        let ip = extract_ip(&req);
-        // Should take the FIRST IP (the original client behind single-hop nginx)
-        assert_eq!(ip, "real-client.ip");
+    fn req_with_peer(peer: &str) -> axum::http::request::Builder {
+        Request::builder().extension(axum::extract::ConnectInfo(
+            std::net::SocketAddr::new(peer.parse().expect("peer ip"), 0),
+        ))
     }
 
     #[test]
-    fn test_extract_ip_forwarded_for_single_ip() {
-        let req = Request::builder()
+    fn test_extract_ip_xff_honored_for_trusted_peer() {
+        let req = req_with_peer("127.0.0.1")
+            .header("X-Forwarded-For", "203.0.113.50, proxy.ip, nginx.ip")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip(&req);
+        assert_eq!(ip, "203.0.113.50");
+    }
+
+    #[test]
+    fn test_extract_ip_xff_ignored_for_untrusted_peer() {
+        let req = req_with_peer("9.9.9.9")
             .header("X-Forwarded-For", "1.2.3.4")
             .body(Body::empty())
             .expect("build request");
         let ip = extract_ip(&req);
-        assert_eq!(ip, "1.2.3.4");
+        assert_eq!(ip, "9.9.9.9");
     }
 
     #[test]

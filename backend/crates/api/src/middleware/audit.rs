@@ -30,7 +30,11 @@ pub struct AuditEntity {
 /// Delegates to the shared `extract_client_ip` utility which takes the first
 /// entry in X-Forwarded-For (original client behind single-hop nginx).
 fn extract_ip_address(req: &Request<Body>) -> Option<String> {
-    super::extract_client_ip(req.headers())
+    let peer_ip = req
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|ci| ci.0.ip().to_string());
+    super::extract_client_ip(req.headers(), peer_ip.as_deref())
 }
 
 /// Extract user agent from request headers
@@ -496,9 +500,15 @@ mod tests {
 
     // --- extract_ip_address tests ---
 
+    fn req_with_peer(peer: &str) -> axum::http::request::Builder {
+        Request::builder().extension(axum::extract::ConnectInfo(
+            std::net::SocketAddr::new(peer.parse().expect("peer ip"), 0),
+        ))
+    }
+
     #[test]
-    fn test_extract_ip_x_forwarded_for_single() {
-        let req = Request::builder()
+    fn test_extract_ip_xff_honored_for_trusted_peer() {
+        let req = req_with_peer("127.0.0.1")
             .header("X-Forwarded-For", "203.0.113.50")
             .body(Body::empty())
             .expect("build request");
@@ -507,22 +517,21 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_ip_x_forwarded_for_multiple() {
-        let req = Request::builder()
+    fn test_extract_ip_xff_chain_first_entry_for_trusted_peer() {
+        let req = req_with_peer("127.0.0.1")
             .header(
                 "X-Forwarded-For",
                 "203.0.113.50, 70.41.3.18, 150.172.238.178",
             )
             .body(Body::empty())
             .expect("build request");
-        // Takes the first IP (client IP)
         let ip = extract_ip_address(&req);
         assert_eq!(ip, Some("203.0.113.50".to_string()));
     }
 
     #[test]
-    fn test_extract_ip_x_real_ip() {
-        let req = Request::builder()
+    fn test_extract_ip_xreal_for_trusted_peer() {
+        let req = req_with_peer("127.0.0.1")
             .header("X-Real-IP", "10.0.0.1")
             .body(Body::empty())
             .expect("build request");
@@ -531,18 +540,19 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_ip_x_forwarded_for_takes_priority() {
-        let req = Request::builder()
+    fn test_extract_ip_xff_ignored_for_untrusted_peer() {
+        // Spoofed XFF from non-trusted peer must be ignored — fall back to peer IP.
+        let req = req_with_peer("9.9.9.9")
             .header("X-Forwarded-For", "1.2.3.4")
             .header("X-Real-IP", "5.6.7.8")
             .body(Body::empty())
             .expect("build request");
         let ip = extract_ip_address(&req);
-        assert_eq!(ip, Some("1.2.3.4".to_string()));
+        assert_eq!(ip, Some("9.9.9.9".to_string()));
     }
 
     #[test]
-    fn test_extract_ip_no_headers() {
+    fn test_extract_ip_no_peer_returns_none() {
         let req = Request::builder()
             .body(Body::empty())
             .expect("build request");

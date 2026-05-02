@@ -18,6 +18,7 @@ reqwest.workspace = true
 redis.workspace = true
 tokio.workspace = true
 aws-sdk-s3.workspace = true
+url = { workspace = true }
 
 taskbolt-db = { path = "../db" }
 base64 = "0.22.1"

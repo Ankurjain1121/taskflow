@@ -1,9 +1,38 @@
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 use chrono::{DateTime, Utc};
-
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::BoardShare;
+
+/// Argon2id share-link password hash. Returns PHC string.
+fn hash_share_password(password: &str) -> Result<String, BoardShareQueryError> {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|e| {
+            BoardShareQueryError::Database(sqlx::Error::Protocol(format!(
+                "share password hash: {e}"
+            )))
+        })
+}
+
+/// Verify a share-link password. Supports both new Argon2id PHC strings
+/// and legacy `salt:sha256hex` (deprecated, will fail-closed if format unrecognized).
+fn verify_share_password(provided: &str, stored: &str) -> bool {
+    // New format: PHC string starts with "$argon2"
+    if stored.starts_with("$argon2") {
+        return PasswordHash::new(stored)
+            .and_then(|parsed| Argon2::default().verify_password(provided.as_bytes(), &parsed))
+            .is_ok();
+    }
+    // Legacy format `salt:sha256hex` — reject. Force re-set.
+    false
+}
 
 /// Error type for board share query operations
 #[derive(Debug, thiserror::Error)]
@@ -89,14 +118,10 @@ pub async fn create_board_share(
     let token = generate_share_token();
     let now = Utc::now();
 
-    // Salted SHA-256 hash for share link password
-    let password_hash = input.password.as_ref().map(|p| {
-        use sha2::{Digest, Sha256};
-        let salt = Uuid::new_v4().to_string();
-        let mut hasher = Sha256::new();
-        hasher.update(format!("{}:{}", salt, p));
-        format!("{}:{:x}", salt, hasher.finalize())
-    });
+    let password_hash = match input.password.as_ref() {
+        Some(p) => Some(hash_share_password(p)?),
+        None => None,
+    };
 
     let permissions = input
         .permissions
@@ -226,20 +251,9 @@ pub async fn access_shared_board(
         }
     }
 
-    // Check password
     if let Some(ref hash) = share.password_hash {
         let provided = password.ok_or(BoardShareQueryError::InvalidPassword)?;
-        use sha2::{Digest, Sha256};
-        let parts: Vec<&str> = hash.splitn(2, ':').collect();
-        if parts.len() != 2 {
-            return Err(BoardShareQueryError::InvalidPassword);
-        }
-        let salt = parts[0];
-        let stored_hash = parts[1];
-        let mut hasher = Sha256::new();
-        hasher.update(format!("{}:{}", salt, provided));
-        let computed = format!("{:x}", hasher.finalize());
-        if computed != stored_hash {
+        if !verify_share_password(provided, hash) {
             return Err(BoardShareQueryError::InvalidPassword);
         }
     }

@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::safety::{resolve_column_by_name, resolve_label_by_name};
+use super::url_guard::validate_webhook_url;
 use super::{AutomationExecutorError, TriggerContext};
 
 use taskbolt_db::models::automation::AutomationActionType;
@@ -497,6 +498,11 @@ async fn execute_send_webhook(
         .and_then(|v| v.as_str())
         .ok_or_else(|| AutomationExecutorError::ActionFailed("SendWebhook: missing url".into()))?;
 
+    let validated_url = validate_webhook_url(url).await.map_err(|e| {
+        tracing::warn!(url = url, error = %e, "SendWebhook: URL rejected by SSRF guard");
+        AutomationExecutorError::ActionFailed(format!("SendWebhook: URL rejected: {e}"))
+    })?;
+
     let payload = json!({
         "task_id": context.task_id,
         "project_id": context.board_id,
@@ -522,7 +528,7 @@ async fn execute_send_webhook(
         }
 
         match client
-            .post(url)
+            .post(validated_url.clone())
             .json(&payload)
             .timeout(std::time::Duration::from_secs(10))
             .send()

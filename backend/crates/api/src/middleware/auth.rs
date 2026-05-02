@@ -103,16 +103,35 @@ pub async fn auth_middleware(
         }
     }
 
-    // Insert AuthUser into request extensions
+    // Re-fetch role from DB so demoted/disabled users lose privileges immediately
+    // instead of waiting until JWT expiry. CWE-613 Insufficient Session Expiration.
+    let live = match taskbolt_db::queries::auth::get_active_user_auth(&state.db, claims.sub).await {
+        Ok(Some(pair)) => pair,
+        Ok(None) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(AuthErrorResponse::unauthorized()),
+            )
+                .into_response();
+        }
+        Err(e) => {
+            tracing::error!("Auth role lookup failed: {:?}", e);
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(AuthErrorResponse::unauthorized()),
+            )
+                .into_response();
+        }
+    };
+
     let auth_user = AuthUser {
         user_id: claims.sub,
-        tenant_id: claims.tenant_id,
-        role: claims.role,
+        tenant_id: live.1,
+        role: live.0,
         token_id,
     };
     request.extensions_mut().insert(auth_user);
 
-    // Continue to the next handler
     next.run(request).await
 }
 
@@ -139,13 +158,17 @@ pub async fn optional_auth_middleware(
                 .await
                 .is_ok()
             {
-                let auth_user = AuthUser {
-                    user_id: claims.sub,
-                    tenant_id: claims.tenant_id,
-                    role: claims.role,
-                    token_id,
-                };
-                request.extensions_mut().insert(auth_user);
+                if let Ok(Some((role, tenant_id))) =
+                    taskbolt_db::queries::auth::get_active_user_auth(&state.db, claims.sub).await
+                {
+                    let auth_user = AuthUser {
+                        user_id: claims.sub,
+                        tenant_id,
+                        role,
+                        token_id,
+                    };
+                    request.extensions_mut().insert(auth_user);
+                }
             }
         }
     }

@@ -34,6 +34,25 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>
     .await
 }
 
+/// Live role lookup for auth middleware. Returns `(role, tenant_id)` for an
+/// active user. Returns `None` when the user is missing or soft-deleted —
+/// callers MUST treat that as 401.
+pub async fn get_active_user_auth(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Option<(crate::models::UserRole, Uuid)>, sqlx::Error> {
+    sqlx::query_as::<_, (crate::models::UserRole, Uuid)>(
+        r"
+        SELECT role, tenant_id
+        FROM users
+        WHERE id = $1 AND deleted_at IS NULL
+        ",
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await
+}
+
 /// Create a new refresh token record with pre-generated ID and optional metadata
 #[allow(clippy::too_many_arguments)]
 pub async fn create_refresh_token(
