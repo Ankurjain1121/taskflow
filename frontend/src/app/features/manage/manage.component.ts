@@ -189,7 +189,7 @@ const ALL_TABS: TabDef[] = [
                         [boards]="[]"
                         (memberRemoved)="onMemberRemoved($event)"
                         (memberRoleChanged)="onMemberRoleChanged($event)"
-                        (membersChanged)="loadData()"
+                        (membersChanged)="reload()"
                       />
                     }
                   </section>
@@ -477,6 +477,11 @@ export class ManageComponent implements OnInit {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  /** Public reload trigger for child component bindings (e.g. members-list membersChanged). */
+  reload(): void {
+    this.loadData();
   }
 
   private loadData(): void {
