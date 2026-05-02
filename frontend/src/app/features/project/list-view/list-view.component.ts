@@ -217,10 +217,15 @@ export class ListViewComponent {
     return map;
   });
 
+  hideCompleted = signal(true);
+
   sortedTasks = computed(() => {
-    const tasks = this.tasks() ?? [];
+    const raw = this.tasks() ?? [];
+    if (!Array.isArray(raw)) return [];
+    const tasks = this.hideCompleted()
+      ? raw.filter((t) => t.status_type !== 'done')
+      : raw;
     const posMap = this.groupPositionMap();
-    if (!Array.isArray(tasks)) return [];
     return [...tasks].sort((a, b) => {
       const ga = posMap.get(a.task_list_id) ?? Number.MAX_SAFE_INTEGER;
       const gb = posMap.get(b.task_list_id) ?? Number.MAX_SAFE_INTEGER;

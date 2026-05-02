@@ -8,7 +8,9 @@ import {
   untracked,
   OnInit,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -17,6 +19,7 @@ import {
   DashboardService,
   OverdueTask,
 } from '../../../core/services/dashboard.service';
+import { RealtimeBusService } from '../../../core/services/realtime-bus.service';
 
 @Component({
   selector: 'app-overdue-tasks-table',
@@ -134,6 +137,8 @@ export class OverdueTasksTableComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
   private injector = inject(Injector);
+  private realtimeBus = inject(RealtimeBusService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input<string | undefined>();
 
@@ -148,6 +153,11 @@ export class OverdueTasksTableComponent implements OnInit {
       },
       { injector: this.injector },
     );
+
+    this.realtimeBus.init();
+    this.realtimeBus.taskMutated$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadData());
   }
 
   async loadData() {

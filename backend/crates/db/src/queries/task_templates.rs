@@ -574,11 +574,11 @@ mod tests {
     }
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskbolt:REDACTED_PG_PASSWORD@localhost:5433/taskbolt",
-        )
-        .await
-        .expect("Failed to connect to test database")
+        let url = std::env::var("TEST_DATABASE_URL")
+            .expect("TEST_DATABASE_URL must be set for integration tests");
+        PgPool::connect(&url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {

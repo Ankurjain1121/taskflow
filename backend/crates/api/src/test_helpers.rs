@@ -56,7 +56,7 @@ pub mod helpers {
             redis_url: "redis://localhost:6380".to_string(),
             minio_endpoint: "http://localhost:9000".to_string(),
             minio_public_url: "http://localhost:9000".to_string(),
-            minio_access_key: "REDACTED_MINIO_ACCESS_KEY".to_string(),
+            minio_access_key: "test-minio-access-key-not-for-production-use".to_string(),
             minio_secret_key: "test-minio-secret-key-not-for-production-use-only-testing"
                 .to_string(),
             minio_bucket: "task-attachments".to_string(),

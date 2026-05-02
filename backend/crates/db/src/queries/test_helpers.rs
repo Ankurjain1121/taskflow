@@ -8,13 +8,13 @@ use crate::models::TaskPriority;
 
 pub const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fakesalt$fakehash";
 
-/// Connect to the real test database.
+/// Connect to the real test database. Reads `TEST_DATABASE_URL` env var.
 pub async fn test_pool() -> PgPool {
-    PgPool::connect(
-        "postgresql://taskbolt:REDACTED_PG_PASSWORD@localhost:5433/taskbolt",
-    )
-    .await
-    .expect("Failed to connect to test database")
+    let url = std::env::var("TEST_DATABASE_URL")
+        .expect("TEST_DATABASE_URL must be set for integration tests");
+    PgPool::connect(&url)
+        .await
+        .expect("Failed to connect to test database")
 }
 
 /// Unique email that won't collide across test runs.

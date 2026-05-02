@@ -9,6 +9,7 @@ import {
   untracked,
   HostListener,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -20,6 +21,8 @@ import { WorkspaceStateService } from '../../core/services/workspace-state.servi
 import { Workspace } from '../../core/services/workspace.service';
 import { TaskService } from '../../core/services/task.service';
 import { TaskCompletionService } from '../../core/services/task-completion.service';
+import { RealtimeBusService } from '../../core/services/realtime-bus.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -236,7 +239,9 @@ export class DashboardComponent implements OnInit {
   private taskService = inject(TaskService);
   private taskCompletion = inject(TaskCompletionService);
   private checklistService = inject(OnboardingChecklistService);
+  private realtimeBus = inject(RealtimeBusService);
   private injector = inject(Injector);
+  private destroyRef = inject(DestroyRef);
 
   workspaces = signal<Workspace[]>([]);
   loading = signal(true);
@@ -315,6 +320,16 @@ export class DashboardComponent implements OnInit {
     this.checklistService.initialize();
     this.loadStreak();
 
+    this.realtimeBus.init();
+    this.realtimeBus.taskMutated$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const wsId = this.selectedWorkspaceId() ?? undefined;
+        this.dashboardService.invalidateCache();
+        this.loadStats(wsId);
+        this.loadFocusTasks(wsId);
+      });
+
     effect(
       () => {
         const ws = this.workspaceState.workspaces();
@@ -344,9 +359,11 @@ export class DashboardComponent implements OnInit {
   }
 
   onFocusTaskCompleted(taskId: string): void {
+    const before = this.focusTasks();
+    this.focusTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
     this.taskCompletion.complete(taskId, { celebrate: true }).subscribe({
       error: () => {
-        // Revert optimistic UI would happen in the card
+        this.focusTasks.set(before);
       },
     });
   }

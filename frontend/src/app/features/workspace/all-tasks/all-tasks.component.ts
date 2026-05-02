@@ -99,11 +99,11 @@ interface AllTasksResponse {
         </div>
       </div>
 
-      @if (loading() && tasks().length === 0) {
+      @if (loading() && displayedTasks().length === 0) {
         <div class="flex items-center justify-center py-16">
           <i class="pi pi-spin pi-spinner text-2xl" style="color: var(--muted-foreground)"></i>
         </div>
-      } @else if (tasks().length === 0) {
+      } @else if (displayedTasks().length === 0) {
         <app-empty-state
           variant="generic"
           title="No tasks found"
@@ -113,7 +113,7 @@ interface AllTasksResponse {
         <!-- Desktop table -->
         @if (!isMobile()) {
           <p-table
-            [value]="tasks()"
+            [value]="displayedTasks()"
             dataKey="id"
             [rowHover]="true"
             styleClass="p-datatable-sm"
@@ -181,7 +181,7 @@ interface AllTasksResponse {
         } @else {
           <!-- Mobile cards -->
           <div class="space-y-2">
-            @for (task of tasks(); track task.id) {
+            @for (task of displayedTasks(); track task.id) {
               <app-unified-task-card
                 [task]="toCardData(task)"
                 variant="compact"
@@ -239,6 +239,19 @@ export class AllTasksComponent implements OnInit {
   readonly statusFilter = signal<string | null>(null);
   readonly priorityFilter = signal<string | null>(null);
   readonly projectFilter = signal<string | null>(null);
+  readonly hideCompleted = signal(true);
+
+  readonly displayedTasks = computed(() => {
+    const all = this.tasks();
+    if (!this.hideCompleted()) return all;
+    return all.filter((t) => !this.isDoneStatus(t.status_name));
+  });
+
+  private isDoneStatus(name: string | null): boolean {
+    if (!name) return false;
+    const lower = name.toLowerCase();
+    return lower === 'done' || lower === 'completed' || lower === 'closed' || lower === 'resolved';
+  }
 
   readonly isMobile = signal(typeof window !== 'undefined' && window.innerWidth < 768);
 

@@ -7,11 +7,11 @@ use uuid::Uuid;
 use crate::models::*;
 
 async fn test_pool() -> PgPool {
-    PgPool::connect(
-        "postgresql://taskbolt:REDACTED_PG_PASSWORD@localhost:5433/taskbolt",
-    )
-    .await
-    .expect("Failed to connect to test database")
+    let url = std::env::var("TEST_DATABASE_URL")
+        .expect("TEST_DATABASE_URL must be set for integration tests");
+    PgPool::connect(&url)
+        .await
+        .expect("Failed to connect to test database")
 }
 
 /// Create a full test scenario: tenant + user + workspace + board (with columns) + board membership
