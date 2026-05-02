@@ -79,8 +79,8 @@ export interface TaskMoveEvent {
       </button>
     } @else {
       <div
-        class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0"
-        [class.drag-target-glow]="isDragTarget()"
+        class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0 transition-colors duration-200"
+        [class.drag-target-active]="isDragTarget()"
       >
         <!-- Color Accent Bar -->
         <div

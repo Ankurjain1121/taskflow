@@ -1,11 +1,13 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   input,
   signal,
   OnInit,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -584,6 +586,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
   private recurringService = inject(RecurringService);
   private projectService = inject(ProjectService);
   private messageService = inject(MessageService);
+  private destroyRef = inject(DestroyRef);
 
   configs = signal<RecurringConfigWithTask[]>([]);
   loading = signal(true);
@@ -667,6 +670,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
   toggleActive(config: RecurringConfigWithTask): void {
     this.recurringService
       .updateConfig(config.id, { is_active: !config.is_active })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.configs.update((list) =>
@@ -699,7 +703,10 @@ export class RecurringSchedulesTabComponent implements OnInit {
     if (!confirm(`Delete recurring schedule for "${config.task_title}"?`)) {
       return;
     }
-    this.recurringService.deleteConfig(config.id).subscribe({
+    this.recurringService
+      .deleteConfig(config.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: () => {
         this.configs.update((list) =>
           list.filter((c) => c.id !== config.id),
@@ -761,7 +768,10 @@ export class RecurringSchedulesTabComponent implements OnInit {
           : undefined,
     };
 
-    this.recurringService.createTemplateConfig(this.projectId(), req).subscribe({
+    this.recurringService
+      .createTemplateConfig(this.projectId(), req)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: () => {
         this.saving.set(false);
         this.showCreateDialog.set(false);
@@ -795,7 +805,10 @@ export class RecurringSchedulesTabComponent implements OnInit {
 
   private loadConfigs(): void {
     this.loading.set(true);
-    this.recurringService.listByProject(this.projectId()).subscribe({
+    this.recurringService
+      .listByProject(this.projectId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (data) => {
         this.configs.set(data);
         this.loading.set(false);
@@ -809,7 +822,10 @@ export class RecurringSchedulesTabComponent implements OnInit {
   }
 
   private loadMembers(): void {
-    this.projectService.getProjectMembers(this.projectId()).subscribe({
+    this.projectService
+      .getProjectMembers(this.projectId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (data) => this.members.set(data),
       error: () => this.members.set([]),
     });

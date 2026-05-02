@@ -379,6 +379,13 @@ export class RichTextEditorComponent implements OnInit, OnDestroy {
         Link.configure({
           openOnClick: true,
           autolink: true,
+          // SECURITY: Explicit protocol allowlist prevents javascript:/data:/vbscript: XSS.
+          // Tiptap's default protocols include 'ftp' and others; we restrict to web-safe.
+          protocols: ['http', 'https', 'mailto'],
+          HTMLAttributes: {
+            rel: 'noopener noreferrer nofollow',
+            target: '_blank',
+          },
         }),
       ],
       content: this.content() || '',
@@ -458,8 +465,22 @@ export class RichTextEditorComponent implements OnInit, OnDestroy {
     }
 
     const url = window.prompt('Enter URL:');
-    if (url) {
-      this.editor?.chain().focus().setLink({ href: url }).run();
+    if (!url) {
+      return;
     }
+
+    // SECURITY: Reject any scheme that could trigger code execution (javascript:,
+    // data:, vbscript:, file:, etc.). Only allow http(s) and mailto. This is a
+    // defense-in-depth check on top of Tiptap's `protocols` allowlist.
+    const trimmed = url.trim();
+    const isSafe = /^(https?:|mailto:)/i.test(trimmed);
+    if (!isSafe) {
+      // No toast service is wired into this component; surface via alert so the
+      // user gets immediate feedback rather than a silent failure.
+      window.alert('Only http(s) and mailto links are allowed.');
+      return;
+    }
+
+    this.editor?.chain().focus().setLink({ href: trimmed }).run();
   }
 }

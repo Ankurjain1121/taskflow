@@ -9,11 +9,36 @@
 
 use std::fmt::Write as _;
 
-use chrono::{Duration, Utc};
+use chrono::{Duration, FixedOffset, NaiveTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::notifications::whatsapp::WahaClient;
+
+/// IST (Asia/Kolkata) offset in seconds: UTC+05:30 = 5*3600 + 30*60 = 19800.
+/// Within the valid `FixedOffset::east_opt` range of ±86400.
+const IST_OFFSET_SECS: i32 = 5 * 3600 + 30 * 60;
+
+/// IST timezone offset (UTC+05:30) used by digest scheduling.
+///
+/// Constructed from a compile-time constant proven within `FixedOffset`'s valid
+/// range (`±86400`s), so the single `expect` here is unreachable in practice.
+fn ist_offset() -> FixedOffset {
+    FixedOffset::east_opt(IST_OFFSET_SECS)
+        .expect("IST_OFFSET_SECS is compile-time-validated 19800s, within ±86400")
+}
+
+/// Start-of-day `NaiveTime` (00:00:00). Hardcoded valid hour/min/sec.
+fn naive_time_start_of_day() -> NaiveTime {
+    NaiveTime::from_hms_opt(0, 0, 0)
+        .expect("00:00:00 is a valid NaiveTime")
+}
+
+/// End-of-day `NaiveTime` (23:59:59). Hardcoded valid hour/min/sec.
+fn naive_time_end_of_day() -> NaiveTime {
+    NaiveTime::from_hms_opt(23, 59, 59)
+        .expect("23:59:59 is a valid NaiveTime")
+}
 
 /// Error type for WhatsApp digest operations
 #[derive(Debug, thiserror::Error)]
@@ -159,7 +184,7 @@ async fn send_whatsapp_digests(
     let summaries = fetch_task_summaries(pool, &user_ids, period_start, now).await?;
 
     // IST offset for quiet hours check
-    let ist_offset = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).expect("valid IST offset");
+    let ist_offset = ist_offset();
     let now_ist = now.with_timezone(&ist_offset).time();
 
     for (user_id, name, phone, quiet_start, quiet_end) in &users {
@@ -277,11 +302,8 @@ async fn fetch_task_summaries(
     period_start: chrono::DateTime<Utc>,
     now: chrono::DateTime<Utc>,
 ) -> Result<Vec<(Uuid, i64, i64, i64, i64, i64)>, sqlx::Error> {
-    let today_start = now.date_naive().and_hms_opt(0, 0, 0).expect("valid time");
-    let today_end = now
-        .date_naive()
-        .and_hms_opt(23, 59, 59)
-        .expect("valid time");
+    let today_start = now.date_naive().and_time(naive_time_start_of_day());
+    let today_end = now.date_naive().and_time(naive_time_end_of_day());
 
     let rows: Vec<(
         Uuid,
@@ -815,7 +837,7 @@ pub async fn send_enhanced_daily_digests(
         return Ok(result);
     }
 
-    let ist_offset = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).expect("valid IST offset");
+    let ist_offset = ist_offset();
     let now_ist = now.with_timezone(&ist_offset).time();
 
     let user_ids: Vec<Uuid> = users.iter().map(|(id, _, _, _, _)| *id).collect();
@@ -905,7 +927,7 @@ fn format_enhanced_daily_message(
     due_details: &[DueTodayDetail],
     app_url: &str,
 ) -> String {
-    let ist = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).expect("valid IST offset");
+    let ist = ist_offset();
     let greeting = "\u{2615}";
     let mut msg = format!(
         "{} *Good morning, {}!*\n\nHere's your day:\n",

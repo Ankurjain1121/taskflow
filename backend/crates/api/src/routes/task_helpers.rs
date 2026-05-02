@@ -1,13 +1,79 @@
 use serde_json::json;
+use std::sync::LazyLock;
 use uuid::Uuid;
 
-use crate::errors::Result;
+use crate::errors::{AppError, Result};
 use taskbolt_db::models::{TaskPriority, UserRole};
 use taskbolt_services::broadcast::events;
 use taskbolt_services::BroadcastService;
 
+/// Pre-sanitization guard: rejects HTML payloads carrying an `href` (or `src`)
+/// with a code-execution scheme (`javascript:`, `data:`, `vbscript:`).
+///
+/// `sanitize_html` already strips these via ammonia's URL scheme allowlist, but
+/// surfacing a hard 400 on the way in:
+///   1. Gives clients a clear signal they sent something dangerous, rather than
+///      silently mangling their content.
+///   2. Provides defense-in-depth if a future ammonia regression or
+///      misconfiguration loosens the allowlist.
+///
+/// Whitespace and HTML entities (`&#x6A;`, `&#106;`, `\t`, etc.) are normalized
+/// before matching so common bypass tricks (`java\tscript:`, `&#x6A;avascript:`)
+/// don't slip through.
+pub fn reject_dangerous_href(input: &str) -> Result<()> {
+    static DANGEROUS_HREF: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(
+            r#"(?ix)
+            (?:href|src|xlink:href|formaction|action)   # attribute name
+            \s*=\s*
+            ["']?\s*
+            (?:javascript|data|vbscript|file)           # dangerous scheme
+            \s*:
+            "#,
+        )
+        .expect("dangerous href regex must compile")
+    });
+
+    // Normalize numeric character refs (decimal + hex) and whitespace so common
+    // obfuscations collapse into the literal scheme name before we match.
+    let decoded = decode_html_numeric_entities(input);
+    let collapsed: String = decoded.chars().filter(|c| !c.is_whitespace()).collect();
+
+    if DANGEROUS_HREF.is_match(&decoded) || DANGEROUS_HREF.is_match(&collapsed) {
+        return Err(AppError::ValidationError(
+            "Links must use http(s) or mailto schemes.".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Best-effort decode of `&#NN;` / `&#xNN;` numeric character references so the
+/// scheme regex can see the literal `javascript:` / `data:` text.
+/// Non-decodable references are left intact.
+fn decode_html_numeric_entities(input: &str) -> String {
+    static NUMERIC_ENTITY: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new(r"&#(x[0-9A-Fa-f]+|\d+);?").unwrap());
+
+    NUMERIC_ENTITY
+        .replace_all(input, |caps: &regex::Captures| {
+            let raw = &caps[1];
+            let code = if let Some(hex) = raw.strip_prefix('x').or_else(|| raw.strip_prefix('X')) {
+                u32::from_str_radix(hex, 16).ok()
+            } else {
+                raw.parse::<u32>().ok()
+            };
+            code.and_then(char::from_u32)
+                .map_or_else(|| caps[0].to_string(), |c| c.to_string())
+        })
+        .into_owned()
+}
+
 /// Sanitize HTML content from rich text editor.
 /// Allows safe formatting tags, removes scripts and dangerous attributes.
+///
+/// SECURITY: `url_schemes` is set explicitly to defend against ammonia default
+/// changes. Only http/https/mailto are accepted on `href`/`src`. Anything else
+/// (javascript:, data:, vbscript:, file:, ftp:, …) is stripped.
 pub fn sanitize_html(input: &str) -> String {
     ammonia::Builder::default()
         .tags(std::collections::HashSet::from([
@@ -37,7 +103,8 @@ pub fn sanitize_html(input: &str) -> String {
             "hr",
             "span",
         ]))
-        .link_rel(Some("noopener noreferrer"))
+        .url_schemes(std::collections::HashSet::from(["http", "https", "mailto"]))
+        .link_rel(Some("noopener noreferrer nofollow"))
         .url_relative(ammonia::UrlRelative::Deny)
         .clean(input)
         .to_string()

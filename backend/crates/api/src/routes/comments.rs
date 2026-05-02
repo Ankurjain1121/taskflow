@@ -31,7 +31,7 @@ use taskbolt_services::notifications::{NotificationEvent, NotificationService};
 use taskbolt_services::{BroadcastService, NotifyContext};
 
 use super::common::verify_project_membership;
-use super::task_helpers::sanitize_html;
+use super::task_helpers::{reject_dangerous_href, sanitize_html};
 use super::validation::{validate_required_string, MAX_DESCRIPTION_LEN};
 
 /// Regex for extracting @mentions in format @[username](userId)
@@ -105,6 +105,10 @@ async fn create_comment_handler(
 
     // Validate comment length
     validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
+
+    // SECURITY: Reject payloads carrying dangerous href/src schemes BEFORE
+    // sanitization scrubs them — clients should know they sent something unsafe.
+    reject_dangerous_href(&body.content)?;
 
     // Sanitize and extract mentioned user IDs from content
     let sanitized_content = sanitize_html(&body.content);
@@ -370,6 +374,10 @@ async fn update_comment_handler(
 
     // Validate comment length
     validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
+
+    // SECURITY: Reject payloads carrying dangerous href/src schemes BEFORE
+    // sanitization scrubs them — clients should know they sent something unsafe.
+    reject_dangerous_href(&body.content)?;
 
     // Sanitize and extract mentioned user IDs from updated content
     let sanitized_content = sanitize_html(&body.content);

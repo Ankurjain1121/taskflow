@@ -73,6 +73,7 @@ pub async fn change_password_handler(
 
     // Verify current password (timing-safe via Argon2)
     let valid = verify_password(&payload.current_password, &user.password_hash)
+        .await
         .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
 
     if !valid {
@@ -83,6 +84,7 @@ pub async fn change_password_handler(
 
     // Hash new password
     let new_hash = taskbolt_auth::password::hash_password(&payload.new_password)
+        .await
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Update password
@@ -134,6 +136,7 @@ pub async fn delete_account_handler(
 
     // Verify password
     let valid = verify_password(&payload.password, &user.password_hash)
+        .await
         .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
 
     if !valid {
@@ -290,6 +293,7 @@ pub async fn reset_password_handler(
 
     // Hash new password
     let password_hash = taskbolt_auth::password::hash_password(&payload.new_password)
+        .await
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Update password

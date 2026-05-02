@@ -76,8 +76,8 @@ interface ColumnConfig {
               (cdkDropListDropped)="onDrop($event, col.key)"
               (cdkDropListEntered)="dragOverColumn.set(col.key)"
               (cdkDropListExited)="dragOverColumn.set(null)"
-              class="p-3 space-y-2 min-h-[6rem] max-h-[calc(100vh-20rem)] overflow-y-auto"
-              [class.drag-target-glow]="dragOverColumn() === col.key"
+              class="p-3 space-y-2 min-h-[6rem] max-h-[calc(100vh-20rem)] overflow-y-auto transition-colors duration-200"
+              [class.drag-target-active]="dragOverColumn() === col.key"
             >
               @for (item of columnTasks()[col.key]; track item.task_id) {
                 <div cdkDrag cdkDragPreviewClass="cdk-drag-preview-board" class="cursor-grab active:cursor-grabbing">

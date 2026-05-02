@@ -29,8 +29,8 @@ use crate::services::ActivityLogService;
 
 use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
-    ListTasksResponse, UpdateTaskRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_board, reject_dangerous_href,
+    sanitize_html, CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
 };
 use super::validation::{
     validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
@@ -114,6 +114,12 @@ pub async fn create_task_handler(
         body.description.as_deref(),
         MAX_DESCRIPTION_LEN,
     )?;
+
+    // SECURITY: Reject task descriptions carrying dangerous href/src schemes
+    // before sanitization (defense-in-depth against XSS via rich text).
+    if let Some(desc) = body.description.as_deref() {
+        reject_dangerous_href(desc)?;
+    }
 
     let input = CreateTaskInput {
         title: body.title,
@@ -338,6 +344,12 @@ pub async fn update_task_handler(
         body.description.as_deref(),
         MAX_DESCRIPTION_LEN,
     )?;
+
+    // SECURITY: Reject updated descriptions carrying dangerous href/src schemes
+    // before sanitization (defense-in-depth against XSS via rich text).
+    if let Some(desc) = body.description.as_deref() {
+        reject_dangerous_href(desc)?;
+    }
 
     let priority_changed = body.priority.is_some();
     let due_date_changed = body.due_date.is_some() || body.clear_due_date.unwrap_or(false);

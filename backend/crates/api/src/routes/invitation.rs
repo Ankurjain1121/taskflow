@@ -540,6 +540,7 @@ pub async fn accept_handler(
 
     // Hash the password
     let password_hash = hash_password(&payload.password)
+        .await
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Wrap user creation, workspace membership, and invitation acceptance in a transaction

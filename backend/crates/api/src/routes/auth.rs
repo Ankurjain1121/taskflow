@@ -145,6 +145,7 @@ pub async fn sign_in_handler(
 
     // Verify password
     let password_valid = verify_password(&payload.password, &user.password_hash)
+        .await
         .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
 
     if !password_valid {
@@ -309,6 +310,7 @@ pub async fn sign_up_handler(
 
     // Hash password
     let password_hash = taskbolt_auth::password::hash_password(&payload.password)
+        .await
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Check if phone was OTP-verified via Redis

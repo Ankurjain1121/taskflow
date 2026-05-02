@@ -32,7 +32,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let admin_id = Uuid::new_v4();
     let seed_password =
         std::env::var("SEED_ADMIN_PASSWORD").expect("SEED_ADMIN_PASSWORD must be set");
-    let password_hash = hash_password(&seed_password).expect("Failed to hash password");
+    let password_hash = hash_password(&seed_password)
+        .await
+        .expect("Failed to hash password");
 
     sqlx::query(
         "INSERT INTO users (id, email, name, password_hash, role, tenant_id) \

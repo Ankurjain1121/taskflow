@@ -224,20 +224,20 @@ async fn execute_send_notification(
             .await?
     };
 
-    for recipient_id in recipients {
+    if !recipients.is_empty() {
+        let link_url = format!("/projects/{}/tasks/{}", context.board_id, context.task_id);
+
+        // Batch insert: one round-trip for all recipients via unnest()
         sqlx::query(
             r#"
             INSERT INTO notifications (id, recipient_id, title, body, event_type, link_url, created_at)
-            VALUES ($1, $2, 'Automation', $3, 'automation', $4, NOW())
+            SELECT gen_random_uuid(), recipient_id, 'Automation', $2, 'automation', $3, NOW()
+            FROM unnest($1::uuid[]) AS u(recipient_id)
             "#,
         )
-        .bind(Uuid::new_v4())
-        .bind(recipient_id)
+        .bind(&recipients[..])
         .bind(message)
-        .bind(format!(
-            "/projects/{}/tasks/{}",
-            context.board_id, context.task_id
-        ))
+        .bind(&link_url)
         .execute(pool)
         .await?;
     }
@@ -577,16 +577,18 @@ async fn execute_assign_to_role_members(
 
     let member_ids = taskbolt_db::queries::get_members_with_role(pool, role_id).await?;
 
-    for member_id in member_ids {
+    if !member_ids.is_empty() {
+        // Batch insert: one round-trip for all members via unnest()
         sqlx::query(
             r#"
-            INSERT INTO task_assignees (task_id, user_id)
-            VALUES ($1, $2)
+            INSERT INTO task_assignees (id, task_id, user_id)
+            SELECT gen_random_uuid(), $1, user_id
+            FROM unnest($2::uuid[]) AS u(user_id)
             ON CONFLICT (task_id, user_id) DO NOTHING
             "#,
         )
         .bind(context.task_id)
-        .bind(member_id)
+        .bind(&member_ids[..])
         .execute(pool)
         .await?;
     }

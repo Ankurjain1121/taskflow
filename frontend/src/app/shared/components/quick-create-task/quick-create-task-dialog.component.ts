@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   inject,
   input,
   signal,
@@ -8,7 +9,7 @@ import {
   effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -541,6 +542,7 @@ export class QuickCreateTaskDialogComponent {
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
   private readonly messageService = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
 
   visible = model(false);
   initialPriority = input<TaskPriority | null>(null);
@@ -604,9 +606,11 @@ export class QuickCreateTaskDialogComponent {
       // Read form value reactively via subscription in constructor
     });
 
-    this.form.controls.projectId.valueChanges.subscribe((projectId) => {
-      this.onProjectChanged(projectId);
-    });
+    this.form.controls.projectId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((projectId) => {
+        this.onProjectChanged(projectId);
+      });
   }
 
   onDialogShow(): void {
@@ -663,13 +667,19 @@ export class QuickCreateTaskDialogComponent {
     this.loadingMeta.set(true);
 
     // Load members
-    this.projectService.getProjectMembers(projectId).subscribe({
-      next: (m) => this.members.set(m),
-      error: () => this.members.set([]),
-    });
+    this.projectService
+      .getProjectMembers(projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (m) => this.members.set(m),
+        error: () => this.members.set([]),
+      });
 
     // Load statuses
-    this.projectService.listStatuses(projectId).subscribe({
+    this.projectService
+      .listStatuses(projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (s) => {
         this.statuses.set(s);
         // Auto-select default status
@@ -740,7 +750,10 @@ export class QuickCreateTaskDialogComponent {
       request.reporting_person_id = values.reportingPersonId;
     }
 
-    this.taskService.createTask(values.projectId, request).subscribe({
+    this.taskService
+      .createTask(values.projectId, request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (task) => {
         this.saving.set(false);
         this.visible.set(false);
