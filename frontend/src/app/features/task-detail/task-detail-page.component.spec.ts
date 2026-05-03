@@ -12,6 +12,7 @@ import {
   Task,
   TaskPriority,
 } from '../../core/services/task.service';
+import { CrmService } from '../../core/services/crm.service';
 import { ProjectService, Board, Column } from '../../core/services/project.service';
 import {
   WorkspaceService,
@@ -161,6 +162,14 @@ describe('TaskDetailPageComponent', () => {
     activeWorkspaceId: vi.fn().mockReturnValue(null),
   };
 
+  const mockCrmService = {
+    getAllLinksForTask: vi.fn().mockReturnValue(of({ contacts: [], companies: [], deals: [] })),
+    linkContactToTask: vi.fn().mockReturnValue(of(undefined)),
+    linkCompanyToTask: vi.fn().mockReturnValue(of(undefined)),
+    linkDealToTask: vi.fn().mockReturnValue(of(undefined)),
+    unlinkFromTask: vi.fn().mockReturnValue(of(undefined)),
+  };
+
   beforeEach(async () => {
     mockTaskService = createMockTaskService();
     mockProjectService = createMockProjectService();
@@ -189,6 +198,7 @@ describe('TaskDetailPageComponent', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: RecentItemsService, useValue: mockRecentItemsService },
         { provide: WorkspaceContextService, useValue: mockWsContext },
+        { provide: CrmService, useValue: mockCrmService },
         { provide: Router, useValue: mockRouter },
         { provide: Location, useValue: mockLocation },
         {
@@ -495,6 +505,87 @@ describe('TaskDetailPageComponent', () => {
       });
       component.goBack();
       expect(mockLocation.back).toHaveBeenCalled();
+    });
+  });
+
+  // --- CRM section ---
+
+  describe('CRM section', () => {
+    beforeEach(() => {
+      routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
+    });
+
+    it('should call getAllLinksForTask on task load', () => {
+      expect(mockCrmService.getAllLinksForTask).toHaveBeenCalledWith('task-1');
+    });
+
+    it('should start with empty CRM links', () => {
+      expect(component.allCrmLinks()).toHaveLength(0);
+      expect(component.crmError()).toBe(false);
+    });
+
+    it('should populate allCrmLinks from loaded data', () => {
+      mockCrmService.getAllLinksForTask.mockReturnValue(
+        of({
+          contacts: [{ entity_type: 'contact', entity_id: 'c1', twenty_workspace_id: 'ws1', name: 'Alice' }],
+          companies: [{ entity_type: 'company', entity_id: 'co1', twenty_workspace_id: 'ws1', name: 'Acme' }],
+          deals: [],
+        }),
+      );
+
+      component.loadCrmLinks();
+
+      expect(component.allCrmLinks()).toHaveLength(2);
+      expect(component.allCrmLinks()[0].name).toBe('Alice');
+      expect(component.allCrmLinks()[1].name).toBe('Acme');
+    });
+
+    it('should set crmError when getAllLinksForTask fails', () => {
+      mockCrmService.getAllLinksForTask.mockReturnValue(
+        throwError(() => new Error('net')),
+      );
+
+      component.loadCrmLinks();
+
+      expect(component.crmError()).toBe(true);
+      expect(component.crmLoading()).toBe(false);
+    });
+
+    it('onCrmLink should call linkContactToTask and reload', () => {
+      component.onCrmLink({ entity_type: 'contact', entity_id: 'c99', twenty_workspace_id: 'ws1' });
+
+      expect(mockCrmService.linkContactToTask).toHaveBeenCalledWith('task-1', 'c99', 'ws1');
+      expect(mockCrmService.getAllLinksForTask).toHaveBeenCalledTimes(2); // initial + after link
+    });
+
+    it('onCrmLink should call linkCompanyToTask for company type', () => {
+      component.onCrmLink({ entity_type: 'company', entity_id: 'co2', twenty_workspace_id: 'ws1' });
+
+      expect(mockCrmService.linkCompanyToTask).toHaveBeenCalledWith('task-1', 'co2', 'ws1');
+    });
+
+    it('onCrmLink should call linkDealToTask for deal type', () => {
+      component.onCrmLink({ entity_type: 'deal', entity_id: 'd3', twenty_workspace_id: 'ws1' });
+
+      expect(mockCrmService.linkDealToTask).toHaveBeenCalledWith('task-1', 'd3', 'ws1');
+    });
+
+    it('onCrmUnlink should call unlinkFromTask and reload', () => {
+      component.onCrmUnlink({ entity_type: 'contact', entity_id: 'c1', twenty_workspace_id: 'ws1', name: 'Alice' });
+
+      expect(mockCrmService.unlinkFromTask).toHaveBeenCalledWith('task-1', 'contact', 'c1');
+      expect(mockCrmService.getAllLinksForTask).toHaveBeenCalledTimes(2);
+    });
+
+    it('should compute crmPartialFailed from failed_count', () => {
+      mockCrmService.getAllLinksForTask.mockReturnValue(
+        of({ contacts: [], companies: [], deals: [], failed_count: 2 }),
+      );
+
+      component.loadCrmLinks();
+
+      expect(component.crmPartialFailed()).toBe(2);
     });
   });
 });

@@ -43,6 +43,16 @@ import { RecentItemsService } from '../../core/services/recent-items.service';
 import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
+import {
+  CrmService,
+  CrmLinksForTask,
+  CrmLinkedEntity,
+  CrmEntityType,
+} from '../../core/services/crm.service';
+import {
+  CrmEntityPickerComponent,
+  CrmLinkedEvent,
+} from '../../shared/components/crm-entity-picker/crm-entity-picker.component';
 
 @Component({
   selector: 'app-task-detail-page',
@@ -63,6 +73,7 @@ import { Toast } from 'primeng/toast';
     ActivityTimelineComponent,
     TaskDetailSidebarComponent,
     TaskDetailHeaderComponent,
+    CrmEntityPickerComponent,
     Toast,
   ],
   providers: [MessageService],
@@ -86,6 +97,17 @@ import { Toast } from 'primeng/toast';
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 0.75rem;
+      }
+      .crm-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.8125rem;
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--foreground);
+        border: 1px solid transparent;
       }
     `,
   ],
@@ -259,6 +281,106 @@ import { Toast } from 'primeng/toast';
               />
             </div>
 
+            <!-- Linked CRM -->
+            <div class="main-card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-wide" style="color: var(--muted-foreground)">
+                  <i class="pi pi-link mr-1.5"></i>Linked CRM
+                </h3>
+                @if (!crmLoading() && !showCrmSearch()) {
+                  <button
+                    (click)="showCrmSearch.set(true)"
+                    class="text-xs px-2 py-1 rounded transition-colors"
+                    style="color: var(--primary)"
+                    type="button"
+                  >
+                    <i class="pi pi-plus text-xs mr-1"></i>Search
+                  </button>
+                }
+                @if (showCrmSearch()) {
+                  <button
+                    (click)="showCrmSearch.set(false)"
+                    class="text-xs px-2 py-1 rounded transition-colors"
+                    style="color: var(--muted-foreground)"
+                    type="button"
+                  >
+                    <i class="pi pi-times text-xs"></i>
+                  </button>
+                }
+              </div>
+
+              @if (showCrmSearch()) {
+                <div class="mb-3">
+                  <app-crm-entity-picker (linked)="onCrmLink($event)" />
+                </div>
+              }
+
+              @if (crmLoading()) {
+                <div class="flex flex-wrap gap-2">
+                  @for (i of [1, 2]; track i) {
+                    <div class="h-7 w-32 rounded-full animate-pulse" style="background: var(--border)"></div>
+                  }
+                </div>
+              } @else if (crmError()) {
+                <p class="text-sm" style="color: var(--muted-foreground)">
+                  <i class="pi pi-wifi text-xs mr-1" style="color: var(--destructive)"></i>
+                  Couldn't reach CRM.
+                  @if (crmCachedAt()) {
+                    Showing cached results from {{ crmCachedMinutesAgo() }} min ago.
+                  }
+                </p>
+              } @else if (allCrmLinks().length === 0) {
+                <div class="flex items-center gap-3">
+                  <p class="text-sm" style="color: var(--muted-foreground)">
+                    No CRM links — search contacts, companies, or deals
+                  </p>
+                  @if (!showCrmSearch()) {
+                    <button
+                      (click)="showCrmSearch.set(true)"
+                      class="text-xs px-2.5 py-1 rounded-md border transition-colors flex-shrink-0"
+                      style="border-color: var(--border); color: var(--muted-foreground)"
+                      type="button"
+                    >
+                      Search
+                    </button>
+                  }
+                </div>
+              } @else {
+                @if (crmPartialFailed() > 0) {
+                  <div
+                    class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full mb-2"
+                    style="background: color-mix(in srgb, var(--destructive) 10%, transparent); color: var(--destructive)"
+                  >
+                    <i class="pi pi-exclamation-triangle text-xs"></i>
+                    {{ crmPartialFailed() }} of {{ allCrmLinks().length + crmPartialFailed() }} failed to load —
+                    <button (click)="loadCrmLinks()" class="underline font-medium" type="button">Retry</button>
+                  </div>
+                }
+                <div class="flex flex-wrap gap-1.5">
+                  @for (link of allCrmLinks(); track link.entity_id) {
+                    <span class="crm-pill">
+                      <i [class]="crmEntityIcon(link.entity_type)" style="font-size: 0.7rem; opacity: 0.7"></i>
+                      <span>{{ link.name }}</span>
+                      <span style="opacity: 0.4; font-size: 0.75rem">·</span>
+                      <span style="font-size: 0.6875rem; opacity: 0.65; text-transform: capitalize">{{ link.entity_type }}</span>
+                      @if (link.stage) {
+                        <span style="opacity: 0.4; font-size: 0.75rem">·</span>
+                        <span style="font-size: 0.6875rem; opacity: 0.65">{{ link.stage }}</span>
+                      }
+                      <button
+                        (click)="onCrmUnlink(link)"
+                        class="ml-0.5 opacity-40 hover:opacity-100 transition-opacity"
+                        type="button"
+                        aria-label="Unlink"
+                      >
+                        <i class="pi pi-times" style="font-size: 0.6rem"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+
             <!-- Comments / Activity Tabs -->
             @defer (on viewport) {
             <div class="main-card">
@@ -341,6 +463,7 @@ export class TaskDetailPageComponent {
   private recentItemsService = inject(RecentItemsService);
   private wsContext = inject(WorkspaceContextService);
   private messageService = inject(MessageService);
+  private crmService = inject(CrmService);
 
   private params = toSignal(this.route.params);
   readonly taskId = computed(() => this.params()?.['taskId'] ?? '');
@@ -356,6 +479,24 @@ export class TaskDetailPageComponent {
 
   editTitle = signal('');
   editDescription = signal('');
+
+  crmLinks = signal<CrmLinksForTask | null>(null);
+  crmLoading = signal(false);
+  crmError = signal(false);
+  crmCachedAt = signal<string | null>(null);
+  showCrmSearch = signal(false);
+
+  allCrmLinks = computed<CrmLinkedEntity[]>(() => {
+    const links = this.crmLinks();
+    if (!links) return [];
+    return [
+      ...links.contacts,
+      ...links.companies,
+      ...links.deals,
+    ];
+  });
+
+  crmPartialFailed = computed(() => this.crmLinks()?.failed_count ?? 0);
 
   constructor() {
     effect(() => {
@@ -405,6 +546,7 @@ export class TaskDetailPageComponent {
 
         this.loadReminders(taskId);
         this.loadParentTask(task);
+        this.loadCrmLinks();
         this.loading.set(false);
       },
       error: (err) => {
@@ -766,6 +908,82 @@ export class TaskDetailPageComponent {
       },
       error: () => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to remove reminder' });
+      },
+    });
+  }
+
+  // --- CRM ---
+
+  loadCrmLinks(): void {
+    const taskId = this.taskId();
+    if (!taskId) return;
+    this.crmLoading.set(true);
+    this.crmError.set(false);
+    this.crmService.getAllLinksForTask(taskId).subscribe({
+      next: (links) => {
+        this.crmLinks.set(links);
+        this.crmCachedAt.set(links.cached_at ?? null);
+        this.crmLoading.set(false);
+      },
+      error: () => {
+        this.crmError.set(true);
+        this.crmLoading.set(false);
+      },
+    });
+  }
+
+  crmCachedMinutesAgo(): number {
+    const cachedAt = this.crmCachedAt();
+    if (!cachedAt) return 0;
+    return Math.round((Date.now() - new Date(cachedAt).getTime()) / 60000);
+  }
+
+  crmEntityIcon(type: CrmEntityType): string {
+    switch (type) {
+      case 'contact': return 'pi pi-user';
+      case 'company': return 'pi pi-building';
+      case 'deal': return 'pi pi-briefcase';
+    }
+  }
+
+  onCrmLink(event: CrmLinkedEvent): void {
+    const taskId = this.taskId();
+    if (!taskId) return;
+
+    let link$;
+    if (event.entity_type === 'contact') {
+      link$ = this.crmService.linkContactToTask(taskId, event.entity_id, event.twenty_workspace_id);
+    } else if (event.entity_type === 'company') {
+      link$ = this.crmService.linkCompanyToTask(taskId, event.entity_id, event.twenty_workspace_id);
+    } else {
+      link$ = this.crmService.linkDealToTask(taskId, event.entity_id, event.twenty_workspace_id);
+    }
+
+    link$.subscribe({
+      next: () => this.loadCrmLinks(),
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not link CRM entity.',
+          life: 4000,
+        });
+      },
+    });
+  }
+
+  onCrmUnlink(link: CrmLinkedEntity): void {
+    const taskId = this.taskId();
+    if (!taskId) return;
+    this.crmService.unlinkFromTask(taskId, link.entity_type, link.entity_id).subscribe({
+      next: () => this.loadCrmLinks(),
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not unlink CRM entity.',
+          life: 4000,
+        });
       },
     });
   }
