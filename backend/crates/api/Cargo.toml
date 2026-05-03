@@ -75,3 +75,8 @@ tower = { version = "0.5", features = ["util"] }
 mockall.workspace = true
 rstest.workspace = true
 proptest.workspace = true
+# Needed for webhooks_twenty integration tests
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+uuid = { workspace = true }

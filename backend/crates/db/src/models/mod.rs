@@ -1,5 +1,6 @@
 pub mod activity;
 pub mod attachment;
+pub mod crm_mirror;
 pub mod automation;
 pub mod automation_template;
 pub mod board;

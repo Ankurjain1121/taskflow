@@ -1,4 +1,5 @@
 pub mod activity_log;
+pub mod crm_mirror;
 pub mod archive;
 pub mod attachments;
 pub mod auth;
