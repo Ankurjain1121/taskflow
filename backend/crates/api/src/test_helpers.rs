@@ -74,6 +74,8 @@ pub mod helpers {
             app_url: "http://localhost:4200".to_string(),
             ws_max_connections: 500,
             cron_secret: "test-cron-secret-for-testing".to_string(),
+            twenty_api_url: String::new(),
+            twenty_api_key: String::new(),
         }
     }
 
