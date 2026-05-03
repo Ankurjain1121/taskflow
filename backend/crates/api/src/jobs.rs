@@ -1,10 +1,66 @@
 use std::time::Duration;
 
+use tokio::sync::watch;
+
 use crate::config::Config;
 use crate::state::AppState;
 
+/// Global shutdown signal for worker tasks. Flipped to `true` by the SIGTERM
+/// handler in main.rs (see `install_shutdown_broadcaster`). Workers cooperatively
+/// stop their loops when this changes.
+pub static TWENTY_SYNC_SHUTDOWN: once_cell::sync::OnceCell<watch::Sender<bool>> =
+    once_cell::sync::OnceCell::new();
+
 #[allow(clippy::unused_async)]
 pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
+    // Phase 6b: Twenty CRM outbound sync worker. Only starts when both
+    // TWENTY_API_URL and TWENTY_API_KEY are set; otherwise the queue
+    // simply accumulates jobs until configuration arrives.
+    if !config.twenty_api_url.is_empty() && !config.twenty_api_key.is_empty() {
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+
+        // Companion task: flip the shutdown flag on SIGINT/SIGTERM so the worker
+        // exits its loop cleanly. Independent of axum's `with_graceful_shutdown`.
+        {
+            let tx = shutdown_tx.clone();
+            tokio::spawn(async move {
+                use tokio::signal::unix::{signal, SignalKind};
+                let sigterm = signal(SignalKind::terminate()).ok();
+                tokio::select! {
+                    _ = tokio::signal::ctrl_c() => {},
+                    () = async {
+                        match sigterm {
+                            Some(mut s) => { let _ = s.recv().await; }
+                            None => std::future::pending::<()>().await,
+                        }
+                    } => {},
+                }
+                let _ = tx.send(true);
+            });
+        }
+
+        if TWENTY_SYNC_SHUTDOWN.set(shutdown_tx).is_err() {
+            tracing::warn!("TWENTY_SYNC_SHUTDOWN already initialized; skipping worker spawn");
+        } else {
+            let pool = state.db.clone();
+            let client = taskbolt_services::TwentyClient::new(
+                config.twenty_api_url.clone(),
+                config.twenty_api_key.clone(),
+            );
+            tracing::info!("Twenty sync worker spawning (Phase 6b outbound)");
+            tokio::spawn(async move {
+                taskbolt_services::jobs::twenty_sync::run_twenty_sync_worker(
+                    pool,
+                    client,
+                    shutdown_rx,
+                )
+                .await;
+            });
+        }
+    } else {
+        tracing::info!("Twenty sync worker disabled: TWENTY_API_URL and/or TWENTY_API_KEY not set");
+    }
+
     // Spawn background job: recurring task scheduler (every 10 minutes)
     let recurring_pool = state.db.clone();
     tokio::spawn(async move {

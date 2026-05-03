@@ -41,4 +41,7 @@ pub use trash_bin::{
     get_trash_items, move_to_trash, permanently_delete, restore_from_trash, PaginatedTrashItems,
     TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,
 };
-pub use twenty::{ProvisionUserOutcome, TwentyClient, TwentyError};
+pub use twenty::{
+    decide_conflict, push_job, ConflictDecision, ConflictResolution, OutboundError,
+    ProvisionUserOutcome, PushOutcome, TwentyClient, TwentyError, UpsertOutcome,
+};

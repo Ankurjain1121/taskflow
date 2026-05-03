@@ -34,6 +34,10 @@ pub struct Config {
     pub app_url: String,
     pub ws_max_connections: usize,
     pub cron_secret: String,
+    /// Twenty CRM REST base URL (e.g. http://twenty:3000). Empty disables outbound sync.
+    pub twenty_api_url: String,
+    /// Twenty CRM API key. Empty disables outbound sync.
+    pub twenty_api_key: String,
 }
 
 impl Config {
@@ -120,6 +124,8 @@ impl Config {
                 }
                 secret
             },
+            twenty_api_url: env::var("TWENTY_API_URL").unwrap_or_default(),
+            twenty_api_key: env::var("TWENTY_API_KEY").unwrap_or_default(),
         })
     }
 }
@@ -181,6 +187,8 @@ mod tests {
             app_url: "http://localhost:4200".into(),
             ws_max_connections: 500,
             cron_secret: "actual-cron-secret-for-testing".into(),
+            twenty_api_url: String::new(),
+            twenty_api_key: String::new(),
         }
     }
 

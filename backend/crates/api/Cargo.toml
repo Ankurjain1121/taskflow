@@ -51,6 +51,9 @@ hex.workspace = true
 # Regex
 regex.workspace = true
 
+# Lazy statics for shutdown channels
+once_cell.workspace = true
+
 # HTML sanitization
 ammonia = "4.1.2"
 

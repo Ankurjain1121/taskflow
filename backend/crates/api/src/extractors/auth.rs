@@ -94,6 +94,7 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        #[allow(clippy::result_large_err)]
         let result = (|| {
             let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
                 (
@@ -137,6 +138,7 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        #[allow(clippy::result_large_err)]
         let result = (|| {
             let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
                 (
@@ -177,6 +179,7 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        #[allow(clippy::result_large_err)]
         let result = (|| {
             let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
                 (

@@ -9,6 +9,7 @@ pub mod batch_my_tasks;
 pub mod bulk_operations;
 pub mod comments;
 pub mod crm_mirror;
+pub mod crm_sync;
 pub mod crm_workspace_links;
 pub mod custom_fields;
 pub mod dashboard;
