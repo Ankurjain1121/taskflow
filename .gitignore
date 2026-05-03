@@ -21,6 +21,7 @@
 .env.local
 .env.*.local
 .env.production
+.env.backup-*
 !.env.example
 
 # IDE
@@ -29,6 +30,18 @@
 *.swp
 *.swo
 *~
+*.bak
+
+# Claude / agent runtime artifacts
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks/
+.claude/sessions/
+
+# Local helper scripts (often contain hardcoded creds — keep out of repo)
+take-dashboard-screenshots.mjs
+
+# Local test artifacts
+frontend/src/assets/test_report.pdf
 
 # OS
 .DS_Store
