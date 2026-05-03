@@ -1,0 +1,103 @@
+# Twenty CRM services — slot into main docker-compose.yml
+# Prerequisites: populate .env with TWENTY_* vars before deploying
+# Image tag: v2.2.0
+
+services:
+  twenty-postgres:
+    image: postgres:16-alpine
+    container_name: twenty-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TWENTY_DB_NAME:-twenty}
+      POSTGRES_USER: ${TWENTY_DB_USER:-twenty}
+      POSTGRES_PASSWORD: ${TWENTY_DB_PASSWORD:?TWENTY_DB_PASSWORD required}
+    volumes:
+      - twenty_postgres_data:/var/lib/postgresql/data
+    networks:
+      - twenty-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TWENTY_DB_USER:-twenty}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 1024m
+    cpus: 1.0
+
+  twenty-redis:
+    image: redis:7-alpine
+    container_name: twenty-redis
+    restart: unless-stopped
+    volumes:
+      - twenty_redis_data:/data
+    networks:
+      - twenty-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    cpus: 0.5
+
+  twenty-server:
+    image: twentycrm/twenty:v2.2.0
+    container_name: twenty-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      SERVER_URL: https://crm.taskflow.paraslace.in
+      PORT: 3000
+      DATABASE_URL: postgres://${TWENTY_DB_USER:-twenty}:${TWENTY_DB_PASSWORD}@twenty-postgres:5432/${TWENTY_DB_NAME:-twenty}
+      REDIS_URL: redis://twenty-redis:6379
+      APP_SECRET: ${TWENTY_APP_SECRET:?TWENTY_APP_SECRET required}
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: /app/files
+      DISABLE_DB_MIGRATIONS: "false"
+    volumes:
+      - twenty_server_files:/app/files
+    depends_on:
+      twenty-postgres:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_healthy
+    networks:
+      - twenty-internal
+    mem_limit: 1536m
+    cpus: 1.5
+
+  twenty-worker:
+    image: twentycrm/twenty:v2.2.0
+    container_name: twenty-worker
+    restart: unless-stopped
+    command: ["node", "dist/src/queue-worker/queue-worker.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${TWENTY_DB_USER:-twenty}:${TWENTY_DB_PASSWORD}@twenty-postgres:5432/${TWENTY_DB_NAME:-twenty}
+      REDIS_URL: redis://twenty-redis:6379
+      APP_SECRET: ${TWENTY_APP_SECRET}
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: /app/files
+    volumes:
+      - twenty_server_files:/app/files
+    depends_on:
+      twenty-postgres:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_healthy
+      twenty-server:
+        condition: service_started
+    networks:
+      - twenty-internal
+    mem_limit: 1024m
+    cpus: 1.0
+
+networks:
+  twenty-internal:
+    driver: bridge
+
+volumes:
+  twenty_postgres_data:
+  twenty_redis_data:
+  twenty_server_files:
