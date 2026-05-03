@@ -1,5 +1,4 @@
 pub mod activity_log;
-pub mod crm_mirror;
 pub mod archive;
 pub mod attachments;
 pub mod auth;
@@ -9,6 +8,7 @@ pub mod automations;
 pub mod batch_my_tasks;
 pub mod bulk_operations;
 pub mod comments;
+pub mod crm_mirror;
 pub mod custom_fields;
 pub mod dashboard;
 pub mod dashboard_charts;

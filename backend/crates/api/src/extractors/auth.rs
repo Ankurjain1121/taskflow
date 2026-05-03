@@ -86,6 +86,7 @@ where
 {
     type Rejection = Response;
 
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
@@ -128,6 +129,7 @@ where
 {
     type Rejection = Response;
 
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
@@ -167,6 +169,7 @@ where
 {
     type Rejection = Response;
 
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,

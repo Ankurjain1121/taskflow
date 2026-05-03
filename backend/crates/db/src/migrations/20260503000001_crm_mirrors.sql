@@ -7,7 +7,7 @@
 CREATE TABLE crm_workspace_links (
     tenant_id UUID NOT NULL,
     twenty_workspace_id TEXT NOT NULL,
-    hmac_secret TEXT NOT NULL,
+    hmac_secret_encrypted BYTEA NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (tenant_id)
@@ -102,6 +102,8 @@ CREATE TABLE crm_webhook_event_log (
         CHECK (status IN ('pending', 'processed', 'failed', 'dup')),
     event_type TEXT NOT NULL,
     payload_hash TEXT NOT NULL,
+    tenant_id UUID NOT NULL,
     PRIMARY KEY (workspace_id, event_id)
 );
 CREATE INDEX crm_webhook_event_log_received ON crm_webhook_event_log (workspace_id, received_at DESC);
+CREATE INDEX crm_webhook_event_log_tenant ON crm_webhook_event_log (tenant_id, received_at DESC);

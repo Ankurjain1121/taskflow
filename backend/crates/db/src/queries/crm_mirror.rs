@@ -2,9 +2,7 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::crm_mirror::{
-    CrmCompanyMirror, CrmContactMirror, CrmDealMirror, CrmWebhookEventLog, CrmWorkspaceLink,
-};
+use crate::models::crm_mirror::CrmWorkspaceLink;
 
 /// TenantContext scopes every query to a specific tenant for RLS enforcement.
 pub struct TenantContext {
@@ -29,7 +27,7 @@ pub async fn get_workspace_link(
 ) -> Result<CrmWorkspaceLink, CrmMirrorError> {
     sqlx::query_as::<_, CrmWorkspaceLink>(
         r"
-        SELECT tenant_id, twenty_workspace_id, hmac_secret
+        SELECT tenant_id, twenty_workspace_id, hmac_secret_encrypted
         FROM crm_workspace_links
         WHERE tenant_id = $1
         ",
@@ -42,8 +40,8 @@ pub async fn get_workspace_link(
 
 // ── helper: set RLS context ───────────────────────────────────────────────────
 
-async fn set_rls<'e>(
-    tx: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+async fn set_rls(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     tenant_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query("SELECT set_config('app.tenant_id', $1::text, true)")
@@ -57,6 +55,7 @@ async fn set_rls<'e>(
 
 /// Upsert a Twenty person record.  Uses ON CONFLICT on (twenty_workspace_id, twenty_id).
 /// Extra unknown fields in `raw_json` are stored verbatim; schema drift is tolerated.
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_contact(
     pool: &PgPool,
     ctx: &TenantContext,
@@ -80,7 +79,6 @@ pub async fn upsert_contact(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL)
         ON CONFLICT (twenty_workspace_id, twenty_id)
         DO UPDATE SET
-            tenant_id        = EXCLUDED.tenant_id,
             name             = EXCLUDED.name,
             primary_email    = EXCLUDED.primary_email,
             primary_phone    = EXCLUDED.primary_phone,
@@ -109,6 +107,7 @@ pub async fn upsert_contact(
 
 // ── company ──────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_company(
     pool: &PgPool,
     ctx: &TenantContext,
@@ -132,7 +131,6 @@ pub async fn upsert_company(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL)
         ON CONFLICT (twenty_workspace_id, twenty_id)
         DO UPDATE SET
-            tenant_id        = EXCLUDED.tenant_id,
             name             = EXCLUDED.name,
             primary_email    = EXCLUDED.primary_email,
             primary_phone    = EXCLUDED.primary_phone,
@@ -161,6 +159,7 @@ pub async fn upsert_company(
 
 // ── deal ─────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_deal(
     pool: &PgPool,
     ctx: &TenantContext,
@@ -184,7 +183,6 @@ pub async fn upsert_deal(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL)
         ON CONFLICT (twenty_workspace_id, twenty_id)
         DO UPDATE SET
-            tenant_id        = EXCLUDED.tenant_id,
             name             = EXCLUDED.name,
             stage            = EXCLUDED.stage,
             amount_cents     = EXCLUDED.amount_cents,
@@ -282,12 +280,13 @@ pub async fn record_event(
     event_id: &str,
     event_type: &str,
     payload_hash: &str,
+    tenant_id: Uuid,
 ) -> Result<bool, CrmMirrorError> {
     let result = sqlx::query(
         r"
         INSERT INTO crm_webhook_event_log
-            (workspace_id, event_id, event_type, payload_hash, status)
-        VALUES ($1, $2, $3, $4, 'pending')
+            (workspace_id, event_id, event_type, payload_hash, status, tenant_id)
+        VALUES ($1, $2, $3, $4, 'pending', $5)
         ON CONFLICT (workspace_id, event_id) DO NOTHING
         ",
     )
@@ -295,6 +294,7 @@ pub async fn record_event(
     .bind(event_id)
     .bind(event_type)
     .bind(payload_hash)
+    .bind(tenant_id)
     .execute(pool)
     .await?;
 

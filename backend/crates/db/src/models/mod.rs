@@ -1,6 +1,5 @@
 pub mod activity;
 pub mod attachment;
-pub mod crm_mirror;
 pub mod automation;
 pub mod automation_template;
 pub mod board;
@@ -8,6 +7,7 @@ pub mod board_share;
 pub mod bulk_operation;
 pub mod comment;
 pub mod common;
+pub mod crm_mirror;
 pub mod custom_field;
 pub mod dependency;
 pub mod favorite;

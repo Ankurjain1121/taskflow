@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Maps a TaskBolt tenant to a Twenty workspace + HMAC shared secret.
+/// Maps a TaskBolt tenant to a Twenty workspace + encrypted HMAC shared secret.
 #[derive(Debug, Clone, FromRow)]
 pub struct CrmWorkspaceLink {
     pub tenant_id: Uuid,
     pub twenty_workspace_id: String,
-    pub hmac_secret: String,
+    pub hmac_secret_encrypted: Vec<u8>,
 }
 
 /// Mirror of a Twenty `person` record (contact).
@@ -73,6 +73,7 @@ pub struct CrmWebhookEventLog {
     pub status: String,
     pub event_type: String,
     pub payload_hash: String,
+    pub tenant_id: Uuid,
 }
 
 #[cfg(test)]
@@ -110,7 +111,7 @@ mod tests {
             twenty_id: Uuid::new_v4(),
             name: Some("Big Deal".into()),
             stage: Some("QUALIFIED".into()),
-            amount_cents: Some(100_000_00),
+            amount_cents: Some(10_000_000),
             owner_twenty_id: None,
             raw_json: serde_json::json!({}),
             parsed_projection: None,

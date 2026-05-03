@@ -19,6 +19,7 @@ pub mod charts;
 pub mod column;
 pub mod comments;
 pub mod common;
+pub(crate) mod crm_secret_crypto;
 pub mod cron;
 pub mod custom_field;
 pub mod dashboard;

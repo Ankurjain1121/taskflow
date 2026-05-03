@@ -4,14 +4,16 @@
 //!
 //! Handler order (security-critical — do not reorder):
 //!   1. Body size cap (reject > 1 MB BEFORE any parse)
-//!   2. Lookup crm_workspace_links → get HMAC secret
-//!   3. Verify HMAC-SHA256 (constant-time compare)
-//!   4. Replay defense: timestamp within 5-min window
-//!   5. Dedup: insert event_id ON CONFLICT DO NOTHING
-//!   6. Parse JSON (schema-tolerant via serde Value)
-//!   7. Route event_type → upsert or tombstone mirror
-//!   8. Mark event processed
-//!   9. Return 200 {"received":true}
+//!   2. Content-Encoding rejection (only identity accepted)
+//!   3. Lookup crm_workspace_links → get HMAC secret (encrypted)
+//!   4. Decrypt HMAC secret
+//!   5. Verify HMAC-SHA256 (constant-time compare)
+//!   6. Replay defense: timestamp within 5-min window
+//!   7. Dedup: insert event_id ON CONFLICT DO NOTHING
+//!   8. Parse JSON (depth-limited, schema-tolerant via serde Value)
+//!   9. Route event_type → upsert or tombstone mirror
+//!  10. Mark event processed
+//!  11. Return 200 {"received":true}
 //!
 //! Twenty's outbound HMAC scheme (from call-webhook.job.ts):
 //!   signature = HMAC-SHA256(key=secret, msg="${timestamp}:${rawBody}")
@@ -20,8 +22,9 @@
 
 use axum::{
     body::Bytes,
-    extract::{Path, State},
+    extract::{DefaultBodyLimit, Path, State},
     http::{HeaderMap, StatusCode},
+    middleware::from_fn,
     response::{IntoResponse, Response},
     routing::post,
     Json, Router,
@@ -38,8 +41,9 @@ use taskbolt_db::queries::crm_mirror::{
     upsert_contact, upsert_deal, TenantContext,
 };
 
-const MAX_BODY_BYTES: usize = 1 * 1024 * 1024; // 1 MB
+const MAX_BODY_BYTES: usize = 1024 * 1024; // 1 MB
 const TIMESTAMP_WINDOW_MS: u64 = 5 * 60 * 1000; // 5 minutes
+const JSON_MAX_DEPTH: usize = 32;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -60,7 +64,19 @@ async fn handle_twenty_webhook(
         return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     }
 
-    // Step 2: lookup workspace link → HMAC secret
+    // Step 2: reject any Content-Encoding other than identity.
+    // Prevents compressed-body HMAC bypass (attacker sends gzip body with plain sig).
+    if let Some(enc) = headers.get("content-encoding") {
+        if enc.to_str().unwrap_or("identity") != "identity" {
+            tracing::warn!(
+                tenant_id = %tenant_id,
+                "Twenty webhook rejected non-identity Content-Encoding"
+            );
+            return StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response();
+        }
+    }
+
+    // Step 3: lookup workspace link → encrypted HMAC secret
     let link = match get_workspace_link(&state.db, tenant_id).await {
         Ok(l) => l,
         Err(taskbolt_db::queries::crm_mirror::CrmMirrorError::WorkspaceLinkNotFound) => {
@@ -73,7 +89,16 @@ async fn handle_twenty_webhook(
         }
     };
 
-    // Step 3: HMAC verification
+    // Step 4: decrypt HMAC secret
+    let hmac_secret = match super::crm_secret_crypto::decrypt_secret(&link.hmac_secret_encrypted) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!(tenant_id = %tenant_id, error = %e, "Failed to decrypt HMAC secret");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    // Step 5: HMAC verification
     let timestamp_str = match headers
         .get("x-twenty-webhook-timestamp")
         .and_then(|v| v.to_str().ok())
@@ -104,12 +129,12 @@ async fn handle_twenty_webhook(
         m
     };
 
-    if !verify_hmac(link.hmac_secret.as_bytes(), &msg, &sig_header) {
+    if !verify_hmac(&hmac_secret, &msg, &sig_header) {
         log_hmac_fail(&headers, tenant_id, "HMAC mismatch");
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
-    // Step 4: replay defense — timestamp within 5-min window
+    // Step 6: replay defense — timestamp within 5-min window
     let timestamp_ms: u64 = match timestamp_str.parse() {
         Ok(ts) => ts,
         Err(_) => {
@@ -132,7 +157,7 @@ async fn handle_twenty_webhook(
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
-    // Step 5: event dedup via nonce
+    // Step 7: event dedup via nonce
     let event_id = match headers
         .get("x-twenty-webhook-nonce")
         .and_then(|v| v.to_str().ok())
@@ -145,6 +170,15 @@ async fn handle_twenty_webhook(
     };
 
     let body_hash = hex::encode(Sha256::digest(&body));
+
+    // Step 8: depth-limited JSON parse — cap at 32 levels to prevent stack exhaustion.
+    if json_depth(&body) > JSON_MAX_DEPTH {
+        tracing::warn!(
+            tenant_id = %tenant_id,
+            "Twenty webhook JSON depth exceeds {JSON_MAX_DEPTH}"
+        );
+        return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+    }
 
     // Parse event_type from body early so we can log it in the event record.
     // Use serde_json::Value — schema-tolerant; unknown fields are silently ignored.
@@ -172,6 +206,7 @@ async fn handle_twenty_webhook(
         &event_id,
         &event_type,
         &body_hash,
+        tenant_id,
     )
     .await
     {
@@ -188,19 +223,16 @@ async fn handle_twenty_webhook(
             event_id,
             "Duplicate Twenty webhook event acknowledged"
         );
-        return (StatusCode::OK, Json(serde_json::json!({"received": true, "dup": true})))
+        return (
+            StatusCode::OK,
+            Json(serde_json::json!({"received": true, "dup": true})),
+        )
             .into_response();
     }
 
-    // Step 7: route event_type → mirror upsert or tombstone
-    let dispatch_result = dispatch_event(
-        &state,
-        tenant_id,
-        workspace_id,
-        &event_type,
-        &payload,
-    )
-    .await;
+    // Step 9: route event_type → mirror upsert or tombstone
+    let dispatch_result =
+        dispatch_event(&state, tenant_id, workspace_id, &event_type, &payload).await;
 
     match dispatch_result {
         Ok(()) => {}
@@ -217,7 +249,7 @@ async fn handle_twenty_webhook(
         }
     }
 
-    // Step 8: mark processed
+    // Step 10: mark processed
     if let Err(e) = mark_event_processed(&state.db, workspace_id, &event_id).await {
         // Non-fatal: event is idempotently upserted; processed_at is best-effort.
         tracing::warn!(tenant_id = %tenant_id, event_id, error = %e, "Failed to mark event processed");
@@ -238,11 +270,15 @@ async fn dispatch_event(
 ) -> Result<(), String> {
     let ctx = TenantContext { tenant_id };
     let record = payload.get("record").unwrap_or(&serde_json::Value::Null);
-    let event_date = payload
+
+    // P1 fix: clamp eventDate to Utc::now() to prevent attacker-controlled LWW
+    // timestamp (e.g. eventDate=9999-12-31 would lock out all future updates).
+    let parsed_event_date = payload
         .get("eventDate")
         .and_then(|v| v.as_str())
         .and_then(|s| s.parse::<DateTime<Utc>>().ok())
         .unwrap_or_else(Utc::now);
+    let event_date = std::cmp::min(parsed_event_date, Utc::now());
 
     // Extract twenty_id from record.id
     let twenty_id: Uuid = record
@@ -251,15 +287,9 @@ async fn dispatch_event(
         .and_then(|s| s.parse().ok())
         .ok_or_else(|| "Missing or invalid record.id".to_owned())?;
 
-    let object_type = event_type
-        .split('.')
-        .next()
-        .unwrap_or("unknown");
+    let object_type = event_type.split('.').next().unwrap_or("unknown");
 
-    let operation = event_type
-        .split('.')
-        .nth(1)
-        .unwrap_or("unknown");
+    let operation = event_type.split('.').nth(1).unwrap_or("unknown");
 
     if operation == "deleted" {
         mark_deleted(
@@ -312,7 +342,7 @@ async fn dispatch_event(
             let amount_cents = record
                 .get("amount")
                 .and_then(|v| v.get("amountMicros"))
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .map(|micros| micros / 10); // micros → cents
 
             upsert_deal(
@@ -342,22 +372,59 @@ async fn dispatch_event(
     Ok(())
 }
 
+// ── JSON depth scanner ────────────────────────────────────────────────────────
+
+/// Returns the maximum nesting depth of a JSON byte slice.
+/// Accounts for string escaping to avoid false positives from `{`/`[` inside strings.
+fn json_depth(data: &[u8]) -> usize {
+    let mut depth: usize = 0;
+    let mut max_depth: usize = 0;
+    let mut in_string = false;
+    let mut escape = false;
+    for &b in data {
+        if escape {
+            escape = false;
+            continue;
+        }
+        if in_string {
+            if b == b'\\' {
+                escape = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match b {
+            b'"' => in_string = true,
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > max_depth {
+                    max_depth = depth;
+                }
+            }
+            b'}' | b']' => {
+                depth = depth.saturating_sub(1);
+            }
+            _ => {}
+        }
+    }
+    max_depth
+}
+
 // ── HMAC helpers ──────────────────────────────────────────────────────────────
 
 /// Constant-time HMAC-SHA256 verification.
 /// `msg` = b"${timestamp}:${rawBody}"
 fn verify_hmac(secret: &[u8], msg: &[u8], expected_hex: &str) -> bool {
-    let mut mac = match HmacSha256::new_from_slice(secret) {
-        Ok(m) => m,
-        Err(_) => return false,
+    let Ok(mut mac) = HmacSha256::new_from_slice(secret) else {
+        return false;
     };
     mac.update(msg);
     let computed = mac.finalize().into_bytes();
 
     // Decode expected hex → bytes for constant-time compare.
-    let expected_bytes = match hex::decode(expected_hex) {
-        Ok(b) => b,
-        Err(_) => return false,
+    let Ok(expected_bytes) = hex::decode(expected_hex) else {
+        return false;
     };
 
     // constant_time_eq via subtle crate or manual byte-wise XOR
@@ -410,14 +477,19 @@ pub fn webhooks_incoming_router(state: AppState) -> Router<AppState> {
             "/webhooks/incoming/twenty/{tenant_id}",
             post(handle_twenty_webhook),
         )
-        // Per-tenant token-bucket rate limit.
-        // Reuses the existing RateLimiter infrastructure.
-        // 300 webhooks per 60 s per tenant is generous; Twenty fires ≤ 1/s in practice.
+        // Layer order (innermost first = added first):
+        // 1. from_fn(rate_limit_middleware): reads injected RateLimiter, enforces limit
+        // 2. rate_limit_layer: injects RateLimiter into request extensions (runs before #1)
+        // 3. DefaultBodyLimit: outermost, caps body before Bytes extractor runs
+        .layer(from_fn(
+            crate::middleware::rate_limit::rate_limit_middleware,
+        ))
         .layer(crate::middleware::rate_limit::rate_limit_layer(
             state.redis.clone(),
             300,
             60,
         ))
+        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
 }
 
 #[cfg(test)]
@@ -478,5 +550,36 @@ mod tests {
     #[test]
     fn constant_time_eq_diff_length() {
         assert!(!constant_time_eq(b"hello", b"helloworld"));
+    }
+
+    #[test]
+    fn json_depth_flat() {
+        assert_eq!(json_depth(br#"{"a":1,"b":2}"#), 1);
+    }
+
+    #[test]
+    fn json_depth_nested() {
+        assert_eq!(json_depth(br#"{"a":{"b":{"c":1}}}"#), 3);
+    }
+
+    #[test]
+    fn json_depth_brace_in_string_ignored() {
+        // Braces inside a string must not increment the depth counter.
+        assert_eq!(json_depth(br#"{"key":"{{{deep}}}"}"#), 1);
+    }
+
+    #[test]
+    fn json_depth_within_limit_accepted() {
+        let body = br#"{"a":{"b":{"c":{"d":1}}}}"#;
+        assert!(json_depth(body) <= JSON_MAX_DEPTH);
+    }
+
+    #[test]
+    fn lww_clamp_future_date() {
+        use chrono::Duration;
+        let future = Utc::now() + Duration::days(365 * 100);
+        let clamped = std::cmp::min(future, Utc::now());
+        // Clamped value must be at or before now
+        assert!(clamped <= Utc::now() + Duration::seconds(1));
     }
 }

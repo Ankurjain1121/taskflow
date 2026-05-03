@@ -46,7 +46,8 @@ const TS: &str = "1746267600000"; // 2026-05-03T07:00:00Z in ms
 #[test]
 fn hmac_fixture_canonical_json() {
     // Fixture 1: canonical compact JSON
-    let body = br#"{"eventName":"person.created","record":{"id":"550e8400-e29b-41d4-a716-446655440000"}}"#;
+    let body =
+        br#"{"eventName":"person.created","record":{"id":"550e8400-e29b-41d4-a716-446655440000"}}"#;
     let sig = compute_signature(SECRET, TS, body);
     assert!(verify_hmac_test(SECRET, TS, body, &sig));
 }
@@ -55,7 +56,8 @@ fn hmac_fixture_canonical_json() {
 fn hmac_fixture_pretty_printed_differs() {
     // Fixture 2: pretty-printed JSON → different bytes → different signature
     let compact = br#"{"eventName":"person.created","record":{"id":"abc"}}"#;
-    let pretty = b"{\n  \"eventName\": \"person.created\",\n  \"record\": {\n    \"id\": \"abc\"\n  }\n}";
+    let pretty =
+        b"{\n  \"eventName\": \"person.created\",\n  \"record\": {\n    \"id\": \"abc\"\n  }\n}";
     let sig_compact = compute_signature(SECRET, TS, compact);
     // Pretty-printed body must NOT match compact signature
     assert!(!verify_hmac_test(SECRET, TS, pretty, &sig_compact));
@@ -184,7 +186,7 @@ fn dedup_same_event_three_times_only_first_processes() {
 
 // ─── 4. Body size cap: 2 MB rejected BEFORE parse ────────────────────────────
 
-const MAX_BODY: usize = 1 * 1024 * 1024;
+const MAX_BODY: usize = 1024 * 1024;
 
 fn exceeds_cap(len: usize) -> bool {
     len > MAX_BODY
@@ -265,26 +267,136 @@ fn tombstone_sets_deleted_at_field() {
 
 // ─── 7. Cross-tenant denial (RLS) ── integration (needs DB) ──────────────────
 
-#[ignore = "integration test — requires DB; run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn cross_tenant_rls_denies_other_tenant() {
-    // Setup: two tenants, two workspace links.
-    // Tenant A sends a contact via webhook.
-    // Tenant B must NOT see tenant A's contact.
-    //
-    // Implementation: set_config('app.tenant_id', tenant_b) → SELECT returns 0 rows.
-    todo!("requires live DB with migrations applied")
+    // Skips gracefully when no DATABASE_URL is configured.
+    // Run with a live DB (migrations applied) to exercise RLS enforcement.
+    let Ok(db_url) = std::env::var("DATABASE_URL") else {
+        return;
+    };
+
+    let pool = sqlx::PgPool::connect(&db_url)
+        .await
+        .expect("connect to test DB");
+
+    let tenant_a = uuid::Uuid::new_v4();
+    let tenant_b = uuid::Uuid::new_v4();
+    let workspace_id = format!("test-rls-{}", uuid::Uuid::new_v4());
+    let twenty_id = uuid::Uuid::new_v4();
+
+    // Insert a contact row as tenant_a
+    taskbolt_db::queries::crm_mirror::upsert_contact(
+        &pool,
+        &taskbolt_db::queries::crm_mirror::TenantContext {
+            tenant_id: tenant_a,
+        },
+        &workspace_id,
+        twenty_id,
+        Some("RLS-Test-Contact"),
+        None,
+        None,
+        None,
+        &serde_json::json!({"id": twenty_id.to_string()}),
+        chrono::Utc::now(),
+    )
+    .await
+    .expect("upsert_contact as tenant_a");
+
+    // Query as tenant_b — RLS policy must hide tenant_a's row
+    let mut tx = pool.begin().await.expect("begin tx");
+    sqlx::query("SELECT set_config('app.tenant_id', $1::text, true)")
+        .bind(tenant_b.to_string())
+        .execute(&mut *tx)
+        .await
+        .expect("set rls context");
+
+    let (count,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM crm_contact_mirror WHERE twenty_workspace_id = $1")
+            .bind(&workspace_id)
+            .fetch_one(&mut *tx)
+            .await
+            .expect("count query");
+
+    tx.rollback().await.ok();
+
+    assert_eq!(
+        count, 0,
+        "tenant_b must see 0 rows from tenant_a (RLS isolation)"
+    );
+
+    // Cleanup
+    sqlx::query("DELETE FROM crm_contact_mirror WHERE twenty_workspace_id = $1")
+        .bind(&workspace_id)
+        .execute(&pool)
+        .await
+        .ok();
 }
 
 // ─── 8. Idempotent upsert under concurrent webhooks ── integration ─────────────
 
-#[ignore = "integration test — requires DB; run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn idempotent_upsert_concurrent_same_record() {
-    // Setup: 10 concurrent upsert_contact calls for the same (workspace_id, twenty_id).
-    // Expected: exactly 1 row in crm_contact_mirror with the latest twenty_updated_at.
-    // No PK violation, no lost updates.
-    todo!("requires live DB with migrations applied")
+    // Skips gracefully when no DATABASE_URL is configured.
+    // Run with a live DB (migrations applied) to exercise concurrent upsert idempotency.
+    let Ok(db_url) = std::env::var("DATABASE_URL") else {
+        return;
+    };
+
+    let pool = sqlx::PgPool::connect(&db_url)
+        .await
+        .expect("connect to test DB");
+
+    let tenant_id = uuid::Uuid::new_v4();
+    let workspace_id = format!("test-concurrent-{}", uuid::Uuid::new_v4());
+    let twenty_id = uuid::Uuid::new_v4();
+    let base_ts = chrono::Utc::now();
+
+    // 10 concurrent upserts for the same (workspace_id, twenty_id)
+    let mut handles = Vec::new();
+    for i in 0i64..10 {
+        let pool = pool.clone();
+        let workspace_id = workspace_id.clone();
+        let ts = base_ts + chrono::Duration::seconds(i);
+        handles.push(tokio::spawn(async move {
+            taskbolt_db::queries::crm_mirror::upsert_contact(
+                &pool,
+                &taskbolt_db::queries::crm_mirror::TenantContext { tenant_id },
+                &workspace_id,
+                twenty_id,
+                Some("Concurrent-Contact"),
+                None,
+                None,
+                None,
+                &serde_json::json!({"id": twenty_id.to_string(), "seq": i}),
+                ts,
+            )
+            .await
+        }));
+    }
+
+    for h in handles {
+        h.await.expect("task join").expect("upsert_contact");
+    }
+
+    // Exactly 1 row must exist regardless of concurrency
+    let (count,): (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM crm_contact_mirror \
+         WHERE twenty_workspace_id = $1 AND twenty_id = $2",
+    )
+    .bind(&workspace_id)
+    .bind(twenty_id)
+    .fetch_one(&pool)
+    .await
+    .expect("count");
+
+    assert_eq!(count, 1, "concurrent upserts must produce exactly 1 row");
+
+    // Cleanup
+    sqlx::query("DELETE FROM crm_contact_mirror WHERE twenty_workspace_id = $1")
+        .bind(&workspace_id)
+        .execute(&pool)
+        .await
+        .ok();
 }
 
 // ─── 9. Twenty HMAC scheme end-to-end ─────────────────────────────────────────
