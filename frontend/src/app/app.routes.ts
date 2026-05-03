@@ -248,6 +248,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'crm',
+    loadChildren: () =>
+      import('./features/crm/crm.routes').then((m) => m.crmRoutes),
+    canActivate: [authGuard],
+  },
+  {
     path: 'settings',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -289,6 +295,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/settings/task-templates/task-templates.component').then(
             (m) => m.TaskTemplatesComponent,
+          ),
+      },
+      {
+        path: 'integrations',
+        loadComponent: () =>
+          import('./features/settings/integrations/integrations.component').then(
+            (m) => m.IntegrationsComponent,
           ),
       },
     ],
