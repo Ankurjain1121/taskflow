@@ -37,9 +37,10 @@ use crate::routes::{
     task_group_routes, task_issue_link_router, task_labels_router, task_router, task_snooze_router,
     task_status_timeline_router, task_template_router, team_overview_router, tenant_router,
     time_entry_router, upload_router, user_preferences_router, webhook_router,
-    workspace_api_keys_router, workspace_audit_router, workspace_export_router,
-    workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
-    workspace_roles_router, workspace_router, workspace_tasks_router, workspace_trash_router,
+    webhooks_incoming_router, workspace_api_keys_router, workspace_audit_router,
+    workspace_export_router, workspace_job_roles_router, workspace_labels_router,
+    workspace_projects_router, workspace_roles_router, workspace_router, workspace_tasks_router,
+    workspace_trash_router,
 };
 use crate::routes::{metrics_router, portfolio_router, prometheus_router};
 use crate::state::AppState;
@@ -378,8 +379,10 @@ pub fn build_router(
         // Phase 4: Client portal (project shares)
         .nest("/api", project_share_router(state.clone()))
         .nest("/api", shared_project_public_router())
-        // Phase 4: Webhooks
+        // Phase 4: Webhooks (outbound delivery log)
         .nest("/api", webhook_router(state.clone()))
+        // Phase 6a: Inbound webhook receiver from Twenty CRM (no auth — HMAC-signed)
+        .nest("/api", webhooks_incoming_router(state.clone()))
         // Settings & Teams: User preferences, sessions, uploads, API keys
         .nest("/api", user_preferences_router(state.clone()))
         .nest("/api", sessions_router(state.clone()))

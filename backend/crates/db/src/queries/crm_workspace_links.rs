@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::models::CrmWorkspaceLink;
 
 /// Typed wrapper that forces callers to declare a tenant before running a query.
-/// Constructed by the API layer from the authenticated `TenantContext`.
+/// Constructed by the API layer from the authenticated `RlsContext`.
 #[derive(Debug, Clone, Copy)]
 pub struct TenantScope {
     pub tenant_id: Uuid,
