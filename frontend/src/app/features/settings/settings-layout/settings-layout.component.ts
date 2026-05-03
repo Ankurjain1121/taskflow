@@ -209,5 +209,6 @@ export class SettingsLayoutComponent {
     { path: 'appearance', label: 'Appearance', icon: 'pi pi-palette' },
     { path: 'notifications', label: 'Notifications', icon: 'pi pi-bell' },
     { path: 'templates', label: 'Templates', icon: 'pi pi-copy' },
+    { path: 'integrations', label: 'Integrations', icon: 'pi pi-plug' },
   ];
 }

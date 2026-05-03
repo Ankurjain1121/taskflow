@@ -16,6 +16,7 @@ import { SidebarAllProjectsComponent } from './sidebar-all-projects.component';
 import { SidebarFooterComponent } from './sidebar-footer.component';
 import { WorkspaceSwitcherComponent } from './workspace-switcher.component';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
+import { CrmFlagService } from '../../../core/services/crm-flag.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -239,6 +240,20 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Discover</span>
         </a>
 
+        @if (crmEnabled()) {
+          <a routerLink="/crm"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: false }"
+             (click)="onNavClick()"
+             class="home-item flex items-center gap-3 px-3 text-sm mb-1"
+             [class.justify-center]="collapsed()"
+             [pTooltip]="collapsed() ? 'CRM' : ''" tooltipPosition="right">
+            <i class="pi pi-briefcase flex-shrink-0"
+               style="font-size: 1.25rem; color: var(--sidebar-text-muted)"></i>
+            <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">CRM</span>
+          </a>
+        }
+
         <app-sidebar-projects #starredProjects
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
@@ -290,6 +305,8 @@ export class SidebarComponent {
 
   private readonly elementRef = inject(ElementRef);
   private readonly ctx = inject(WorkspaceContextService);
+  private readonly crmFlag = inject(CrmFlagService);
+  readonly crmEnabled = this.crmFlag.crmEnabled;
   readonly dashboardRoute = computed(() => {
     const wsId = this.ctx.activeWorkspaceId();
     return wsId ? `/workspace/${wsId}/dashboard` : '/dashboard';
