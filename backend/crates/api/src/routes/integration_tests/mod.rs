@@ -23,6 +23,7 @@ mod recent_items_tests;
 mod task_issue_link_tests;
 mod task_snooze_tests;
 mod task_tests;
+mod twenty_health_tests;
 mod workspace_audit_tests;
 mod workspace_export_tests;
 mod workspace_tests;

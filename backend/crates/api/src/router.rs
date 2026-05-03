@@ -26,18 +26,19 @@ use crate::routes::{
     batch_my_tasks_router, board_columns_router, board_positions_router, bulk_ops_router,
     charts_router, column_router, comment_router, cron_router, custom_field_router,
     dashboard_router, dependency_router, eisenhower_router, favorites_router,
-    filter_presets_router, health_handler, issue_router, liveness_handler, milestone_router,
-    my_tasks_router, notification_preferences_router, notification_router, onboarding_router,
-    personal_board_router, positions_router, project_budget_router, project_group_router,
-    project_router, project_share_router, project_template_router, project_templates_router,
-    readiness_handler, recent_items_router, recurring_router, reports_router, saved_views_router,
-    search_router, sessions_router, shared_project_public_router, subtask_router,
-    task_group_routes, task_issue_link_router, task_labels_router, task_router, task_snooze_router,
-    task_status_timeline_router, task_template_router, team_overview_router, tenant_router,
-    time_entry_router, upload_router, user_preferences_router, webhook_router,
-    workspace_api_keys_router, workspace_audit_router, workspace_export_router,
-    workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
-    workspace_roles_router, workspace_router, workspace_tasks_router, workspace_trash_router,
+    filter_presets_router, health_handler, integrations_router, issue_router, liveness_handler,
+    milestone_router, my_tasks_router, notification_preferences_router, notification_router,
+    onboarding_router, personal_board_router, positions_router, project_budget_router,
+    project_group_router, project_router, project_share_router, project_template_router,
+    project_templates_router, readiness_handler, recent_items_router, recurring_router,
+    reports_router, saved_views_router, search_router, sessions_router,
+    shared_project_public_router, subtask_router, task_group_routes, task_issue_link_router,
+    task_labels_router, task_router, task_snooze_router, task_status_timeline_router,
+    task_template_router, team_overview_router, tenant_router, time_entry_router, upload_router,
+    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_audit_router,
+    workspace_export_router, workspace_job_roles_router, workspace_labels_router,
+    workspace_projects_router, workspace_roles_router, workspace_router, workspace_tasks_router,
+    workspace_trash_router,
 };
 use crate::routes::{metrics_router, portfolio_router, prometheus_router};
 use crate::state::AppState;
@@ -225,6 +226,8 @@ pub fn build_router(
         .nest("/api", comment_router(state.clone()))
         // Activity log routes
         .nest("/api", activity_log_router(state.clone()))
+        // Integration routes
+        .nest("/api", integrations_router(state.clone()))
         // Tenant routes (org-level)
         .nest("/api/tenant", tenant_router(state.clone()))
         // Workspace routes
