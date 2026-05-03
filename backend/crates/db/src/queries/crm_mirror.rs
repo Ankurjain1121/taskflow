@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::crm_mirror::CrmWorkspaceLink;
+use crate::models::crm_mirror::CrmWorkspaceLinkSecret;
 
 /// RlsContext scopes every query to a specific tenant for RLS enforcement.
 pub struct RlsContext {
@@ -24,12 +24,15 @@ pub enum CrmMirrorError {
 pub async fn get_workspace_link(
     pool: &PgPool,
     tenant_id: Uuid,
-) -> Result<CrmWorkspaceLink, CrmMirrorError> {
-    sqlx::query_as::<_, CrmWorkspaceLink>(
+) -> Result<CrmWorkspaceLinkSecret, CrmMirrorError> {
+    // The Phase 4 `crm_workspace_links` table makes `hmac_secret_encrypted`
+    // nullable.  Webhook handlers require it; absence ⇒ tenant not configured
+    // for inbound CRM, treat as `WorkspaceLinkNotFound`.
+    sqlx::query_as::<_, CrmWorkspaceLinkSecret>(
         r"
         SELECT tenant_id, twenty_workspace_id, hmac_secret_encrypted
         FROM crm_workspace_links
-        WHERE tenant_id = $1
+        WHERE tenant_id = $1 AND hmac_secret_encrypted IS NOT NULL
         ",
     )
     .bind(tenant_id)

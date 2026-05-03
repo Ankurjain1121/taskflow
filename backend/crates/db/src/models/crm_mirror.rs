@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Maps a TaskBolt tenant to a Twenty workspace + encrypted HMAC shared secret.
+/// Slim projection of `crm_workspace_links` exposing only the columns needed
+/// for inbound-webhook HMAC verification.  The full row model lives in
+/// `models::crm_workspace_link::CrmWorkspaceLink` (Phase 4); this struct
+/// avoids loading OIDC fields on every webhook request.
 #[derive(Debug, Clone, FromRow)]
-pub struct CrmWorkspaceLink {
+pub struct CrmWorkspaceLinkSecret {
     pub tenant_id: Uuid,
     pub twenty_workspace_id: String,
     pub hmac_secret_encrypted: Vec<u8>,

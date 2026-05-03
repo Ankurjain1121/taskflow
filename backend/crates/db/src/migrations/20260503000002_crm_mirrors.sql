@@ -2,17 +2,12 @@
 -- These tables are NEVER mutated by TaskBolt business logic.
 -- Twenty is the source of truth; rows arrive via inbound webhook only.
 
--- Workspace link: maps tenant_id → Twenty workspace + HMAC secret
--- Created here so Phase 6a handler can look up the secret.
-CREATE TABLE crm_workspace_links (
-    tenant_id UUID NOT NULL,
-    twenty_workspace_id TEXT NOT NULL,
-    hmac_secret_encrypted BYTEA NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (tenant_id)
-);
-CREATE UNIQUE INDEX crm_workspace_links_workspace ON crm_workspace_links (twenty_workspace_id);
+-- Workspace link HMAC secret: extend W4's crm_workspace_links table with
+-- the inbound-webhook HMAC secret.  W4 created the table during Phase 4
+-- (OIDC + provisioning); Phase 6a only adds the HMAC column needed for
+-- inbound-webhook signature verification.
+ALTER TABLE crm_workspace_links
+    ADD COLUMN IF NOT EXISTS hmac_secret_encrypted BYTEA;
 
 -- Contact mirror (person.* events from Twenty)
 CREATE TABLE crm_contact_mirror (
