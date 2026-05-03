@@ -23,6 +23,7 @@
 .env.production
 .env.backup-*
 !.env.example
+.env.twenty
 
 # IDE
 .idea/
