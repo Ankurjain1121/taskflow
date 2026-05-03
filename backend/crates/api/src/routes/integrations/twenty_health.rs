@@ -26,22 +26,27 @@ pub struct TwentyHealthResponse {
 /// Returns cached result if available (30-second TTL via Redis).
 /// Requires Admin role.
 async fn twenty_health_handler(
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     AdminUser(_): AdminUser,
 ) -> Result<Json<TwentyHealthResponse>> {
     let cache_key = "twenty_health_status";
 
-    // Try to get from Redis cache first
-    if let Ok(cached) = state.redis.get::<_, String>(cache_key).await {
-        if let Ok(response) = serde_json::from_str::<TwentyHealthResponse>(&cached) {
-            tracing::debug!("Returning cached Twenty health check");
-            if response.twenty_reachable {
-                return Ok(Json(response));
-            } else {
+    // Try to get from Redis cache first.
+    // On Redis failure we log a warning and fall through to a live check — never panic.
+    match state.redis.get::<_, String>(cache_key).await {
+        Ok(cached) => {
+            if let Ok(response) = serde_json::from_str::<TwentyHealthResponse>(&cached) {
+                tracing::debug!("Returning cached Twenty health check");
+                if response.twenty_reachable {
+                    return Ok(Json(response));
+                }
                 return Err(AppError::ServiceUnavailable(
                     "Twenty CRM is currently unreachable (cached)".into(),
                 ));
             }
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "Redis unavailable for Twenty health cache; falling back to live check");
         }
     }
 
@@ -77,8 +82,12 @@ async fn twenty_health_handler(
     };
 
     // Cache the result in Redis for 30 seconds
-    let serialized = serde_json::to_string(&response).unwrap_or_default();
-    let _ = state.redis.set_ex(cache_key, serialized, 30).await;
+    if let Ok(serialized) = serde_json::to_string(&response) {
+        let _: std::result::Result<(), redis::RedisError> =
+            state.redis.set_ex(cache_key, serialized, 30u64).await;
+    } else {
+        tracing::warn!("Failed to serialize TwentyHealthResponse for cache; skipping cache write");
+    }
 
     if response.twenty_reachable {
         Ok(Json(response))

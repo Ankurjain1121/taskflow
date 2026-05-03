@@ -1,19 +1,6 @@
-#![allow(clippy::needless_raw_string_hashes)]
-mod config;
-mod errors;
-pub mod extractors;
-mod jobs;
-pub mod middleware;
-mod router;
-pub mod routes;
-pub mod services;
-mod state;
-#[cfg(test)]
-mod test_helpers;
-pub mod ws;
-
-use crate::config::Config;
-use crate::state::AppState;
+// All modules are declared in lib.rs; main.rs is a thin entry point.
+use taskbolt_api::config::Config;
+use taskbolt_api::state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -64,10 +51,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::new(config.clone()).await?;
 
     // Build router
-    let app = router::build_router(state.clone(), &config)?;
+    let app = taskbolt_api::router::build_router(state.clone(), &config)?;
 
     // Spawn background jobs
-    jobs::spawn_background_jobs(&state, &config).await;
+    taskbolt_api::jobs::spawn_background_jobs(&state, &config).await;
 
     // Bind and serve
     let addr = format!("{}:{}", config.host, config.port);

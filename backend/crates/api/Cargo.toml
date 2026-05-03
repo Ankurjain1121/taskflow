@@ -6,6 +6,10 @@ edition.workspace = true
 [lints]
 workspace = true
 
+[lib]
+name = "taskbolt_api"
+path = "src/lib.rs"
+
 [[bin]]
 name = "taskbolt-api"
 path = "src/main.rs"

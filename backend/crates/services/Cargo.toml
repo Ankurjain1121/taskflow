@@ -17,6 +17,7 @@ tracing.workspace = true
 reqwest.workspace = true
 redis.workspace = true
 tokio.workspace = true
+once_cell.workspace = true
 aws-sdk-s3.workspace = true
 url = { workspace = true }
 

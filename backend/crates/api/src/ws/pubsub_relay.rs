@@ -51,8 +51,7 @@ impl PubSubRelay {
         relay
     }
 
-    /// Create a dummy relay for testing (no background task).
-    #[cfg(test)]
+    /// Create a dummy relay for testing (no background task, no Redis connection).
     pub fn dummy() -> Self {
         let (cmd_tx, _cmd_rx) = mpsc::unbounded_channel();
         Self {

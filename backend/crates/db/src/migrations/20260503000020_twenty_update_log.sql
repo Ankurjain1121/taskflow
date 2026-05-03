@@ -11,4 +11,7 @@ CREATE TABLE twenty_update_log (
 
 CREATE INDEX twenty_update_log_recent ON twenty_update_log (created_at DESC);
 
+-- Partial index for fast rollback audit queries
+CREATE INDEX twenty_update_log_rolled_back ON twenty_update_log (rolled_back, created_at) WHERE rolled_back = true;
+
 -- Retention: rows older than 90d cleaned via cron (separate job)

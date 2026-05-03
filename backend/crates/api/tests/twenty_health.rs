@@ -1,16 +1,26 @@
-use super::common::*;
+//! Integration tests for GET /api/integrations/twenty/health
+//!
+//! These tests exercise the full Axum router (auth middleware, CSRF, handler)
+//! and require a live PostgreSQL + Redis instance reachable via DATABASE_URL /
+//! REDIS_URL (or the defaults in test_helpers::test_config).
+//!
+//! Run with: cargo test -- --ignored twenty_health
 
-// =========================================================================
-// INTEGRATIONS — GET /api/integrations/twenty/health
-// =========================================================================
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use taskbolt_api::test_helpers::helpers::{
+    setup_user, test_app, test_jwt_token, test_jwt_token_with_role,
+};
+use taskbolt_db::models::UserRole;
+use tower::ServiceExt;
 
 #[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
-async fn test_twenty_health_requires_admin() {
+async fn twenty_health_requires_admin() {
     let (app, state) = test_app().await;
     let (tenant_id, user_id) = setup_user(&state.db).await;
 
-    // Create token for non-admin user
+    // Create token for a non-admin user (default role is Member)
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
@@ -30,7 +40,7 @@ async fn test_twenty_health_requires_admin() {
 
 #[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
-async fn test_twenty_health_requires_auth() {
+async fn twenty_health_requires_auth() {
     let (app, _state) = test_app().await;
 
     let response = app
@@ -49,11 +59,10 @@ async fn test_twenty_health_requires_auth() {
 
 #[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
-async fn test_twenty_health_admin_access() {
+async fn twenty_health_admin_access() {
     let (app, state) = test_app().await;
     let (tenant_id, user_id) = setup_user(&state.db).await;
 
-    // Create token for admin user
     let token = test_jwt_token_with_role(&state, user_id, tenant_id, UserRole::Admin);
 
     let response = app
@@ -95,7 +104,7 @@ async fn test_twenty_health_admin_access() {
 
 #[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
-async fn test_twenty_health_response_shape() {
+async fn twenty_health_response_shape() {
     let (app, state) = test_app().await;
     let (tenant_id, user_id) = setup_user(&state.db).await;
     let token = test_jwt_token_with_role(&state, user_id, tenant_id, UserRole::Admin);
@@ -111,7 +120,6 @@ async fn test_twenty_health_response_shape() {
         .await
         .expect("request failed");
 
-    // Should get 200 or 503
     let status = response.status().as_u16();
     assert!(
         status == 200 || status == 503,
@@ -124,7 +132,6 @@ async fn test_twenty_health_response_shape() {
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
 
-    // Verify response shape
     assert!(json.is_object(), "Response should be an object");
     assert!(
         json["twenty_reachable"].is_boolean(),
@@ -134,7 +141,6 @@ async fn test_twenty_health_response_shape() {
         json["api_key_valid"].is_boolean(),
         "api_key_valid should exist and be boolean"
     );
-    // last_sync_at can be null or a string
     assert!(
         json["last_sync_at"].is_null() || json["last_sync_at"].is_string(),
         "last_sync_at should be null or string"

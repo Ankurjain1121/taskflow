@@ -1,3 +1,3 @@
 pub mod client;
 
-pub use client::VersionTolerantClient;
+pub use client::{TwentyError, VersionTolerantClient};

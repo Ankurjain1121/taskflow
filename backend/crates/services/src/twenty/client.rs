@@ -4,7 +4,6 @@ use once_cell::sync::OnceCell;
 use reqwest::Client;
 use serde::{de, Deserialize};
 use serde_json::Value;
-use std::fmt;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TwentyError {
@@ -15,6 +14,9 @@ pub enum TwentyError {
     #[error("API error: {status} - {message}")]
     Api { status: u16, message: String },
 }
+
+/// Path used for Twenty's liveness probe.
+const HEALTH_CHECK_PATH: &str = "/healthz";
 
 /// Version-tolerant Twenty CRM client
 ///
@@ -100,8 +102,10 @@ impl VersionTolerantClient {
 
         let body = response.text().await?;
 
-        // Deserialize with unknown fields allowed
-        let deserializer = serde_json::Deserializer::from_str(&body);
+        // `serde_json::from_str` allows unknown fields by default unless the target type
+        // is annotated with `#[serde(deny_unknown_fields)]`. Twenty API responses often
+        // include extra fields on minor version bumps; keeping target structs without
+        // `deny_unknown_fields` ensures forward-compatible deserialization.
         match serde_json::from_str::<T>(&body) {
             Ok(result) => Ok(result),
             Err(e) => {
@@ -115,9 +119,9 @@ impl VersionTolerantClient {
         }
     }
 
-    /// Health check: call Twenty's /healthz endpoint
+    /// Health check: call Twenty's `/healthz` endpoint (see [`HEALTH_CHECK_PATH`]).
     pub async fn health_check(&self) -> Result<HealthResponse, TwentyError> {
-        let url = format!("{}/healthz", self.base_url);
+        let url = format!("{}{}", self.base_url, HEALTH_CHECK_PATH);
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
