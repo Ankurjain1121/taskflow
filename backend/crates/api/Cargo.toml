@@ -43,6 +43,7 @@ aes-gcm = { workspace = true }
 hkdf = { workspace = true }
 base64 = "0.22"
 futures-util = "0.3"
+rsa = { workspace = true }
 
 # Hex encoding
 hex.workspace = true

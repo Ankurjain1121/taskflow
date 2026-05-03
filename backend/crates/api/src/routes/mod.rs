@@ -30,6 +30,7 @@ pub mod filter_presets;
 pub mod health;
 pub mod helpers;
 pub mod import;
+pub mod integrations;
 pub mod invitation;
 pub mod issue;
 pub mod metrics;
