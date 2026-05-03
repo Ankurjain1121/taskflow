@@ -26,7 +26,9 @@ CREATE INDEX crm_workspace_links_twenty_workspace_id
     ON crm_workspace_links (twenty_workspace_id);
 
 ALTER TABLE crm_workspace_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_workspace_links FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY crm_workspace_links_tenant_isolation ON crm_workspace_links
     FOR ALL
-    USING (tenant_id = current_setting('app.tenant_id', true)::UUID);
+    USING (tenant_id = current_setting('app.tenant_id', true)::UUID)
+    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::UUID);

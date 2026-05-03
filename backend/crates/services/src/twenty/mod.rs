@@ -6,4 +6,4 @@
 
 pub mod client;
 
-pub use client::{TwentyClient, TwentyError, ProvisionUserOutcome};
+pub use client::{ProvisionUserOutcome, TwentyClient, TwentyError};

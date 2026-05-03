@@ -111,7 +111,10 @@ fn id_token_carries_required_claims() {
     assert!(!decoded.claims.aud.is_empty(), "aud must be set");
     assert!(decoded.claims.sub != Uuid::nil(), "sub must be set");
     assert!(decoded.claims.iat > 0, "iat must be a unix timestamp");
-    assert!(decoded.claims.exp > decoded.claims.iat, "exp must be after iat");
+    assert!(
+        decoded.claims.exp > decoded.claims.iat,
+        "exp must be after iat"
+    );
 
     // TaskBolt extensions for Twenty (workspace_id, tenant_id, nonce)
     assert!(!decoded.claims.workspace_id.is_empty());
@@ -127,10 +130,8 @@ fn key_isolation_from_taskbolt_jwt() {
     let oidc_dec = DecodingKey::from_rsa_pem(public_pem.as_bytes()).expect("oidc dec");
 
     // Stand in for TaskBolt's JWT keys (HS256 in tests by default).
-    let taskbolt_enc =
-        EncodingKey::from_secret(b"taskbolt-test-secret-must-be-32-bytes-long");
-    let taskbolt_dec =
-        DecodingKey::from_secret(b"taskbolt-test-secret-must-be-32-bytes-long");
+    let taskbolt_enc = EncodingKey::from_secret(b"taskbolt-test-secret-must-be-32-bytes-long");
+    let taskbolt_dec = DecodingKey::from_secret(b"taskbolt-test-secret-must-be-32-bytes-long");
 
     let now = chrono::Utc::now().timestamp();
     let claims = OidcClaims {
@@ -155,14 +156,20 @@ fn key_isolation_from_taskbolt_jwt() {
     hs_validation.set_issuer(&["https://x.test/oauth/twenty"]);
     hs_validation.set_audience(&["client"]);
     let cross1 = decode::<OidcClaims>(&oidc_token, &taskbolt_dec, &hs_validation);
-    assert!(cross1.is_err(), "RS256-signed token must not verify under HS256 key");
+    assert!(
+        cross1.is_err(),
+        "RS256-signed token must not verify under HS256 key"
+    );
 
     // TaskBolt HS256 token must NOT verify with the OIDC RS256 public key
     let mut rs_validation = Validation::new(Algorithm::RS256);
     rs_validation.set_issuer(&["https://x.test/oauth/twenty"]);
     rs_validation.set_audience(&["client"]);
     let cross2 = decode::<OidcClaims>(&taskbolt_token, &oidc_dec, &rs_validation);
-    assert!(cross2.is_err(), "HS256-signed token must not verify under RS256 key");
+    assert!(
+        cross2.is_err(),
+        "HS256-signed token must not verify under RS256 key"
+    );
 }
 
 #[test]

@@ -9,6 +9,8 @@
 
 use std::sync::Arc;
 
+use aes_gcm::aead::rand_core::RngCore;
+use aes_gcm::aead::OsRng;
 use axum::{
     extract::{Extension, Form, Query, State},
     http::StatusCode,
@@ -16,8 +18,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use aes_gcm::aead::rand_core::RngCore;
-use aes_gcm::aead::OsRng;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{Duration, Utc};
 use jsonwebtoken::Header;
@@ -43,7 +43,9 @@ fn issuer() -> String {
 }
 
 fn allowed_redirect_prefix() -> Option<String> {
-    std::env::var("TWENTY_BASE_URL").ok().filter(|s| !s.is_empty())
+    std::env::var("TWENTY_BASE_URL")
+        .ok()
+        .filter(|s| !s.is_empty())
 }
 
 /// Build the `/oauth/twenty/*` router. Caller must layer on
@@ -160,7 +162,7 @@ async fn authorize_handler(
     if params
         .code_challenge_method
         .as_deref()
-        .map_or(false, |m| !m.eq_ignore_ascii_case("S256"))
+        .is_some_and(|m| !m.eq_ignore_ascii_case("S256"))
     {
         return Err(error(
             StatusCode::BAD_REQUEST,
@@ -173,6 +175,17 @@ async fn authorize_handler(
             StatusCode::BAD_REQUEST,
             "invalid_request",
             "PKCE code_challenge is required",
+        ));
+    }
+    // Nonce must carry enough entropy to be effective as a replay-defence
+    // input to the ID token. RFC 6749 leaves length unspecified, but anything
+    // shorter than 8 chars is almost certainly a misconfigured client and
+    // weakens the binding between authorize→token.
+    if params.nonce.len() < 8 {
+        return Err(error(
+            StatusCode::BAD_REQUEST,
+            "invalid_request",
+            "nonce must be at least 8 characters",
         ));
     }
 
@@ -351,11 +364,7 @@ async fn token_handler(
     })?;
     let stored: StoredCode = serde_json::from_str(&stored_json).map_err(|e| {
         tracing::error!(?e, "deserialize stored code failed");
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "server_error",
-            "decode",
-        )
+        error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "decode")
     })?;
 
     if stored.client_id != req.client_id {
@@ -384,31 +393,24 @@ async fn token_handler(
     }
 
     // Validate client_secret against the link record (decrypt + constant-time eq).
-    let link = crm_workspace_links::get_by_twenty_workspace_id(&state.db, &stored.twenty_workspace_id)
-        .await
-        .map_err(|e| {
-            tracing::error!(?e, "crm link relookup failed");
-            error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "server_error",
-                "lookup",
-            )
-        })?
-        .ok_or_else(|| {
-            error(
-                StatusCode::BAD_REQUEST,
-                "invalid_grant",
-                "link no longer active",
-            )
-        })?;
-    let stored_secret = crm_crypto::decrypt(&link.twenty_oidc_client_secret_encrypted)
-        .map_err(|e| {
+    let link =
+        crm_workspace_links::get_by_twenty_workspace_id(&state.db, &stored.twenty_workspace_id)
+            .await
+            .map_err(|e| {
+                tracing::error!(?e, "crm link relookup failed");
+                error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "lookup")
+            })?
+            .ok_or_else(|| {
+                error(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_grant",
+                    "link no longer active",
+                )
+            })?;
+    let stored_secret =
+        crm_crypto::decrypt(&link.twenty_oidc_client_secret_encrypted).map_err(|e| {
             tracing::error!(?e, "decrypt client secret failed");
-            error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "server_error",
-                "decrypt",
-            )
+            error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "decrypt")
         })?;
     if !constant_time_eq(stored_secret.as_slice(), req.client_secret.as_bytes()) {
         return Err(error(
@@ -432,6 +434,24 @@ async fn token_handler(
                 "user no longer exists",
             )
         })?;
+
+    // Tenant binding check: the user resolved from `stored.user_id` must still
+    // belong to the same tenant captured at /authorize time. Mismatch implies
+    // the user was moved between tenants (or a stored-code tampering attempt)
+    // and we MUST refuse to mint a token that crosses the boundary.
+    if user.tenant_id != stored.tenant_id {
+        tracing::warn!(
+            stored_tenant = %stored.tenant_id,
+            user_tenant = %user.tenant_id,
+            user_id = %user.id,
+            "tenant_id mismatch between stored code and user record"
+        );
+        return Err(error(
+            StatusCode::UNAUTHORIZED,
+            "invalid_grant",
+            "tenant binding mismatch",
+        ));
+    }
 
     let now = Utc::now();
     let claims = IdTokenClaims {
@@ -548,11 +568,7 @@ async fn userinfo_handler(
     })?;
     let info: StoredAccessToken = serde_json::from_str(&raw).map_err(|e| {
         tracing::error!(?e, "deserialize access token info failed");
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "server_error",
-            "decode",
-        )
+        error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "decode")
     })?;
 
     Ok(Json(UserInfoResponse {
@@ -601,6 +617,8 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 }
 
 mod urlencoding {
+    use std::fmt::Write as _;
+
     /// Minimal RFC 3986 percent-encoder for query-string values.
     pub fn encode_str(s: &str) -> String {
         let mut out = String::with_capacity(s.len());
@@ -611,7 +629,7 @@ mod urlencoding {
             ) {
                 out.push(*b as char);
             } else {
-                out.push_str(&format!("%{b:02X}"));
+                let _ = write!(out, "%{b:02X}");
             }
         }
         out
@@ -657,7 +675,9 @@ mod tests {
         let a = random_url_token();
         let b = random_url_token();
         assert_ne!(a, b);
-        assert!(a.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(a
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
     }
 
     #[test]
@@ -670,10 +690,8 @@ mod tests {
     #[test]
     fn pkce_round_trip() {
         let verifier = "verifier-abcdef-1234567890";
-        let challenge =
-            URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
-        let computed =
-            URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
+        let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
+        let computed = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
         assert!(constant_time_eq(challenge.as_bytes(), computed.as_bytes()));
     }
 

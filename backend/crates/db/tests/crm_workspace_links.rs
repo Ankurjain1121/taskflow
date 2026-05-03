@@ -134,7 +134,9 @@ async fn pause_then_resume_round_trip() {
         .await
         .expect("create");
 
-    assert!(crm_workspace_links::pause(&pool, &scope, link.id).await.expect("pause"));
+    assert!(crm_workspace_links::pause(&pool, &scope, link.id)
+        .await
+        .expect("pause"));
     let paused = crm_workspace_links::get_active_for_tenant(&pool, &scope)
         .await
         .expect("lookup");
@@ -143,7 +145,9 @@ async fn pause_then_resume_round_trip() {
         "paused link must not appear in get_active_for_tenant (status='paused' filter)"
     );
 
-    assert!(crm_workspace_links::resume(&pool, &scope, link.id).await.expect("resume"));
+    assert!(crm_workspace_links::resume(&pool, &scope, link.id)
+        .await
+        .expect("resume"));
     let resumed = crm_workspace_links::get_active_for_tenant(&pool, &scope)
         .await
         .expect("lookup")

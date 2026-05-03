@@ -86,6 +86,9 @@ where
 {
     type Rejection = Response;
 
+    // Rejection is `axum::http::Response<Body>` (~128B) — required by Axum trait
+    // contract; can't be boxed without changing the trait return type.
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
@@ -128,6 +131,7 @@ where
 {
     type Rejection = Response;
 
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
@@ -167,6 +171,7 @@ where
 {
     type Rejection = Response;
 
+    #[allow(clippy::result_large_err)]
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,

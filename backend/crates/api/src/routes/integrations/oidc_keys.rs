@@ -47,11 +47,13 @@ pub struct TwentyOidcKeys {
 
 impl std::fmt::Debug for TwentyOidcKeys {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Intentionally redact sensitive key material (public_key, encoding, decoding,
+        // private_pem). Only include kid + public_pem_len for diagnostics.
         f.debug_struct("TwentyOidcKeys")
             .field("kid", &self.kid)
             .field("public_pem_len", &self.public_pem.len())
             .field("private_pem", &"[REDACTED]")
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -214,8 +216,7 @@ mod tests {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&["https://taskflow.paraslace.in/oauth/twenty"]);
         validation.set_audience(&["twenty-client"]);
-        let decoded =
-            decode::<TinyClaims>(&token, &keys.decoding, &validation).expect("verify");
+        let decoded = decode::<TinyClaims>(&token, &keys.decoding, &validation).expect("verify");
         assert_eq!(decoded.claims.sub, "user-1");
     }
 
@@ -234,8 +235,8 @@ mod tests {
     #[test]
     fn kid_is_stable_for_same_key() {
         let k = TwentyOidcKeys::generate().expect("gen");
-        let again = TwentyOidcKeys::from_pem(k.private_pem.clone(), k.public_pem.clone())
-            .expect("rebuild");
+        let again =
+            TwentyOidcKeys::from_pem(k.private_pem.clone(), k.public_pem.clone()).expect("rebuild");
         assert_eq!(k.kid, again.kid);
     }
 

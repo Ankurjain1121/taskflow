@@ -109,7 +109,11 @@ impl TwentyClient {
 
         let status = response.status();
         if status == StatusCode::CONFLICT {
-            tracing::debug!(workspace_id, email, "Twenty user already exists; treating as success");
+            tracing::debug!(
+                workspace_id,
+                email,
+                "Twenty user already exists; treating as success"
+            );
             return Ok(ProvisionUserOutcome::AlreadyExists);
         }
         if !status.is_success() {
@@ -120,9 +124,7 @@ impl TwentyClient {
             });
         }
         let parsed: ProvisionedUser = response.json().await?;
-        Ok(ProvisionUserOutcome::Created {
-            user_id: parsed.id,
-        })
+        Ok(ProvisionUserOutcome::Created { user_id: parsed.id })
     }
 }
 
