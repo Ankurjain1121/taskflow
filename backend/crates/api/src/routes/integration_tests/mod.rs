@@ -8,6 +8,9 @@
 //!   - task_tests: Task CRUD, movement, assignment, subtasks, comments, deps
 //!   - dashboard_tests: Dashboard stats, search, favorites, notifications, health
 //!   - invitation_tests: Invitation CRUD, validation, acceptance
+//!
+//! Note: twenty_health tests live in `tests/twenty_health.rs` (external integration
+//! tests using the library crate's public surface).
 
 mod common;
 

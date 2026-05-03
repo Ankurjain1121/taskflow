@@ -99,7 +99,7 @@ pub use eisenhower::eisenhower_router;
 pub use favorites::favorites_router;
 pub use filter_presets::filter_presets_router;
 pub use health::{detailed_health_handler, health_handler, liveness_handler, readiness_handler};
-pub use integrations::twenty_sync_router;
+pub use integrations::{integrations_router, twenty_sync_router};
 pub use project::{project_router, project_templates_router, workspace_projects_router};
 pub use project_share::{project_share_router, shared_project_public_router};
 pub mod task_bulk;

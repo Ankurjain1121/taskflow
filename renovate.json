@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["after 2am and before 6am"],
+  "timezone": "Asia/Kolkata",
+  "labels": ["renovate", "deps"],
+  "prHourlyLimit": 4,
+  "packageRules": [
+    {
+      "matchPackageNames": ["twentycrm/twenty"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": false,
+      "labels": ["renovate", "twenty", "patch"],
+      "addLabels": ["needs-smoke-test"],
+      "prBodyDefinitions": {
+        "Notes": "Patch update from Twenty. Run docker-compose smoke before merge."
+      }
+    },
+    {
+      "matchPackageNames": ["twentycrm/twenty"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "labels": ["renovate", "twenty", "minor"],
+      "addLabels": ["needs-review"]
+    },
+    {
+      "matchPackageNames": ["twentycrm/twenty"],
+      "matchUpdateTypes": ["major"],
+      "enabled": true,
+      "labels": ["renovate", "twenty", "major", "manual-only"],
+      "addLabels": ["maintenance-window-required"]
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["docker-compose\\.twenty\\.yml$", "docker-compose\\.yml$"],
+      "matchStrings": ["twentycrm/twenty:(?<currentValue>v\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "twentycrm/twenty",
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

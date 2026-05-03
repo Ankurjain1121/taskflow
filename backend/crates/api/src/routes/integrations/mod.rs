@@ -9,13 +9,17 @@
 //! one key cannot forge tokens accepted by the other.
 //!
 //! Outbound enqueue endpoints (Phase 6b) live under `twenty_sync_enqueue` and
-//! push CRM mutations through the worker queue.
+//! push CRM mutations through the worker queue. Phase 8 adds a version-tolerant
+//! Twenty health check exposed via `twenty_health::integrations_router` for the
+//! Renovate auto-bump pipeline.
 
 pub mod crm_crypto;
 pub mod oidc_keys;
+pub mod twenty_health;
 pub mod twenty_oidc;
 pub mod twenty_sync_enqueue;
 
 pub use oidc_keys::TwentyOidcKeys;
+pub use twenty_health::integrations_router;
 pub use twenty_oidc::twenty_oidc_router;
 pub use twenty_sync_enqueue::twenty_sync_router;

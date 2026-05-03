@@ -42,6 +42,7 @@ pub use trash_bin::{
     TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,
 };
 pub use twenty::{
-    decide_conflict, push_job, ConflictDecision, ConflictResolution, OutboundError,
-    ProvisionUserOutcome, PushOutcome, TwentyClient, TwentyError, UpsertOutcome,
+    decide_conflict, push_job, ConflictDecision, ConflictResolution, HealthClientError,
+    HealthResponse, OutboundError, ProvisionUserOutcome, PushOutcome, TwentyClient, TwentyError,
+    UpsertOutcome, VersionTolerantClient,
 };

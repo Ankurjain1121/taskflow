@@ -4,6 +4,9 @@
 //! and enforcing role-based access control.
 #![allow(clippy::result_large_err)]
 
+// Response is an opaque type that can be large; allow the lint on extractor closures.
+#![allow(clippy::result_large_err)]
+
 use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},

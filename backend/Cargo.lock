@@ -4400,6 +4400,7 @@ dependencies = [
  "base64",
  "chrono",
  "mockall",
+ "once_cell",
  "proptest",
  "redis",
  "reqwest 0.12.28",

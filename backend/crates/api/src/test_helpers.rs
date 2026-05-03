@@ -3,7 +3,6 @@
 //! Provides utilities to build a fully wired test application,
 //! generate JWT tokens, and set up test data.
 
-#[cfg(test)]
 pub mod helpers {
     use std::sync::Arc;
 
@@ -414,6 +413,7 @@ pub mod helpers {
             .nest("/api", routes::task_issue_link_router(state.clone()))
             .nest("/api", routes::task_crm_links_router(state.clone()))
             .nest("/api", routes::prometheus_router())
+            .nest("/api", routes::integrations_router(state.clone()))
             .nest(
                 "/api/projects/{board_id}/filter-presets",
                 routes::filter_presets_router(state.clone()),
