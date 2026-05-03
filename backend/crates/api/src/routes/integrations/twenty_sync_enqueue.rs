@@ -10,8 +10,12 @@
 //! of the same request collapse onto the same row.
 
 use axum::{
-    extract::State, http::StatusCode, middleware::from_fn_with_state, response::IntoResponse,
-    routing::post, Json, Router,
+    extract::State,
+    http::StatusCode,
+    middleware::{from_fn, from_fn_with_state},
+    response::IntoResponse,
+    routing::post,
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -23,7 +27,9 @@ use taskbolt_db::queries::crm_sync::{
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::{auth_middleware, csrf_middleware};
+use crate::middleware::{
+    auth_middleware, csrf_middleware, rate_limit_layer, rate_limit_middleware,
+};
 use crate::state::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -35,7 +41,7 @@ pub struct EnqueueBody {
     /// Optional. If absent, the server derives a stable key from the request shape.
     #[serde(default)]
     pub idempotency_key: Option<String>,
-    /// Optional. Defaults to 5.
+    /// Optional. Defaults to 5. Server-side clamp: 1..=20 (see handler).
     #[serde(default)]
     pub max_retries: Option<i32>,
 }
@@ -52,6 +58,11 @@ pub fn twenty_sync_router(state: AppState) -> Router<AppState> {
         .route("/integrations/twenty/sync/enqueue", post(enqueue_handler))
         .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
+        // Stricter per-IP rate limit on top of the global limit: even an
+        // authenticated tenant member must not be able to flood the queue.
+        // 30 req/60s matches the "write endpoint" pattern used elsewhere.
+        .layer(from_fn(rate_limit_middleware))
+        .layer(rate_limit_layer(state.redis.clone(), 30, 60))
 }
 
 async fn enqueue_handler(
@@ -106,6 +117,11 @@ async fn enqueue_handler(
         format!("auto:{}", hex::encode(hasher.finalize()))
     });
 
+    // Clamp caller-supplied max_retries to a sane range.
+    // Without this an authenticated caller could submit i32::MAX and pin a
+    // poison job in the queue forever, blocking real work behind it.
+    let max_retries = body.max_retries.map(|n| n.clamp(1, 20));
+
     let req = EnqueueRequest {
         tenant_id: user.tenant_id,
         twenty_workspace_id,
@@ -114,7 +130,7 @@ async fn enqueue_handler(
         operation: body.operation,
         payload: body.payload,
         idempotency_key: idempotency_key.clone(),
-        max_retries: body.max_retries,
+        max_retries,
     };
 
     let (job_id, outcome) = enqueue_job(&state.db, &req)

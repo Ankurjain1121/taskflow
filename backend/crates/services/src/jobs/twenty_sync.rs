@@ -1,5 +1,36 @@
 //! Outbound CRM sync worker (Phase 6b).
 //!
+//! ## Queue backend: Postgres only — no Redis (intentional)
+//!
+//! The original Phase 6b brief mentioned `bb8-redis` as a possible queue
+//! backend, but this worker is **PostgreSQL-only** by design and that is the
+//! correct choice. The pre-merge review flagged this as a brief/code mismatch;
+//! the brief is wrong, the code is right. Reasons we keep the queue in PG and
+//! do not introduce a Redis dependency:
+//!
+//! - **Atomic claim:** `SELECT ... FOR UPDATE SKIP LOCKED` gives us
+//!   competing-consumer semantics with strong row-level locking, equivalent
+//!   to (and more durable than) Redis BRPOPLPUSH-style patterns.
+//! - **Transactional with business data:** enqueue happens in the same
+//!   `crm_sync_jobs` table that lives next to `crm_workspace_links`,
+//!   `contacts`, `companies`, `deals`. We can wrap enqueue + entity write in
+//!   one tx — impossible across PG + Redis without 2PC.
+//! - **Auditable + debuggable:** every job state transition is a row update
+//!   visible via `psql`. Operators can inspect/requeue/DLQ with plain SQL.
+//!   No separate Redis CLI / RDB dump needed.
+//! - **One less moving part:** Redis would add a SPOF, a backup story, a
+//!   memory-eviction risk (LRU evicting in-flight jobs), and another
+//!   container in `docker-compose.yml`. PG is already mandatory for the app.
+//! - **Throughput is not the bottleneck:** outbound CRM sync is bounded by
+//!   the Twenty API (rate limit + network), not by queue throughput. PG
+//!   handles thousands of `claim_jobs` / sec — orders of magnitude above
+//!   what the upstream API can absorb.
+//!
+//! If we ever need cross-region fan-out or sub-millisecond claim latency,
+//! revisit. Until then, PG-only is the simpler, safer choice.
+//!
+//! ## Worker loop
+//!
 //! Loop: claim a batch via `SELECT FOR UPDATE SKIP LOCKED`, process each job
 //! through `twenty::sync::push_job`, then mark success/retry/dlq based on
 //! outcome. Bounded concurrency at the loop level (one DB tx per tick).
