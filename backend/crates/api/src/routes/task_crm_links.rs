@@ -66,6 +66,7 @@ async fn link_crm_contact_to_task(
 
     create_contact_link(
         &state.db,
+        tenant.tenant_id,
         task_id,
         body.twenty_workspace_id,
         body.crm_contact_id,
@@ -77,17 +78,23 @@ async fn link_crm_contact_to_task(
     Ok(Json(json!({ "success": true })))
 }
 
-/// DELETE /api/tasks/{task_id}/linked-crm-contacts/{crm_contact_id}
+/// DELETE /api/tasks/{task_id}/linked-crm-contacts/{crm_contact_id}/{twenty_workspace_id}
 async fn unlink_crm_contact_from_task(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path((task_id, crm_contact_id)): Path<(Uuid, Uuid)>,
+    Path((task_id, crm_contact_id, twenty_workspace_id)): Path<(Uuid, Uuid, String)>,
 ) -> Result<Json<serde_json::Value>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    delete_contact_link(&state.db, task_id, crm_contact_id)
-        .await
-        .map_err(map_err)?;
+    delete_contact_link(
+        &state.db,
+        tenant.tenant_id,
+        task_id,
+        &twenty_workspace_id,
+        crm_contact_id,
+    )
+    .await
+    .map_err(map_err)?;
 
     Ok(Json(json!({ "success": true })))
 }
@@ -100,7 +107,7 @@ async fn get_linked_crm_contacts_for_task(
 ) -> Result<Json<Vec<TaskCrmContact>>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    let rows = list_contacts_for_task(&state.db, task_id).await?;
+    let rows = list_contacts_for_task(&state.db, tenant.tenant_id, task_id).await?;
     Ok(Json(rows))
 }
 
@@ -117,6 +124,7 @@ async fn link_crm_company_to_task(
 
     create_company_link(
         &state.db,
+        tenant.tenant_id,
         task_id,
         body.twenty_workspace_id,
         body.crm_company_id,
@@ -128,17 +136,23 @@ async fn link_crm_company_to_task(
     Ok(Json(json!({ "success": true })))
 }
 
-/// DELETE /api/tasks/{task_id}/linked-crm-companies/{crm_company_id}
+/// DELETE /api/tasks/{task_id}/linked-crm-companies/{crm_company_id}/{twenty_workspace_id}
 async fn unlink_crm_company_from_task(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path((task_id, crm_company_id)): Path<(Uuid, Uuid)>,
+    Path((task_id, crm_company_id, twenty_workspace_id)): Path<(Uuid, Uuid, String)>,
 ) -> Result<Json<serde_json::Value>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    delete_company_link(&state.db, task_id, crm_company_id)
-        .await
-        .map_err(map_err)?;
+    delete_company_link(
+        &state.db,
+        tenant.tenant_id,
+        task_id,
+        &twenty_workspace_id,
+        crm_company_id,
+    )
+    .await
+    .map_err(map_err)?;
 
     Ok(Json(json!({ "success": true })))
 }
@@ -151,7 +165,7 @@ async fn get_linked_crm_companies_for_task(
 ) -> Result<Json<Vec<TaskCrmCompany>>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    let rows = list_companies_for_task(&state.db, task_id).await?;
+    let rows = list_companies_for_task(&state.db, tenant.tenant_id, task_id).await?;
     Ok(Json(rows))
 }
 
@@ -168,6 +182,7 @@ async fn link_crm_deal_to_task(
 
     create_deal_link(
         &state.db,
+        tenant.tenant_id,
         task_id,
         body.twenty_workspace_id,
         body.crm_deal_id,
@@ -179,17 +194,23 @@ async fn link_crm_deal_to_task(
     Ok(Json(json!({ "success": true })))
 }
 
-/// DELETE /api/tasks/{task_id}/linked-crm-deals/{crm_deal_id}
+/// DELETE /api/tasks/{task_id}/linked-crm-deals/{crm_deal_id}/{twenty_workspace_id}
 async fn unlink_crm_deal_from_task(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path((task_id, crm_deal_id)): Path<(Uuid, Uuid)>,
+    Path((task_id, crm_deal_id, twenty_workspace_id)): Path<(Uuid, Uuid, String)>,
 ) -> Result<Json<serde_json::Value>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    delete_deal_link(&state.db, task_id, crm_deal_id)
-        .await
-        .map_err(map_err)?;
+    delete_deal_link(
+        &state.db,
+        tenant.tenant_id,
+        task_id,
+        &twenty_workspace_id,
+        crm_deal_id,
+    )
+    .await
+    .map_err(map_err)?;
 
     Ok(Json(json!({ "success": true })))
 }
@@ -202,7 +223,7 @@ async fn get_linked_crm_deals_for_task(
 ) -> Result<Json<Vec<TaskCrmDeal>>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    let rows = list_deals_for_task(&state.db, task_id).await?;
+    let rows = list_deals_for_task(&state.db, tenant.tenant_id, task_id).await?;
     Ok(Json(rows))
 }
 
@@ -216,7 +237,8 @@ async fn get_all_linked_crm_for_task(
 ) -> Result<Json<AllCrmLinksResponse>> {
     verify_task_membership(&state.db, task_id, tenant.user_id, &tenant.role).await?;
 
-    let (contacts, companies, deals) = list_all_for_task(&state.db, task_id).await?;
+    let (contacts, companies, deals) =
+        list_all_for_task(&state.db, tenant.tenant_id, task_id).await?;
 
     Ok(Json(AllCrmLinksResponse {
         contacts,
@@ -233,7 +255,7 @@ pub fn task_crm_links_router(state: AppState) -> Router<AppState> {
             get(get_linked_crm_contacts_for_task).post(link_crm_contact_to_task),
         )
         .route(
-            "/tasks/{task_id}/linked-crm-contacts/{crm_contact_id}",
+            "/tasks/{task_id}/linked-crm-contacts/{crm_contact_id}/{twenty_workspace_id}",
             axum::routing::delete(unlink_crm_contact_from_task),
         )
         // Companies
@@ -242,7 +264,7 @@ pub fn task_crm_links_router(state: AppState) -> Router<AppState> {
             get(get_linked_crm_companies_for_task).post(link_crm_company_to_task),
         )
         .route(
-            "/tasks/{task_id}/linked-crm-companies/{crm_company_id}",
+            "/tasks/{task_id}/linked-crm-companies/{crm_company_id}/{twenty_workspace_id}",
             axum::routing::delete(unlink_crm_company_from_task),
         )
         // Deals
@@ -251,7 +273,7 @@ pub fn task_crm_links_router(state: AppState) -> Router<AppState> {
             get(get_linked_crm_deals_for_task).post(link_crm_deal_to_task),
         )
         .route(
-            "/tasks/{task_id}/linked-crm-deals/{crm_deal_id}",
+            "/tasks/{task_id}/linked-crm-deals/{crm_deal_id}/{twenty_workspace_id}",
             axum::routing::delete(unlink_crm_deal_from_task),
         )
         // Combined
