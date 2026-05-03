@@ -382,14 +382,10 @@ pub fn build_router(
         .nest("/api", shared_project_public_router())
         // Phase 4: Webhooks (outbound delivery log)
         .nest("/api", webhook_router(state.clone()))
-<<<<<<< HEAD
         // Phase 6a: Inbound webhook receiver from Twenty CRM (no auth — HMAC-signed)
         .nest("/api", webhooks_incoming_router(state.clone()))
-||||||| 60bc012
-=======
         // Phase 6b: outbound CRM sync enqueue
         .nest("/api", twenty_sync_router(state.clone()))
->>>>>>> crm/phase-6b-outbound
         // Settings & Teams: User preferences, sessions, uploads, API keys
         .nest("/api", user_preferences_router(state.clone()))
         .nest("/api", sessions_router(state.clone()))
