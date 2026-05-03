@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO notifications (id, recipient_id, event_type, title, body, is_read, created_at)\n                VALUES ($1, $2, 'test', $3, 'body', false, NOW() - interval '90 days')\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6df295a3ceb07d3275ab46f9462a054ab0e6c57f1ede0d928c990f7d80a0ffdb"
+}

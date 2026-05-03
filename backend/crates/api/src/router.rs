@@ -1,10 +1,11 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::Method;
 use axum::middleware::{from_fn, from_fn_with_state};
-use axum::{routing::get, Router};
+use axum::{routing::get, Extension, Router};
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::timeout::TimeoutLayer;
@@ -19,6 +20,7 @@ use crate::middleware::rate_limit::{
 use crate::middleware::request_id::request_id_middleware;
 use crate::middleware::security_headers_middleware;
 use crate::middleware::{audit_middleware, auth_middleware, csrf_middleware};
+use crate::routes::integrations::{twenty_oidc_router, TwentyOidcKeys};
 use crate::routes::project_visibility_router;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
@@ -47,6 +49,9 @@ pub fn build_router(
     state: AppState,
     config: &Config,
 ) -> Result<Router, Box<dyn std::error::Error>> {
+    // Load (or generate) the dedicated Twenty OIDC RSA keypair. Separate from
+    // TaskBolt's JWT signing key — see crates/api/src/routes/integrations/oidc_keys.rs.
+    let twenty_oidc_keys = Arc::new(TwentyOidcKeys::from_env_or_disk(None)?);
     // Build CORS layer with configured origin
     let allowed_origin = config.app_url.parse::<axum::http::HeaderValue>().map_err(
         |e| -> Box<dyn std::error::Error> {
@@ -389,6 +394,17 @@ pub fn build_router(
         .nest("/api", personal_board_router(state.clone()))
         .nest("/api", task_snooze_router(state.clone()))
         .nest("/api", batch_my_tasks_router(state.clone()))
+        // Phase 4 (CRM): Twenty OIDC IdP — exposes /oauth/twenty/{authorize,token,userinfo,jwks,...}
+        // Routes below require auth handled inside the handler (AuthUserExtractor) since
+        // the discovery + JWKS endpoints are public per OIDC spec.
+        .merge(
+            twenty_oidc_router(state.clone())
+                .layer(Extension(twenty_oidc_keys.clone()))
+                .layer(from_fn_with_state(
+                    state.clone(),
+                    crate::middleware::optional_auth_middleware,
+                )),
+        )
         // Per-user rate limit (300 req/min per authenticated user)
         .layer(from_fn(user_rate_limit_middleware))
         .layer(user_rate_limit_layer(state.redis.clone(), 300, 60))

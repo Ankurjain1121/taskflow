@@ -76,6 +76,9 @@ hex = "0.4"
 aes-gcm = "0.10"
 hkdf = "0.12"
 
+# RSA (Twenty OIDC IdP signing — separate from TaskBolt JWT keys)
+rsa = { version = "0.9", features = ["sha2"] }
+
 # Regex
 regex = "1"
 once_cell = "1"

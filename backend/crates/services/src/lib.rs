@@ -12,6 +12,7 @@ pub mod sample_board;
 #[cfg(test)]
 pub(crate) mod sample_data;
 pub mod trash_bin;
+pub mod twenty;
 
 pub use audit::{get_action_for_route, record_audit_event, AuditError, ROUTE_ACTION_MAP};
 pub use board_templates::{get_template, BoardTemplate, TEMPLATES as BOARD_TEMPLATES};
@@ -40,3 +41,4 @@ pub use trash_bin::{
     get_trash_items, move_to_trash, permanently_delete, restore_from_trash, PaginatedTrashItems,
     TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,
 };
+pub use twenty::{ProvisionUserOutcome, TwentyClient, TwentyError};
