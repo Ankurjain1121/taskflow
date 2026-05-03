@@ -368,12 +368,6 @@ pub async fn mark_event_dup(
 mod tests {
     use super::*;
 
-    fn make_ctx() -> RlsContext {
-        RlsContext {
-            tenant_id: Uuid::new_v4(),
-        }
-    }
-
     #[test]
     fn tenant_context_holds_id() {
         let id = Uuid::new_v4();

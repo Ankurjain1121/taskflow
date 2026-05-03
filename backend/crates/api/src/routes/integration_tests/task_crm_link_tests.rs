@@ -1,5 +1,4 @@
 use super::common::*;
-use taskbolt_db::queries::tasks::get_task_project_id;
 
 // =========================================================================
 // Helper: create a task in a project for happy-path tests
