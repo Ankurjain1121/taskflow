@@ -20,6 +20,7 @@ mod invitation_tests;
 mod personal_board_tests;
 mod prometheus_tests;
 mod recent_items_tests;
+mod task_crm_link_tests;
 mod task_issue_link_tests;
 mod task_snooze_tests;
 mod task_tests;

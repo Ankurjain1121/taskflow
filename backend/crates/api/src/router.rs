@@ -34,10 +34,10 @@ use crate::routes::{
     project_router, project_share_router, project_template_router, project_templates_router,
     readiness_handler, recent_items_router, recurring_router, reports_router, saved_views_router,
     search_router, sessions_router, shared_project_public_router, subtask_router,
-    task_group_routes, task_issue_link_router, task_labels_router, task_router, task_snooze_router,
-    task_status_timeline_router, task_template_router, team_overview_router, tenant_router,
-    time_entry_router, upload_router, user_preferences_router, webhook_router,
-    webhooks_incoming_router, workspace_api_keys_router, workspace_audit_router,
+    task_crm_links_router, task_group_routes, task_issue_link_router, task_labels_router,
+    task_router, task_snooze_router, task_status_timeline_router, task_template_router,
+    team_overview_router, tenant_router, time_entry_router, upload_router, user_preferences_router,
+    webhook_router, webhooks_incoming_router, workspace_api_keys_router, workspace_audit_router,
     workspace_export_router, workspace_job_roles_router, workspace_labels_router,
     workspace_projects_router, workspace_roles_router, workspace_router, workspace_tasks_router,
     workspace_trash_router,
@@ -225,6 +225,7 @@ pub fn build_router(
         .nest("/api", project_group_router(state.clone()))
         .nest("/api", project_budget_router(state.clone()))
         .nest("/api", task_issue_link_router(state.clone()))
+        .nest("/api", task_crm_links_router(state.clone()))
         .nest("/api", task_status_timeline_router(state.clone()))
         .nest("/api", attachment_router(state.clone()))
         // Comment routes

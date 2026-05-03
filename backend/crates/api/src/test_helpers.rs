@@ -410,6 +410,7 @@ pub mod helpers {
             .nest("/api", routes::task_snooze_router(state.clone()))
             .nest("/api", routes::recent_items_router(state.clone()))
             .nest("/api", routes::task_issue_link_router(state.clone()))
+            .nest("/api", routes::task_crm_links_router(state.clone()))
             .nest("/api", routes::prometheus_router())
             .nest(
                 "/api/projects/{board_id}/filter-presets",

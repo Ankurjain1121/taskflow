@@ -43,6 +43,7 @@ pub mod search;
 pub mod task_assignments;
 pub mod task_budgets;
 pub mod task_bulk;
+pub mod task_crm_links;
 pub mod task_groups;
 pub mod task_issue_links;
 pub mod task_reminders;

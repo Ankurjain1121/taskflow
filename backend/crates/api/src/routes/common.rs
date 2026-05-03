@@ -5,6 +5,7 @@ use uuid::Uuid;
 use taskbolt_auth::rbac::capabilities_for_user_role;
 use taskbolt_db::models::workspace_role::Capabilities;
 use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::tasks::get_task_project_id;
 
 use crate::errors::{AppError, Result};
 
@@ -68,6 +69,22 @@ pub async fn verify_project_membership(
     }
 
     Err(AppError::Forbidden("Not a project member".into()))
+}
+
+/// Verify that a user can access the project that owns the given task.
+///
+/// Resolves the task's project_id then delegates to `verify_project_membership`.
+/// Returns 404 if the task does not exist, 403 if the user is not a member.
+pub async fn verify_task_membership(
+    pool: &PgPool,
+    task_id: Uuid,
+    user_id: Uuid,
+    role: &UserRole,
+) -> Result<()> {
+    let project_id = get_task_project_id(pool, task_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
+    verify_project_membership(pool, project_id, user_id, role).await
 }
 
 /// The 12 workspace-level capabilities that can be checked.

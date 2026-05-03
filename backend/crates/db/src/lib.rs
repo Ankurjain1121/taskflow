@@ -1,5 +1,6 @@
 pub mod models;
 pub mod queries;
+pub mod tenant;
 pub mod utils;
 
 #[cfg(test)]

@@ -103,6 +103,7 @@ pub use project::{project_router, project_templates_router, workspace_projects_r
 pub use project_share::{project_share_router, shared_project_public_router};
 pub mod task_bulk;
 pub mod task_collaboration;
+pub mod task_crm_links;
 pub mod task_crud;
 pub mod task_helpers;
 pub mod task_issue_link;
@@ -132,6 +133,7 @@ pub use search::search_router;
 pub use sessions::sessions_router;
 pub use subtask::subtask_router;
 pub use task::task_router;
+pub use task_crm_links::task_crm_links_router;
 pub use task_group::task_group_routes;
 pub use task_issue_link::task_issue_link_router;
 pub use task_labels::task_labels_router;

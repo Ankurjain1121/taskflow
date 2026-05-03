@@ -2,6 +2,7 @@
 //!
 //! Provides typed extractors for accessing authenticated user information
 //! and enforcing role-based access control.
+#![allow(clippy::result_large_err)]
 
 use axum::{
     extract::FromRequestParts,
