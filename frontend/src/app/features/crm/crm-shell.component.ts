@@ -38,6 +38,13 @@ interface LinkedCrmSummary {
   last_synced: string | null;
 }
 
+interface TwentyHealthResponse {
+  status: 'ok' | 'degraded' | 'down';
+  last_checked: string;
+  workspace_bound: boolean;
+  embed_compatible: boolean;
+}
+
 @Component({
   selector: 'app-crm-shell',
   standalone: true,
@@ -447,6 +454,16 @@ interface LinkedCrmSummary {
                 <div class="skeleton-row"></div>
               </div>
             </div>
+            <!--
+              SANDBOX NOTE: \`allow-same-origin\` is intentional here so that the
+              embedded Twenty CRM at \`crm.taskflow.paraslace.in\` can read its
+              own session cookies. The CRM origin is fully trusted (same operator,
+              same TLS root, served from our own infrastructure); the sandbox
+              attribute is defense-in-depth only. Do NOT add untrusted iframes
+              to this component or reuse this sandbox string for third-party
+              content — \`allow-same-origin\` + \`allow-scripts\` would let an
+              untrusted document escape the sandbox.
+            -->
             <iframe
               [src]="safeCrmUrl()"
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-storage-access-by-user-activation"
@@ -510,6 +527,25 @@ interface LinkedCrmSummary {
               <div class="empty-actions">
                 <a [href]="crmBaseUrl" target="_blank" rel="noopener" class="btn-primary">
                   Open CRM
+                </a>
+              </div>
+            </div>
+          }
+
+          @case ('disconnected') {
+            <div class="crm-empty-state" role="alert">
+              <div class="empty-icon"><i class="pi pi-link" aria-hidden="true"></i></div>
+              <p class="empty-title">CRM not connected</p>
+              <p class="empty-desc">
+                The CRM integration is not connected for this workspace.
+                Connect it from Integration settings to view your pipeline here.
+              </p>
+              <div class="empty-actions">
+                <a routerLink="/settings/integrations" class="btn-primary">
+                  Open Integration settings
+                </a>
+                <a [href]="crmBaseUrl" target="_blank" rel="noopener" class="btn-secondary">
+                  ↗ Open CRM directly
                 </a>
               </div>
             </div>
@@ -579,12 +615,10 @@ export class CrmShellComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.startLoading();
-
-    // Handle disconnected state: navigate to integrations settings
-    if (this.crmState() === 'disconnected') {
-      this.router.navigate(['/settings/integrations']);
-    }
+    // Probe the CRM integration health BEFORE attempting to load the iframe.
+    // This is what makes csp_blocked + disconnected reachable instead of always
+    // falling through to loading -> offline / error.
+    this.probeHealthAndStart();
   }
 
   ngOnDestroy(): void {
@@ -620,6 +654,37 @@ export class CrmShellComponent implements OnInit, OnDestroy {
   /** Called externally to enter upgrading mode. */
   setUpgrading(): void {
     this.crmState.set('upgrading');
+  }
+
+  /**
+   * Probe the CRM integration health endpoint and decide initial state.
+   *
+   * - If the response signals the CRM is not embeddable (e.g. CSP frame-ancestors
+   *   blocks us) -> state = 'csp_blocked' (template offers an "Open CRM" link).
+   * - If the response says the workspace has no Twenty link or the upstream is
+   *   down -> state = 'disconnected' (template directs the user to Integration
+   *   settings). If the iframe later succeeds despite this, the load handler
+   *   will still flip to 'connected' since we only short-circuit when the probe
+   *   is decisive.
+   * - On any other outcome (network error, ok, or degraded) we fall through to
+   *   the iframe load path via `startLoading()`.
+   */
+  private probeHealthAndStart(): void {
+    this.http
+      .get<TwentyHealthResponse>('/api/integrations/twenty/health')
+      .pipe(catchError(() => of(null)))
+      .subscribe((res) => {
+        if (res && res.embed_compatible === false) {
+          this.crmState.set('csp_blocked');
+          return;
+        }
+        if (res && (res.workspace_bound === false || res.status === 'down')) {
+          this.crmState.set('disconnected');
+          return;
+        }
+        // Healthy or unknown — proceed with normal iframe load flow.
+        this.startLoading();
+      });
   }
 
   private startLoading(): void {

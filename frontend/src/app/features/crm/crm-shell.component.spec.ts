@@ -31,9 +31,35 @@ describe('CrmShellComponent', () => {
     }).compileComponents();
   });
 
-  function createComponent() {
+  function createComponent(
+    healthOverride?:
+      | { status: 'ok' | 'degraded' | 'down'; embed_compatible: boolean; workspace_bound: boolean }
+      | 'error'
+      | 'null',
+  ) {
     const fixture = TestBed.createComponent(CrmShellComponent);
     const component = fixture.componentInstance;
+    fixture.detectChanges();
+    // ngOnInit fires the health probe — fulfil it so the rest of the flow runs.
+    const http = TestBed.inject(HttpTestingController);
+    const req = http.expectOne('/api/integrations/twenty/health');
+    if (healthOverride === 'error') {
+      req.error(new ErrorEvent('network'));
+    } else if (healthOverride === 'null') {
+      req.flush(null);
+    } else if (healthOverride) {
+      req.flush({
+        ...healthOverride,
+        last_checked: new Date().toISOString(),
+      });
+    } else {
+      req.flush({
+        status: 'ok',
+        last_checked: new Date().toISOString(),
+        workspace_bound: true,
+        embed_compatible: true,
+      });
+    }
     fixture.detectChanges();
     return { fixture, component };
   }
@@ -140,4 +166,41 @@ describe('CrmShellComponent', () => {
     expect(component.crmState()).toBe('loading');
     flush();
   }));
+
+  it('transitions to csp_blocked when health probe reports embed_compatible=false', () => {
+    const { component } = createComponent({
+      status: 'ok',
+      workspace_bound: true,
+      embed_compatible: false,
+    });
+    expect(component.crmState()).toBe('csp_blocked');
+  });
+
+  it('transitions to disconnected when health probe reports workspace_bound=false', () => {
+    const { component } = createComponent({
+      status: 'ok',
+      workspace_bound: false,
+      embed_compatible: true,
+    });
+    expect(component.crmState()).toBe('disconnected');
+  });
+
+  it('transitions to disconnected when health probe reports status=down', () => {
+    const { component } = createComponent({
+      status: 'down',
+      workspace_bound: true,
+      embed_compatible: true,
+    });
+    expect(component.crmState()).toBe('disconnected');
+  });
+
+  it('falls through to loading on probe network error', () => {
+    const { component } = createComponent('error');
+    expect(component.crmState()).toBe('loading');
+  });
+
+  it('falls through to loading on null probe response', () => {
+    const { component } = createComponent('null');
+    expect(component.crmState()).toBe('loading');
+  });
 });

@@ -415,8 +415,8 @@ type ConnectionStatus = 'unknown' | 'checking' | 'ok' | 'degraded' | 'down';
           Reconnect
         </button>
         <button class="btn btn-danger" (click)="confirmDisconnect()" type="button">
-          <i class="pi pi-times-circle"></i>
-          Disconnect
+          <i class="pi pi-eye-slash"></i>
+          Hide from sidebar
         </button>
       </div>
     </div>
@@ -489,23 +489,24 @@ type ConnectionStatus = 'unknown' | 'checking' | 'ok' | 'degraded' | 'down';
       </div>
     </div>
 
-    <!-- Disconnect confirm modal -->
+    <!-- Hide-from-sidebar confirm modal -->
     @if (showDisconnectModal()) {
       <div class="confirm-overlay" role="dialog" aria-modal="true"
            aria-labelledby="disconnect-title" (click)="cancelDisconnect()">
         <div class="confirm-dialog" (click)="$event.stopPropagation()">
-          <p class="confirm-title" id="disconnect-title">Disconnect Twenty CRM?</p>
+          <p class="confirm-title" id="disconnect-title">Hide CRM from this sidebar?</p>
           <p class="confirm-desc">
-            This will remove the CRM integration from this workspace.
-            Synced data is not deleted. You can reconnect at any time.
+            This will hide the CRM section from this workspace's sidebar.
+            The integration itself stays connected, no data is removed,
+            and you can re-show it from this page at any time.
           </p>
           <div class="confirm-actions">
             <button class="btn btn-outline" (click)="cancelDisconnect()" type="button">
               Cancel
             </button>
             <button class="btn btn-danger" (click)="executeDisconnect()" type="button">
-              <i class="pi pi-times-circle"></i>
-              Disconnect
+              <i class="pi pi-eye-slash"></i>
+              Hide from sidebar
             </button>
           </div>
         </div>
@@ -563,6 +564,11 @@ export class IntegrationsComponent implements OnInit {
     this.showDisconnectModal.set(false);
   }
 
+  // TODO(crm): expose a true backend disconnect endpoint that deletes the
+  // crm_workspace_links row + revokes any cached tokens. Until then this only
+  // hides the CRM section from the sidebar (via the local feature flag) and
+  // does NOT touch the integration server-side. The button label and confirm
+  // copy have been renamed to "Hide from sidebar" to match this real behavior.
   executeDisconnect(): void {
     this.showDisconnectModal.set(false);
     const wsId = this.ctx.activeWorkspaceId();
