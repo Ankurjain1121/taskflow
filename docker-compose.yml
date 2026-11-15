@@ -8,8 +8,37 @@ networks:
 
 volumes:
   minio-data:
+  redis-data:
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: taskbolt-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - taskbolt-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 320M
+        reservations:
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   minio:
     image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: taskbolt-minio
@@ -46,7 +75,7 @@ services:
       start_period: 10s
 
   minio-setup:
-    image: minio/mc:RELEASE.2025-01-17T00-13-17Z
+    image: minio/mc:latest
     container_name: taskbolt-minio-setup
     entrypoint: /bin/sh -c "until mc alias set myminio http://minio:9000 $${MINIO_ACCESS_KEY} $${MINIO_SECRET_KEY}; do sleep 2; done; mc mb myminio/$${MINIO_BUCKET} --ignore-existing; mc anonymous set none myminio/$${MINIO_BUCKET};"
     environment:
@@ -80,7 +109,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set in .env}
       JWT_ACCESS_EXPIRY_SECS: ${JWT_ACCESS_EXPIRY_SECS:-900}
       JWT_REFRESH_EXPIRY_SECS: ${JWT_REFRESH_EXPIRY_SECS:-604800}
-      REDIS_URL: redis://10.0.2.1:6379/0
+      REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
@@ -101,6 +130,8 @@ services:
       RESEND_FROM_NAME: ${RESEND_FROM_NAME:-TaskBolt}
     depends_on:
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
